@@ -37,7 +37,6 @@
     "Filter Ultra Fresh": ["ultra fresh", "fresh filter", "antibakterialny", "antimikrobialny"],
     "Aktívny karbón-katechínový filter": ["aktivny karbon", "carbon filter", "katechin", "uhlikovy filter", "deodorizing"],
     "IAQ filter": ["iaq", "iaq filter", "kvalita vzduchu"],
-    "Ozónová čistička vzduchu": ["ozon", "ozonova", "ozone", "ozone purifier", "haori filter"],
     "Funkcia SILENT": ["silent", "silent mode", "tichy rezim", "tichy chod", "nizka hlucnost", "tichy"],
     "HADA careflow": ["hada", "careflow", "hada careflow", "jemny prud", "neaktivne prudenie", "rozptyleny vzduch"],
     "Smart Sensing": ["smart sensing", "senzor pritomnosti", "presence sensor", "motion sensor", "detekcia osob"],
@@ -60,7 +59,7 @@
     "SCOP (Seasonal COP)": "Sezónna účinnosť vykurovania. A+++ = SCOP ≥ 5,1; A++ = ≥ 4,6; A+ = ≥ 4,0.",
     "Energetická trieda A+++": "Najvyššia trieda. SHORAI CURVE, HAORI, DAISEIKAI 10 ju dosahujú pri menších veľkostiach (10, 13).",
     "WiFi modul": "Umožňuje ovládanie cez aplikáciu Toshiba Home AC Control. V SHORAI/HAORI/DAISEIKAI je štandardne, v SEIYA je voliteľný (RB-N105S-G, 115 €).",
-    "Plazmový ionizátor": "Zariadenie ktoré ionizuje vzduch a zachytáva mikročastice. SHORAI CURVE a DAISEIKAI 10 ho majú zabudovaný.",
+    "Plazmový ionizátor": "Zariadenie ktoré ionizuje vzduch a zachytáva mikročastice. SHORAI CURVE, HAORI a DAISEIKAI 10 ho majú zabudovaný.",
     "WindFree (Samsung)": "Toshiba RAS NEMÁ WindFree režim – to je Samsung technológia. Toshiba má vlastné riešenia: HADA careflow (DAISEIKAI), Bi-Flow (Parapetná).",
     "HADA careflow": "Jemné prúdenie vzduchu bez priameho prievanu, dostupné len v DAISEIKAI 10.",
     "Bi-Flow": "Parapetná jednotka s dvojitým vyfukovaním – horný aj spodný prúd vzduchu pre efekt podlahového kúrenia.",
@@ -77,7 +76,7 @@
     "velka_obyvacka_40-60m2": ["SEIYA 18", "SHORAI 18-22", "DAISEIKAI 18"],
     "kancelaria_60-80m2": ["SHORAI 24", "DAISEIKAI 18", "Multi-Split 4M27/5M34"],
     "tichy_rezim_potrebny": ["SHORAI CURVE (SILENT funkcia)", "HAORI"],
-    "alergici_filtracia": ["DAISEIKAI 10 (plazma + Ultra Pure)", "HAORI (ozón + Ultra Pure)"],
+    "alergici_filtracia": ["DAISEIKAI 10 (plazma + Ultra Pure)", "HAORI (plazma + Ultra Pure)"],
     "dizajn_estetika": ["HAORI (textilný kryt)", "DAISEIKAI 10 Wood (drevo)", "SHORAI CURVE Black"],
     "najlacnejsie_riesenie": ["SEIYA Classic 2 (od 1 000 €)"],
     "ekonomicka_prevadzka": ["DAISEIKAI 10 White (SEER 10,7)", "SHORAI CURVE White"],
@@ -94,6 +93,6 @@
     "rozdiel_seiya_vs_seiya_classic_2": "SEIYA Classic 2 je entry CLASSIC Line (A++/A+, SEER 6,1). SEIYA je BASIC Line (A++/A++, SEER 7,0) s lepšou účinnosťou aj vykurovaním (-A++ namiesto A+).",
     "ma_toshiba_wifi": "Áno – v SHORAI CURVE, HAORI, DAISEIKAI 10 je WiFi štandardne. V SEIYA Classic 2 a SEIYA je voliteľné (RB-N105S-G, 115 €).",
     "potrebujem_ovladac_extra": "IR ovládač je v balení každého setu. Voliteľne RB-RXS33-E (105 €) s týždenným časovačom.",
-    "co_je_haori_special": "HAORI má textilný kryt v 6 farbách (2 v cene, 4 voliteľné po 125 €), ozónovú čističku vzduchu, Ultra Pure filter a štandardne WiFi."
+    "co_je_haori_special": "HAORI má textilný kryt v 6 farbách (2 v cene, 4 voliteľné po 125 €), plazmový ionizátor, Ultra Pure filter a štandardne WiFi."
   }
 }

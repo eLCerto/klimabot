@@ -1,0 +1,45 @@
+{
+  "_metadata": {
+    "purpose": "Filtration ranking of the residential wall series, used when the customer mentions allergy, dust or air quality. bot.py sends it in the server context and quote warns when a better tier of the same size exists. Rules point here instead of restating the order.",
+    "basis": "The filters each series lists in the price lists (knowledge/toshiba, knowledge/samsung). The price lists describe filters but give no measured performance, so the order is the owner's sales judgement.",
+    "decided": "2026-10-15, owner. HAORI has a plasma ionizer + Ultra Pure like DAISEIKAI 10 (the Slovak catalog's 'ozone purifier' was a mistranslation).",
+    "tiers_note": "Tier 1 is the best. Series within a tier are equal: respect the brand the customer named, otherwise offer the cheaper one. Tier 4 is never recommended for allergy.",
+    "coverage": "bot.py refuses to start when a wall series in the price lists is missing here or a series here no longer exists. The console unit (Parapetna_jednotka) is a different unit type and stays out."
+  },
+  "tiers": [
+    {
+      "tier": 1,
+      "label": "jemný filter (PM2.5) a aktívne čistenie vzduchu",
+      "entries": [
+        {"name": "Toshiba DAISEIKAI 10", "series": ["DAISEIKAI_10_White", "DAISEIKAI_10_Wood"], "filtration": "prachový filter, plazmový ionizátor, filter Ultra Pure (PM2.5)"},
+        {"name": "Toshiba HAORI", "series": ["HAORI"], "filtration": "prachový filter, plazmový ionizátor, filter Ultra Pure (PM2.5)"},
+        {"name": "Samsung WindFree Avant S2", "series": ["WindFree_Avant_S2_White", "WindFree_Avant_S2_Black"], "filtration": "Tri-care filter, Easy Filter Plus, Freeze Wash"},
+        {"name": "Samsung WindFree Première / Première+", "series": ["WindFree_Premiere_White", "WindFree_Premiere_Black", "WindFree_Premiere_Plus_White", "WindFree_Premiere_Plus_Black"], "filtration": "4-in-1 filter, Easy Filter Plus, Freeze Wash"}
+      ]
+    },
+    {
+      "tier": 2,
+      "label": "aktívne čistenie bez jemného filtra v základe",
+      "entries": [
+        {"name": "Toshiba SHORAI CURVE", "series": ["SHORAI_CURVE_White", "SHORAI_CURVE_Black"], "filtration": "prachový filter, plazmový ionizátor; filter Ultra Pure je voliteľný"}
+      ]
+    },
+    {
+      "tier": 3,
+      "label": "lepší než základný filter",
+      "entries": [
+        {"name": "Toshiba SEIYA", "series": ["SEIYA"], "filtration": "prachový filter, filter Ultra Fresh"},
+        {"name": "Samsung WindFree Comfort S2", "series": ["WindFree_Comfort_S2"], "filtration": "Easy Filter Plus, Freeze Wash"},
+        {"name": "Samsung Cebu S2 / Luzon S2", "series": ["Cebu_S2", "Luzon_S2"], "filtration": "Easy Filter Plus"}
+      ]
+    },
+    {
+      "tier": 4,
+      "label": "iba základný prachový filter — alergikom neodporúčaj",
+      "entries": [
+        {"name": "Toshiba SEIYA Classic 2", "series": ["SEIYA_Classic_2"], "filtration": "prachový filter"},
+        {"name": "Samsung AR35 / AR30", "series": ["AR35_WIFI", "AR30_WIFI"], "filtration": "základný filter"}
+      ]
+    }
+  ]
+}

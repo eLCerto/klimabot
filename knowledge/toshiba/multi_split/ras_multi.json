@@ -783,9 +783,10 @@
     },
     "HAORI": {
       "line": "DESIGN Line",
+      "filtration_note": "Filtrácia podľa špecifikácie Toshiba HAORI: Plasma Ionizer + Ultra Pure; slovenský katalóg ju preložil inak (overené 2026-10-15, potvrdil majiteľ).",
       "features": [
         "Inovatívny textilný kryt",
-        "Prachový filter, ozónová čistička, Ultra Pure",
+        "Prachový filter, plazmový ionizátor, Ultra Pure",
         "WiFi štandardne"
       ],
       "models": [

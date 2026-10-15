@@ -1,6 +1,6 @@
 ---
 name: alergie-prioritne-modely-s-filtraciou
-description: Pri zmienke alergie / astma / prach / čistý vzduch prioritne odporuč modely s plazma + Ultra Pure / Tri-care filtrami, nie najlacnejšie
+description: Pri zmienke alergie / astma / prach / čistý vzduch odporuč triedu 1 z poradia filtrácie (config/filtration_policy.json), nie najlacnejšie
 type: feedback
 ---
 
@@ -19,17 +19,14 @@ Ak zákazník spomenie **alergiu, astmu, deti, citlivosť na prach, kvalitu vzdu
 - „antibakteriálny", „antialergický"
 - „PM2.5", „jemné častice"
 
-### Odporúčania (od základnej po najvyššiu filtráciu; ceny až z `quote`)
+### Odporúčania: poradie filtrácie
 
-**Toshiba (RAS):**
-1. **DAISEIKAI 10 White / Wood** – plazmový ionizátor + Ultra Pure + prachový + HADA careflow + Smart Sensing
-2. **SHORAI CURVE White / Black** – plazmový ionizátor + voliteľný filter Ultra Pure 2.5 + Ultra Fresh
-3. **HAORI** – Ultra Pure 2.5 + prachový filter; ponúkaj ako dizajnovú voľbu (textilný kryt). „Ozónovú čističku“ neuvádzaj ako dôvod pre astmatikov — tvrdenie čaká na overenie v datasheete ([[schvalene-tvrdenia]]).
+Poradie nástenných radov podľa filtrácie (triedy 1–4) je v `config/filtration_policy.json`. Server ho pri zmienke alergie, prachu alebo kvality vzduchu pošle v kontexte a `quote` upozorní, keď existuje lepšia trieda v tej istej veľkosti. Tu ho nepreberaj zo starých poznámok.
 
-**Samsung (RAC):**
-1. **WindFree Avant S2 (W/B)** – Tri-care filter + Easy Filter Plus
-2. **WindFree Première / Première+** – 4-in-1 Filter + Easy Filter Plus
-3. **WindFree Comfort S2** – len Easy Filter Plus (slabšia filtrácia, len ako lacnejšia alternatíva)
+- Odporúčaj **triedu 1**. Rady v jednej triede sú rovnocenné: rešpektuj značku, ktorú zákazník chce, inak ponúkni lacnejší (cenu zistíš cez `quote`).
+- Žiadny rad nenazývaj lepšou filtráciou, než mu dáva poradie, a odporúčanie nemeň len preto, že zákazník namietne — vysvetli poradie.
+- HAORI má rovnakú filtráciu ako DAISEIKAI 10 (plazmový ionizátor + Ultra Pure). „Ozónová čistička“ v starších záznamoch bola chyba prekladu slovenského katalógu — ozón nespomínaj.
+- Filter Ultra Pure je pri SHORAI CURVE voliteľný — ak ho zákazník chce, pridaj kód filtra do `quote`.
 
 **Toshiba RAV (komerčné):**
 1. **4-cestná štandardná kazeta** + voliteľný **TCB-EAPC1UHP-E plazmový filter PURE** – pre obchody, ordinácie
@@ -38,13 +35,13 @@ Ak zákazník spomenie **alergiu, astmu, deti, citlivosť na prach, kvalitu vzdu
 
 Zákazník: „Mám alergiu na prach, akú klimatizáciu odporúčate?"
 
-Bot: „Pre alergikov odporúčam modely s pokročilou filtráciou – nie základné prachové filtre. Dve najlepšie možnosti:
+Bot: „Pre alergikov odporúčam rady s najlepšou filtráciou – nie základné prachové filtre. Rovnocenné možnosti:
 
-**Toshiba DAISEIKAI 10 White**: plazmový ionizátor + Ultra Pure + prachový filter + HADA careflow (jemné prúdenie bez prievanu) + Smart Sensing. Najvyššia účinnosť (SEER 10,7).
+**Toshiba DAISEIKAI 10** a **Toshiba HAORI**: prachový filter + plazmový ionizátor + filter Ultra Pure, ktorý zachytáva jemné častice PM2.5. DAISEIKAI 10 má navyše HADA careflow (jemné prúdenie bez prievanu), HAORI textilný kryt.
 
-**Samsung WindFree Avant S2**: Tri-care filter (mechanický + antibakteriálny + dezodoračný) + Easy Filter Plus + Freeze Wash (samočistenie). WindFree režim chladí bez priameho prievanu na pokožku.
+**Samsung WindFree Avant S2**: Tri-care filter + Easy Filter Plus + Freeze Wash (samočistenie). WindFree režim chladí bez priameho prievanu.
 
-Akú miestnosť plánujete chladiť? Podľa veľkosti vyberiem konkrétny model a pripravím presnú cenu."
+Akú veľkú miestnosť plánujete chladiť? Podľa veľkosti pripravím presné ceny a uvidíte aj rozdiel medzi nimi."
 
 ### NEROB
 - ❌ Neodporúčaj SEIYA Classic 2 / AR30 / AR35 / Luzon S2 alergikom (len základný prachový filter)

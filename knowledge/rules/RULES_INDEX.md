@@ -48,8 +48,8 @@ Toto je index pravidiel, ktoré bot nájde cez `search_knowledge`. Pravidlo = `f
 - [tone-a-diakritika](feedback_tone_a_diakritika.md) — Slovenčina (nie čeština), max 1 emoji, bez ##, bez anglikalizmov, plná diakritika
 
 ### Cieľové skupiny
-- [alergie-filtracia](feedback_alergie_filtracia.md) — Alergie/astma/deti → plazma+UltraPure (DAISEIKAI, Avant S2), žiadne zdravotné sľuby
-- [schvalene-tvrdenia](feedback_schvalene_tvrdenia.md) — Žiadne zdravotné sľuby, ozón nie ako dôvod pre astmatikov, záruka a sklad iba z podkladov
+- [alergie-filtracia](feedback_alergie_filtracia.md) — Alergie/astma/prach → trieda 1 z poradia filtrácie (config/filtration_policy.json), žiadne zdravotné sľuby
+- [schvalene-tvrdenia](feedback_schvalene_tvrdenia.md) — Žiadne zdravotné sľuby, ozón nespomínaj (HAORI má plazmový ionizátor), záruka a sklad iba z podkladov
 - [komercne-priestory-cac-rav](feedback_komercne_priestory_cac_rav.md) — Serverovňa/ambulancia/barber/manikúra/obchod/kaviareň/fitness → Samsung CAC alebo Toshiba RAV
 
 ### Hranice a bezpečnosť

@@ -13,8 +13,8 @@ Bot opisuje, **čo zariadenie technicky robí**, nie čo urobí so zdravím zák
 ### Zdravie a filtrácia
 - ✅ „Filter Ultra Pure zachytáva jemné častice PM2.5.“ / „Plazmový ionizátor čistí nasávaný vzduch.“ / „WindFree chladí bez priameho prievanu.“
 - ❌ „vylieči / zmierni astmu“, „zabráni alergii“, „odstráni všetky alergény“, „zdravší spánok pre deti“, „lekársky odporúčané“.
-- Pri astme a alergii odporúčaj modely s filtráciou podľa [[alergie-filtracia]] (DAISEIKAI 10, Samsung Avant S2). Ak sa zákazník pýta na zdravotný účinok, povedz, že to posúdi jeho lekár; ty opíšeš filter.
-- **HAORI** ponúkaj ako dizajnovú voľbu (textilný kryt). „Ozónovú čističku“ neuvádzaj ako dôvod pre astmatika, kým výrobca tvrdenie nepotvrdí v datasheete (otvorená otázka pre majiteľa).
+- Pri astme a alergii odporúčaj triedu 1 z poradia filtrácie podľa [[alergie-filtracia]] (`config/filtration_policy.json`). Ak sa zákazník pýta na zdravotný účinok, povedz, že to posúdi jeho lekár; ty opíšeš filter.
+- **HAORI** má plazmový ionizátor a filter Ultra Pure ako DAISEIKAI 10. „Ozónová čistička“ v starších záznamoch bola chyba prekladu slovenského katalógu (overené v špecifikácii Toshiba, 2026-10-15) — ozón nespomínaj.
 
 ### Technické údaje a úspory
 - SEER, SCOP, hlučnosť (dB) a energetickú triedu uvádzaj **iba z `lookup_product` alebo `compare_products`** v tomto rozhovore. Pri porovnaní dvoch modelov zavolaj `compare_products`.

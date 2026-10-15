@@ -276,6 +276,9 @@ system_prompt = (
     "položke), porovnanie s predošlými ponukami a prípadne lacnejšiu vhodnú alternatívu "
     "(`cheaper_alternative`) — ak ju vráti a zákazník nechce konkrétny rad, ponúkni ju. Ceny ani zľavy "
     "nikdy nepočítaj sám.\n"
+    "V texte odpovede pomenuj produkt **názvom radu a výkonom** (napr. „Samsung WindFree Avant S2, 2,5 kW“, "
+    "„Toshiba HAORI 2,5 kW“), nie model kódom. Kódy patria do nástrojov; zákazník ich uvidí v cenovej karte "
+    "pod odpoveďou. Kód napíš iba vtedy, keď sa naň zákazník sám pýta alebo ho sám uviedol.\n"
     "Keď sa zákazník priamo pýta na cenu, cenu s montážou alebo dostupnosť, odpovedz v TOM ISTOM "
     "ťahu: hneď ako poznáš m² (alebo konkrétne kódy), zavolaj `quote` s rozumným predpokladom "
     "(nástenná, biela, štandardný = najlacnejší vhodný rad značky) a predpoklad povedz; na montáž "
@@ -297,7 +300,10 @@ system_prompt = (
     "- **Pomáhaš iba s klimatizáciami** Samuel Malíšek Klimabot (výber, cena, ponuka, kontakt na projektového "
     "manažéra). Na otázku mimo tejto témy (zdravie a lieky, právo, financie, politika, programovanie, úlohy do "
     "školy, recepty, osobné rady, všeobecné otázky) odpovedz jednou zdvorilou vetou, že s tým nepomôžeš, a ponúkni "
-    "pomoc s klimatizáciou. Neodpovedaj ani čiastočne a nič k tomu nehľadaj.\n"
+    "pomoc s klimatizáciou. Neodpovedaj ani čiastočne a nič k tomu nehľadaj. Otázka, ako funguje technológia "
+    "v našich klimatizáciách (filter, plazmový ionizátor, invertor, WindFree), **je v téme**: vysvetli ju "
+    "stručne a zrozumiteľne podľa `search_knowledge`, bez zdravotných sľubov; čo podklady nepokrývajú, "
+    "povedz jednou vetou.\n"
     "- **Lekárske rady nedávaš:** lieky, diagnózy ani liečbu neodporúčaj ani pri ťažkostiach, ktoré zákazník spája "
     "s klimatizáciou (bolesť hrdla, prechladnutie) — posúdi to lekár. Opíš iba, čo zariadenie technicky robí.\n"
     f"- **Si AI asistent.** Na otázku, či si človek, odpovedz pravdivo, že si AI asistent spoločnosti Samuel "
@@ -788,6 +794,9 @@ def _describe(rec, as_set=False):
     return " ".join([rec["brand"]] + sections[-1:]) + f" – {label}{size}"
 
 
+_REVISION_RE = re.compile(r"-E\d?$")
+
+
 def _canonical_code(code):
     code = (code or "").strip().upper()
     if code in _RECORDS_BY_CODE:
@@ -795,7 +804,14 @@ def _canonical_code(code):
     bare = code.split("/", 1)[0]
     if bare in _RECORDS_BY_CODE:
         return bare
-    return next((code + suffix for suffix in ("/EU",) if code + suffix in _RECORDS_BY_CODE), None)
+    eu = next((code + suffix for suffix in ("/EU",) if code + suffix in _RECORDS_BY_CODE), None)
+    if eu or not _REVISION_RE.search(bare):
+        return eu
+    # Toshiba revision suffix: the 2.5 kW HAORI indoor unit is -E2, the other sizes -E1, and the model
+    # guessed -E1 and gave up (live demo 2026-10-15). Accepted only when a single revision exists.
+    base = _REVISION_RE.sub("", bare)
+    variants = [c for c in _RECORDS_BY_CODE if _REVISION_RE.search(c) and _REVISION_RE.sub("", c) == base]
+    return variants[0] if len(variants) == 1 else None
 
 
 def _find_promotion(promotion_code):
@@ -956,6 +972,62 @@ def _wished(regex, text=None):
 
 _WIFI_WANTED_FOLDED_RE = re.compile("|".join(re.escape(fold_diacritics(t)) for t in SIZING["wifi_triggers"]), re.I)
 
+# Allergy, dust or air quality in the customer's words (folded, not negated: "nie som alergik").
+_ALLERGY_RE = re.compile(
+    r"\balergi\w*|\balergik\w*|\bastm\w*|\broztoc\w*|\bpel\b|\bpelov\w*|\bpm\s?2[.,]5|\bantibakter\w*|"
+    r"\bantialerg\w*|\bprach\w*|\bkvalit\w*\s+vzduch\w*|\bcistic\w*\s+vzduch\w*|\bdust\b|\ballerg\w*|\basthm\w*",
+    re.IGNORECASE)
+
+# Filtration ranking for allergy / dust / air quality (filtration_policy.json): sent in the server
+# context and checked by quote. In the live demo the bot first called HAORI the better filter, then
+# picked DAISEIKAI 10 for a dust allergy, then switched back when the customer objected.
+FILTRATION = json.loads((CONFIG_DIR / "filtration_policy.json").read_text(encoding="utf-8"))
+_FILTRATION_BY_SERIES = {s: (t["tier"], e) for t in FILTRATION["tiers"] for e in t["entries"] for s in e["series"]}
+
+
+def _series_key(rec):
+    return rec["category_path"].split(".")[1]
+
+
+def _check_filtration_policy():
+    """Every residential wall series is ranked and every ranked series exists, so a price-list
+    update can't leave a series outside the ranking."""
+    wall = {_series_key(rec) for rec in _SETS.values()
+            if "/single_split/" in rec["source"] and not _NON_WALL_PATH_RE.search(rec["category_path"])}
+    missing, unknown = sorted(wall - set(_FILTRATION_BY_SERIES)), sorted(set(_FILTRATION_BY_SERIES) - wall)
+    if missing or unknown:
+        raise SystemExit(f"filtration_policy.json: nezaradené rady {missing}, neznáme rady {unknown}")
+
+
+_check_filtration_policy()
+
+
+def _filtration_ranking_text():
+    tiers = [f"{t['tier']}. " + ", ".join(e["name"] for e in t["entries"]) + f" ({t['label']})"
+             for t in FILTRATION["tiers"]]
+    return ("Zákazník spomenul alergiu, prach alebo kvalitu vzduchu. Poradie filtrácie nástenných radov (od "
+            "najlepšej; rady v jednej triede sú rovnocenné — rešpektuj značku, ktorú zákazník chce, inak ponúkni "
+            "lacnejší): " + "; ".join(tiers) + ". Odporúčaj triedu 1. Žiadny rad nenazývaj lepšou filtráciou, než "
+            "mu dáva toto poradie, a nemeň odporúčanie len preto, že zákazník namietne.")
+
+
+def _best_filtration_sets(rec, text):
+    """Tier-1 sets of about this capacity (a single brand the customer named respected), cheapest first."""
+    kw = rec["raw"].get("cooling_kW") or 0
+    brands = [b for b, rx in _BRAND_RES.items() if rx.search(text)]
+    brand = brands[0] if len(brands) == 1 and not _ANY_BRAND_RE.search(fold_diacritics(text)) else None
+    found = {}
+    for other in _SETS.values():
+        ranked = _FILTRATION_BY_SERIES.get(_series_key(other))
+        okw = other["raw"].get("cooling_kW")
+        if (ranked and ranked[0] == 1 and isinstance(okw, (int, float)) and abs(okw - kw) <= 0.3
+                and (not brand or other["brand"] == brand)):
+            name = ranked[1]["name"]
+            price = other["raw"]["set_price_EUR"]
+            if name not in found or price < found[name]:
+                found[name] = price
+    return sorted(found, key=found.get)
+
 
 def _cheapest_set(min_kw, wifi=False, brand=None):
     """The cheapest single-split set with at least `min_kw` cooling (and Wi-Fi / brand if asked).
@@ -1099,6 +1171,18 @@ def _fit_check(fit_lines, override_reason=None):
     if cassettes and _NO_CEILING_RE.search(text):
         errors.append(f"zákazník nemá podhľad, kazety {cassettes} sa montujú do podhľadu — ponúkni podstropnú "
                       "jednotku (v salóne či ordinácii nie nástennú: fúka na ľudí)")
+    if _wished(_ALLERGY_RE):
+        for rec, codes, _, cat in fit_lines:
+            ranked = _FILTRATION_BY_SERIES.get(_series_key(rec)) if cat == "single_split_sets" else None
+            if not ranked or ranked[0] == 1:
+                continue
+            tier, entry = ranked
+            best = _best_filtration_sets(rec, text)
+            warnings.append(f"zákazník spomenul alergiu, prach alebo kvalitu vzduchu: {entry['name']} má filtráciu "
+                            f"triedy {tier} ({entry['filtration']})"
+                            + (" — alergikom ho neodporúčaj" if tier == 4 else "")
+                            + (f"; triedu 1 v tejto veľkosti majú {', '.join(best)} — ponúkni ich ako prvé a cenu "
+                               "zisti cez quote" if best else ""))
     non_wall = sorted({c for rec, codes, _, cat in fit_lines if cat in _RESIDENTIAL_CATEGORIES
                        and _NON_WALL_PATH_RE.search(rec["category_path"]) for c in codes})
     if non_wall and not _wished(_INDOOR_TYPE_WISH_RE) and not any(c in text.upper() for c in non_wall):
@@ -1173,7 +1257,8 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
         if not code:
             near = _close_codes(str(item.get("code", "")))
             return {"error": f"Kód '{item.get('code')}' v databáze nie je."
-                             + (f" Podobné kódy: {near}." if near else "") + " Over ho cez `lookup_product`."}
+                             + (f" Podobné kódy: {near}." if near else "") + " Over ho cez `lookup_product` a "
+                             "zavolaj `quote` znova so správnym kódom ešte v tomto ťahu. Zákazníkovi o kódoch nepíš."}
         wanted[code] = wanted.get(code, 0) + max(int(item.get("qty") or 1), 1)
     if not wanted:
         return {"error": "Prázdna ponuka — pošli aspoň jeden model kód."}
@@ -4013,14 +4098,10 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
                 "vhodná filtrácia, server-room funkcia kde treba)."
             )
 
-    # Allergy detector. Per [[alergie-filtracia]] bot must recommend premium-filter
-    # models for allergici (HAORI, DAISEIKAI, Avant S2 — plazma + UltraPure /
-    # Tri-care), not entry rady. Fires if allergy trigger anywhere AND reply
-    # suggests an entry model WITHOUT naming a premium-filter model.
-    _ALLERGY_TRIGGERS = (
-        "alergi", "astma", "astmat", "roztoč", "peľ ", "pm2.5",
-        "antibakteri", "antialerg", "kvalit vzduch", "čistič vzduch",
-    )
+    # Allergy detector. Per [[alergie-filtracia]] the bot recommends tier 1 of
+    # filtration_policy.json for allergici, not entry rady. Fires if the customer
+    # mentioned allergy AND the reply suggests an entry model WITHOUT naming a
+    # premium-filter model.
     _ENTRY_MODELS_RE = re.compile(
         r"\b(SEIYA|AR30|AR35|Luzon|Cebu)\b", re.IGNORECASE,
     )
@@ -4029,15 +4110,13 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
         r"Air\s+Purification|IAQ)\b", re.IGNORECASE,
     )
     # User-text only — same reason as commercial detector above.
-    has_allergy = any(t in user_transcript for t in _ALLERGY_TRIGGERS)
-    if has_allergy and _ENTRY_MODELS_RE.search(text):
+    if _wished(_ALLERGY_RE) and _ENTRY_MODELS_RE.search(text):
         if not _PREMIUM_FILTER_RE.search(text):
             violations.append(
                 "alergie-filtracia: zákazník spomenul alergiu/astmu/citlivosť na "
                 "vzduch, ale reply ponúka entry model (SEIYA/AR30/35/Luzon/Cebu) "
-                "bez prémiovej filtrácie. Pre alergikov odporúčaj DAISEIKAI 10 (plazma + "
-                "UltraPure + HADA) alebo Samsung Avant S2 (Tri-care filter); žiadne "
-                "zdravotné sľuby."
+                "bez prémiovej filtrácie. Pre alergikov odporúčaj triedu 1 z poradia "
+                "filtrácie v kontexte servera; žiadne zdravotné sľuby."
             )
 
     # multi-split-pravidla: presenting a multi-split set (outdoor code + €) without
@@ -4757,11 +4836,12 @@ CRITICAL_RULES_TEXT = (
     "kozmetika, obchod, predajňa, butik, reštaurácia, kaviareň, fitness, "
     "open-space kancelária >25 m². Komerčné rady majú vyššiu životnosť "
     "kompresora a vhodnú filtráciu pre 24/7 prevádzku.\n"
-    "- **Alergia / astma / 'kvalita vzduchu' / deti → premium filtrácia.** "
-    "Odporúčaj DAISEIKAI 10 (plazma + UltraPure + HADA) alebo Samsung Avant S2 "
-    "(Tri-care). **NIE** entry rady SEIYA, AR30/35, Luzon, Cebu (iba prachový filter). "
+    "- **Alergia / astma / prach / 'kvalita vzduchu' → najlepšia filtrácia.** "
+    "Odporúčaj triedu 1 z poradia filtrácie, ktoré ti pošle server v kontexte, a drž sa ho aj pri "
+    "námietke. **NIE** entry rady SEIYA, AR30/35, Luzon, Cebu (iba základný filter). "
     "Žiadne zdravotné sľuby ('vylieči', 'zabráni astme', 'odstráni alergény') — iba čo "
     "filter technicky robí; viď [[schvalene-tvrdenia]].\n"
+    "- **Produkt pomenúvaj názvom radu a výkonom**, nie model kódom — kód iba keď sa naň zákazník pýta.\n"
     "- **Žiadne cyrilické písmená** v slovenskej odpovedi — používaj iba latinku.\n"
     "- **NIKDY si nevymýšľaj model kódy.** Každý model code, ktorý napíšeš "
     "zákazníkovi (napr. 'RAS-B10P2KVSG-E', 'AR60F12C1AWNEU', 'AJ050TXJ2KG'), "
@@ -4825,6 +4905,8 @@ def build_server_context(note=None):
         status += "\nZákazník píše po anglicky — odpovedaj po anglicky (celá odpoveď)."
     elif _CZECH_CUSTOMER_RE.search(_all_user_text()):
         status += "\nZákazník píše po česky — odpovedaj VÝHRADNE po slovensky (žiadne české slová ani tvary)."
+    if _wished(_ALLERGY_RE):
+        status += "\n" + _filtration_ranking_text()
     parts.append(status)
     if note:
         parts.append(note)

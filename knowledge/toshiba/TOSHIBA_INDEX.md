@@ -26,7 +26,7 @@
 | **SEIYA** | BASIC | A++ / A++ | 7,00 | 4,60 | **1 220 €** | Lepšia účinnosť + Ultra Fresh + Energy Monitoring |
 | **SHORAI CURVE White** | HIGH | A+++ / A+++ | 8,60 | 5,10 | **1 590 €** | A+++ + WiFi + plazmový ionizátor |
 | **SHORAI CURVE Black** | HIGH | A+++ / A+++ | 8,60 | 5,10 | **1 665 €** | Čierne prevedenie SHORAI |
-| **HAORI** | DESIGN | A+++ / A+++ | 8,50 | 5,10 | **1 790 €** | Textilný kryt + ozónová čistička |
+| **HAORI** | DESIGN | A+++ / A+++ | 8,50 | 5,10 | **1 790 €** | Textilný kryt + plazmový ionizátor + Ultra Pure |
 | **Parapetná (CONSOLE)** | – | A++ / A++ | 7,20 | 4,70 | **2 070 €** | Bi-Flow pod oknom + Leak Detection ready |
 | **DAISEIKAI 10 White** | PREMIUM | A+++ / A+++ | **10,70** | 5,30 | **2 400 €** | TOP účinnosť + HADA careflow + Smart Sensing |
 | **DAISEIKAI 10 Wood** | PREMIUM | A+++ / A+++ | 10,70 | 5,30 | **2 600 €** | DAISEIKAI s dreveným frontom |
@@ -190,8 +190,7 @@
 | **Energy Monitoring** (Single + Multi) | SEIYA, SHORAI CURVE, HAORI, DAISEIKAI 10 |
 | **Funkcia SILENT** | SHORAI CURVE (W/B), HAORI |
 | **HADA careflow + Smart Sensing** | DAISEIKAI 10 White & Wood |
-| **Plazmový ionizátor** | SHORAI CURVE, DAISEIKAI 10 |
-| **Ozónová čistička vzduchu** | HAORI |
+| **Plazmový ionizátor** | SHORAI CURVE, HAORI, DAISEIKAI 10 |
 | **Filter Ultra Pure** | HAORI, DAISEIKAI 10 |
 | **Detekcia netesností** | Parapetná (s voliteľným RB-I301-E) |
 | **Efekt podlahového kúrenia** | Parapetná (Bi-Flow) |

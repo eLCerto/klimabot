@@ -37,8 +37,7 @@ Brand-špecifické technológie a názvy NIKDY nepriraďuj nesprávnemu výrobco
 | **TCC-Link / TU2C-Link** | Iba Toshiba protokoly |
 | **Toshiba Home AC Control (RB-N105S-G / N106S-G)** | Iba Toshiba |
 | **Aktívny karbón-katechínový filter** | Iba Toshiba RAS |
-| **Ozónová čistička vzduchu** | Iba Toshiba HAORI |
-| **Plazmový ionizátor** | Toshiba (SHORAI, DAISEIKAI) – Samsung má iné riešenia |
+| **Plazmový ionizátor** | Toshiba (SHORAI, HAORI, DAISEIKAI) – Samsung má iné riešenia |
 | **Ultra Pure 2.5 / Ultra Fresh / IAQ filter** | Iba Toshiba |
 | **Funkcia SILENT (voliteľná)** | Iba Toshiba SHORAI CURVE / HAORI |
 

@@ -468,6 +468,39 @@ class QuoteTests(BotTest):
         self.assertIn("podhľad", q["error"])
         self.assertNotIn("error", self.q([("RAV-GM302ATP-E", 1), ("RAV-HM301KRTP-E", 1)]))
 
+    def test_allergy_points_to_the_best_filtration_tier(self):  # live demo 2026-10-15
+        shorai = [("RAS-B10P2KVSG-E", 1), ("RAS-10P2AVSG-E", 1)]
+        self.sess.user_inputs.append("Detská izba 12 m2, mám alergiu na prach.")
+        warning = " ".join(self.q(shorai)["fit_warnings"])
+        self.assertIn("triedy 2", warning)
+        self.assertIn("Toshiba HAORI", warning)
+        self.assertIn("Toshiba DAISEIKAI 10", warning)
+        self.assertIn("Poradie filtrácie", bot.build_server_context())
+        haori = self.q([("RAS-B10N4KVRG-E2", 1), ("RAS-10P2AVSG-E", 1)])
+        self.assertFalse(any("filtráciu" in w for w in haori.get("fit_warnings", [])), "tier 1 is not warned about")
+        self.sess.user_inputs.append("Chcem Samsung.")
+        warning = " ".join(self.q([("AR60F09C1AWNEU", 1), ("AR60F09C1AWXEU", 1)])["fit_warnings"])
+        self.assertIn("Samsung WindFree Avant S2", warning)
+        self.assertNotIn("Toshiba", warning, "a single named brand is respected")
+        self.sess.user_inputs[:] = ["Spálňa 12 m2, nie som alergik."]
+        self.assertFalse(any("filtráciu" in w for w in self.q(shorai).get("fit_warnings", [])))
+        self.assertNotIn("Poradie filtrácie", bot.build_server_context())
+
+    def test_every_wall_series_is_ranked(self):
+        bot._check_filtration_policy()
+        saved = bot._FILTRATION_BY_SERIES.pop("HAORI")
+        try:
+            with self.assertRaises(SystemExit):
+                bot._check_filtration_policy()
+        finally:
+            bot._FILTRATION_BY_SERIES["HAORI"] = saved
+
+    def test_a_wrong_revision_suffix_still_quotes(self):  # live demo 2026-10-15: HAORI 10 is -E2, not -E1
+        q = self.q([("RAS-B10N4KVRG-E1", 1), ("RAS-10P2AVSG-E", 1)])
+        self.assertNotIn("error", q)
+        self.assertIn("RAS-B10N4KVRG-E2", q["lines"][0]["codes"])
+        self.assertIn("error", self.q([("RAS-B10N4KVRX-E1", 1)]), "an invented code is still refused")
+
     def test_wall_unit_unless_the_customer_asked_for_another_type(self):  # live demo 2026-10-15
         console_set = [("RAS-B10J2FVG-E1", 1), ("RAS-10P2AVSG-E", 1)]
         self.sess.user_inputs.extend(["ahoj potrebujem klimu do jednej miestnosti", "12 m2, je to detska izba"])

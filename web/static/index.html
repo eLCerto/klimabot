@@ -132,6 +132,8 @@
     .brand-sub { margin: 0; font-size: 12.5px; color: var(--text-3); line-height: 1.3; }
     .brand-sub .online { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #10b981; margin-right: 6px; vertical-align: 1px; box-shadow: 0 0 0 3px rgb(16 185 129 / 0.18); }
     .header-actions { display: flex; align-items: center; gap: 14px; }
+    .cost-meter { font-size: 13px; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .cost-meter b { color: var(--text); font-weight: 600; }
 
     .demo-strip {
       flex: none; display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -447,6 +449,7 @@
     </div>
   </div>
   <div class="header-actions">
+    <span class="cost-meter debug-only" id="cost-meter" title="Doterajšia cena volaní API v tomto rozhovore (vrátane pomocných volaní)">Rozhovor: <b id="cost-value">0,000 $</b></span>
     <label class="switch" title="Zobrazí volania nástrojov, hlásenia servera a poznámky bota o zákazníkovi">
       <input type="checkbox" id="debug-toggle" role="switch">
       <span class="switch-track" aria-hidden="true"></span>
@@ -713,7 +716,14 @@ async function errorMessage(resp) {
   } catch {}
   return `Chyba: ${resp.status} ${resp.statusText}`;
 }
+// The conversation's API cost so far (session_usd from the server), shown with "Ladenie" on.
+function setCost(usd) {
+  if (typeof usd !== "number") return;
+  $("cost-value").textContent = usd.toLocaleString("sk-SK", { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + " $";
+}
+
 function clearConversation(noticeText) {
+  setCost(0);
   for (const el of [...listEl.children]) if (el !== welcomeEl) el.remove();
   welcomeEl.hidden = false;
   typingRow = null;
@@ -1218,11 +1228,13 @@ function handleEvent(event, data) {
     case "turn_complete":
       currentBotBubble = null;  // the loop may continue with another LLM response
       setTypingLabel("Pripravujem odpoveď…");
+      setCost(data.session_usd);
       break;
     case "error":
       addError(data.message);
       break;
     case "done":
+      setCost(data.session_usd);
       break;
   }
 }

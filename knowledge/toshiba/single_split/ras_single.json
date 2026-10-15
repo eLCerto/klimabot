@@ -465,10 +465,11 @@
   "HAORI": {
     "line": "DESIGN Line",
     "category": "Nástenná jednotka",
+    "filtration_note": "Filtrácia podľa špecifikácie Toshiba HAORI: Plasma Ionizer + Ultra Pure; slovenský katalóg ju preložil inak (overené 2026-10-15, potvrdil majiteľ).",
     "features": [
       "Inovatívny textilný kryt (Dark Gray / Light Gray štandardne)",
       "Trieda A+++ chladenie aj vykurovanie",
-      "Prachový filter, ozónová čistička vzduchu, filter Ultra Pure",
+      "Prachový filter, plazmový ionizátor, filter Ultra Pure",
       "WiFi modul štandardne",
       "Energy Monitoring (Single + Multi)",
       "Voliteľná funkcia SILENT"
