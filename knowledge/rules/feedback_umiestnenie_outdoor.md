@@ -16,6 +16,7 @@ Pri zmienke o byte, bytovom dome, paneláku či rodinnom dome:
 - Nepýtaj sa „kam pôjde vonkajšia jednotka?" ani „fasáda alebo balkón?".
 - Nepíš zoznam možností (balkón / lodžia / fasáda / strecha).
 - Nespomínaj povolenia, súhlasy, konzoly, antivibračné podstavce ani statiku.
+- „Konzoly“ tu znamenajú držiaky vonkajšej jednotky. Parapetná/konzolová **vnútorná** jednotka je typ jednotky — na ten sa pýtať smieš (štandard je nástenná, viď [[discovery-pred-konkretnou-ponukou]]), rovnako ako na to, kam v miestnosti pôjde vnútorná jednotka.
 
 ### 2. Ak zákazník umiestnenie spomenie sám
 

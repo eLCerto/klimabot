@@ -468,6 +468,21 @@ class QuoteTests(BotTest):
         self.assertIn("podhľad", q["error"])
         self.assertNotIn("error", self.q([("RAV-GM302ATP-E", 1), ("RAV-HM301KRTP-E", 1)]))
 
+    def test_wall_unit_unless_the_customer_asked_for_another_type(self):  # live demo 2026-10-15
+        console_set = [("RAS-B10J2FVG-E1", 1), ("RAS-10P2AVSG-E", 1)]
+        self.sess.user_inputs.extend(["ahoj potrebujem klimu do jednej miestnosti", "12 m2, je to detska izba"])
+        self.assertIn("nástenn", self.q(console_set)["error"])
+        self.assertNotIn("error", self.q([(c, 1) for c in AR30_SET]))
+        multi = [("RAS-2M14G3AVG-E", 1), ("RAS-B10J2FVG-E1", 1), ("RAS-B10B2KVG-E2", 1)]
+        self.assertIn("RAS-B10J2FVG-E1", self.q(multi)["error"])
+        self.sess.user_inputs.append("nechcem parapetnú")
+        self.assertIn("error", self.q(console_set), "a negated wish is no wish")
+        self.sess.user_inputs.append("Áno, radšej parapetnú pod okno.")
+        self.assertNotIn("error", self.q(console_set))
+        self.assertNotIn("error", self.q(multi))
+        self.sess.user_inputs[:] = ["Koľko stojí RAS-B10J2FVG-E1 s vonkajšou jednotkou?"]
+        self.assertNotIn("error", self.q(console_set), "a code the customer typed is their choice")
+
     def test_no_delivery_date_promises(self):  # s05
         self.assertTrue(bot._DATE_PROMISE_RE.search("Sady sú skladom a dodávame ich do 5 pracovných dní."))
         self.assertTrue(bot._DATE_PROMISE_RE.search("Takže termín do konca októbra je reálny."))

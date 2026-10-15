@@ -1,6 +1,6 @@
 ---
 name: discovery-pred-konkretnou-ponukou
-description: Pri vágnych otázkach najprv discovery (typ priestoru, m², počet izieb), cena až NAKONIEC. NIKDY sa nepýtaj na umiestnenie vonkajšej jednotky (rieši PM pri obhliadke), výšku stropu, izoláciu, slnečnú stranu, počet ľudí ani značku.
+description: Pri vágnych otázkach najprv discovery (typ priestoru, m², počet izieb, typ vnútornej jednotky — štandard nástenná), cena až NAKONIEC. NIKDY sa nepýtaj na umiestnenie vonkajšej jednotky (rieši PM pri obhliadke), výšku stropu, izoláciu, slnečnú stranu, počet ľudí ani značku.
 type: feedback
 ---
 
@@ -10,11 +10,12 @@ Pri všeobecných dotazoch („akú klimu", „chcem klimatizáciu") **NIKDY** n
 
 **How to apply:**
 
-### Prvá otázka po pozdrave — LEN tieto 3 body
+### Prvá otázka po pozdrave — LEN tieto 4 body
 
 1. **Typ priestoru** — byt / rodinný dom / kancelária / obchod / sklad / serverovňa / prevádzka (barber, manikúra, ambulancia…)
 2. **Veľkosť priestoru v m²** — jediná informácia pre dimenzovanie (1 kW / 10 m², viď [[dimenzovanie-kapacity-podla-m2]])
 3. **Počet izieb / miestností** — 1 = Single-Split; 2–5 = Multi-Split; 6+ mimo rozsahu. Nie je to blokujúca otázka: ak ju zákazník nepovie, predpokladaj 1 miestnosť, povedz to a pokračuj.
+4. **Typ vnútornej jednotky** — ak ho zákazník neuviedol, povedz, že **štandard je nástenná** (odporúčaš ju), a opýtaj sa, či mu vyhovuje, alebo potrebuje iný typ: parapetná/konzolová (pod okno, pri podlahe), kazetová (do podhľadu), kanálová (skrytá v podhľade). Ak neodpovie, predpokladaj nástennú. **Kým iný typ nežiada, ponúkaj iba nástenné** — „tichá do detskej izby" ani „s filtrom" nie je dôvod na parapetnú. `quote` inú ako nástennú rezidenčnú jednotku bez zákazníkovej žiadosti odmietne. Kam v miestnosti pôjde vnútorná jednotka, sa pýtať smieš (na vonkajšiu nie).
 
 Doplňujúce otázky (filter, alergie, tichý chod, dizajn) **až keď** zákazník neuvedie sám a sú relevantné pre voľbu radu.
 
@@ -72,6 +73,7 @@ Po prezentácii: *„Ktorý variant vás najviac oslovuje? Ak chcete preladiť n
 1. Pre **aký priestor** je klimatizácia? (byt, rodinný dom, kancelária, prevádzka…)
 2. **Veľkosť** miestnosti v m²?
 3. **Koľko miestností** chcete riešiť? (1 = Single-Split; 2–5 = Multi-Split na 1 vonkajšiu)
+4. Štandardne odporúčame **nástennú** vnútornú jednotku — vyhovuje vám, alebo potrebujete iný typ (parapetnú pod okno, kazetovú do podhľadu)?
 
 Po odpovediach vám pripravím 2–3 konkrétne odporúčania."
 
@@ -82,6 +84,7 @@ Po odpovediach vám pripravím 2–3 konkrétne odporúčania."
 - ❌ Odporučiť konkrétny model s cenou (napr. DAISEIKAI 10 Wood) bez kontextu o priestore.
 - ❌ Ponúkať cenové úrovne z hlavy („do X €"). Cenu konkrétnej zostavy povie až `quote`.
 - ❌ Pýtať 6 otázok naraz pri jednoduchom dotaze — prispôsob množstvo otázok zložitosti.
+- ❌ Ponúknuť parapetnú, kazetovú či kanálovú jednotku, keď zákazník typ nežiadal — štandard je nástenná.
 - ❌ Zoradiť ponuku len od najlacnejšieho — preferuj zoradenie podľa hodnoty (optimálny → premium → úsporný).
 - ❌ Pýtať sa kam outdoor alebo otvárať povolenia k inštalácii — inštalačné detaily posúdi PM pri obhliadke (viď [[umiestnenie-vonkajsej-jednotky]]).
 - ❌ Volať `update_customer_state` raz na konci so všetkým naraz. Polia vyplňuj postupne, po každom user message s faktami.

@@ -24,7 +24,7 @@ Toto je index pravidiel, ktoré bot nájde cez `search_knowledge`. Pravidlo = `f
 - [search-knowledge-limit](feedback_search_knowledge_limit.md) — Max 2× `search_knowledge` na turn; 3+ → `lookup_product`/`compare_products`/handoff
 
 ### Predajný proces
-- [discovery-pred-konkretnou-ponukou](feedback_overit_potreby_pred_ponukou.md) — Najprv typ priestoru / m² / izby; cena POSLEDNÁ
+- [discovery-pred-konkretnou-ponukou](feedback_overit_potreby_pred_ponukou.md) — Najprv typ priestoru / m² / izby / typ vnútornej jednotky (štandard nástenná); cena POSLEDNÁ
 - [predpriprava-klimy](feedback_predpriprava_klimy.md) — V discovery zisti predprípravu; ak iný subjekt, ponúkni obhliadku
 - [handoff-zapis-pre-pm](feedback_handoff_zapis_z_rozhovoru.md) — Po výbere modelu kontakty + GDPR + `capture_lead`
 - [konkurencne-predaje](feedback_neci_konkurencne_predaje.md) — Pri porovnaní s Daikin/LG/Mitsubishi zostať vecný; nezhadzovať konkurenciu

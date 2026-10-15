@@ -231,7 +231,11 @@ system_prompt = (
     "profesionálny tón, nie Discord support.\n"
     "4. **Žiadne Markdown nadpisy (#/##/###)** v chate. Tučná veta stačí. "
     "Nadpisy len pri štruktúrovanom bloku >10 riadkov.\n"
-    "5. **Discovery v poradí: typ priestoru → m² → počet izieb.** Cena/rozpočet je "
+    "5. **Discovery v poradí: typ priestoru → m² → počet izieb → typ vnútornej jednotky.** "
+    "Ak zákazník typ vnútornej jednotky neuviedol, povedz, že štandard je **nástenná** (odporúčaš ju), "
+    "a opýtaj sa, či mu vyhovuje, alebo potrebuje iný typ (parapetná/konzolová pod okno, kazetová do "
+    "podhľadu, kanálová skrytá). Kým iný typ nežiada, ponúkaj iba nástenné. Kam v miestnosti pôjde "
+    "vnútorná jednotka, sa pýtať smieš. Cena/rozpočet je "
     "POSLEDNÁ otázka. **NIKDY** sa nepýtaj na: **umiestnenie vonkajšej jednotky** "
     "(rieši PM pri obhliadke), výšku stropu, slnečnú stranu, izoláciu, počet ľudí, "
     "preferovanú značku, **chladenie vs vykurovanie** (napr. NEPÝTAJ 'Chceš, aby "
@@ -240,7 +244,8 @@ system_prompt = (
     "pri obhliadke.\n"
     "6. **Inštalačné detaily nerieš.** Nepýtaj sa, kam pôjde vonkajšia jednotka, a nepíš "
     "zoznam možností (fasáda/balkón/lodžia/strecha). Povolenia a súhlasy k inštalácii, "
-    "konzoly ani statiku nespomínaj. Ak zákazník sám spomenie umiestnenie, len ho zaznač "
+    "konzoly (držiaky) vonkajšej jednotky ani statiku nespomínaj — parapetná/konzolová vnútorná "
+    "jednotka je typ jednotky, nie inštalačný detail. Ak zákazník sám spomenie umiestnenie, len ho zaznač "
     "do `outdoor_placement`; ak sa na niečo z toho spýta, odpovedz, že to posúdi "
     "projektový manažér pri bezplatnej obhliadke.\n"
     "7. **Multi-Split set IBA po `check_compatibility`.** Pred prezentáciou Samsung "
@@ -886,6 +891,13 @@ _NO_CEILING_RE = re.compile(
     r"betónov\w*\s+strop|no\s+(?:suspended|false)\s+ceiling|without\s+(?:a\s+)?(?:suspended|false)\s+ceiling",
     re.IGNORECASE)
 _CASSETTE_PATH_RE = re.compile(r"cassette|kazet", re.IGNORECASE)
+# Indoor unit type: a wall unit is the standard. A console (under-window / floor), cassette or ducted
+# residential unit only when the customer asked for that type or typed its code — in the first live
+# conversation a search for a quiet unit for a 12 m² children's room quoted the Toshiba console set unasked.
+_NON_WALL_PATH_RE = re.compile(r"parapet|console|cassette|kazet|duct", re.IGNORECASE)
+_INDOOR_TYPE_WISH_RE = re.compile(  # matched on folded text by _wished()
+    r"\bparapet\w*|\bkonzol\w*|\bconsole\b|\bpodlahov\w*|\bfloor\b|\bkazet\w*|\bcassette\w*|"
+    r"\bkanalov\w*|\bduct\w*|\bpodstrop\w*|\bceiling\b|\bstojan\w*", re.IGNORECASE)
 _RESIDENTIAL_CATEGORIES = {"single_split_sets", "single_split_units", "multi_split_outdoor", "multi_split_indoor"}
 _UNIT_CATEGORIES = _RESIDENTIAL_CATEGORIES | {"commercial_outdoor", "commercial_indoor"}
 _SOURCE_CACHE = {}
@@ -1087,6 +1099,12 @@ def _fit_check(fit_lines, override_reason=None):
     if cassettes and _NO_CEILING_RE.search(text):
         errors.append(f"zákazník nemá podhľad, kazety {cassettes} sa montujú do podhľadu — ponúkni podstropnú "
                       "jednotku (v salóne či ordinácii nie nástennú: fúka na ľudí)")
+    non_wall = sorted({c for rec, codes, _, cat in fit_lines if cat in _RESIDENTIAL_CATEGORIES
+                       and _NON_WALL_PATH_RE.search(rec["category_path"]) for c in codes})
+    if non_wall and not _wished(_INDOOR_TYPE_WISH_RE) and not any(c in text.upper() for c in non_wall):
+        errors.append(f"zákazník nežiadal iný typ vnútornej jednotky, {non_wall} nie je nástenná — štandard je "
+                      "nástenná: ponúkni nástennú, alebo sa ho opýtaj, či potrebuje iný typ (parapetná, kazetová, "
+                      "kanálová)")
     # Salon / medical practice: a wall unit blows straight at clients (s04); the commercial
     # rule prescribes an under-ceiling unit, or a cassette where there is a suspended ceiling.
     wall = sorted({c for rec, codes, _, cat in fit_lines if cat == "commercial_indoor"
@@ -4693,7 +4711,9 @@ CRITICAL_RULES_TEXT = (
     "`check_compatibility` alebo `quote` s celou zostavou.\n"
     "- **NIKDY** sa nepýtaj kam pôjde vonkajšia jednotka (žiadne fasáda/balkón/lodžia/strecha "
     "možnosti, ani v dotaze, ani v 'čo bude PM kontrolovať' zozname) a nespomínaj povolenia, "
-    "súhlasy, konzoly ani statiku. Inštalačné detaily posúdi PM pri obhliadke.\n"
+    "súhlasy, konzoly (držiaky) vonkajšej jednotky ani statiku. Inštalačné detaily posúdi PM pri obhliadke.\n"
+    "- **Typ vnútornej jednotky:** štandard je nástenná. Ak ho zákazník neuviedol, opýtaj sa, či mu "
+    "nástenná vyhovuje alebo chce iný typ (parapetná, kazetová, kanálová); inak ponúkaj iba nástenné.\n"
     "- **NIKDY** sa nepýtaj 'Chceš aj vykurovanie?' — všetky modely sú heat-pump (chladenie + kúrenie).\n"
     "- **Toto NIE je objednávka, je to žiadosť o cenovú ponuku.** Po `capture_lead` "
     "**NIKDY** nepíš 'tvoja objednávka je zaznamenaná / potvrdená'. Správne: "
