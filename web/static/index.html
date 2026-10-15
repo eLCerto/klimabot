@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1726" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="AI asistent pre výber klimatizácie Samsung a Toshiba: odporúčanie, presná cena a podklady pre projektového manažéra.">
+  <title>Samuel Malíšek Klimabot — AI asistent pre klimatizácie</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230369a1'/%3E%3Cpath d='M5 16h22M16 5v22M24 20l-4-4 4-4M8 12l4 4-4 4M20 8l-4 4-4-4M12 24l4-4 4 4' stroke='white' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <style>
+    /* === Design tokens ================================================================
+       Light by default, dark from the OS setting; data-theme="light|dark" on <html> overrides. */
+    :root {
+      color-scheme: light;
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, "Cascadia Code", Menlo, Consolas, monospace;
+      --bg: #f4f6fa;
+      --surface: #ffffff;
+      --surface-2: #f1f4f9;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text: #0f172a;
+      --text-2: #475569;
+      --text-3: #64748b;
+      --accent: #0284c7;
+      --accent-strong: #0369a1;
+      --accent-strong-hover: #075985;
+      --accent-soft: #e0f2fe;
+      --accent-text: #075985;
+      --bubble-user: #0369a1;
+      --ring: rgb(2 132 199 / 0.22);
+      --success-bg: #ecfdf5; --success-border: #a7f3d0; --success-text: #047857;
+      --warning-bg: #fffbeb; --warning-border: #fde68a; --warning-text: #92400e;
+      --danger-bg: #fef2f2;  --danger-border: #fecaca;  --danger-text: #b91c1c;
+      --debug-bg: #eef2ff;   --debug-border: #c7d2fe;   --debug-text: #4338ca;
+      --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
+      --shadow-md: 0 6px 24px -8px rgb(15 23 42 / 0.16), 0 1px 2px rgb(15 23 42 / 0.06);
+      --radius: 18px;
+      --column: 760px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --bg: #0b1220; --surface: #111a2b; --surface-2: #0f1727; --border: #1e293b; --border-strong: #334155;
+        --text: #e2e8f0; --text-2: #a8b5c7; --text-3: #8696ab;
+        --accent: #38bdf8; --accent-strong: #0284c7; --accent-strong-hover: #0369a1;
+        --accent-soft: rgb(56 189 248 / 0.12); --accent-text: #7dd3fc; --bubble-user: #0369a1; --ring: rgb(56 189 248 / 0.25);
+        --success-bg: rgb(16 185 129 / 0.12); --success-border: rgb(16 185 129 / 0.32); --success-text: #6ee7b7;
+        --warning-bg: rgb(245 158 11 / 0.10); --warning-border: rgb(245 158 11 / 0.30); --warning-text: #fcd34d;
+        --danger-bg: rgb(239 68 68 / 0.10);  --danger-border: rgb(239 68 68 / 0.32);  --danger-text: #fca5a5;
+        --debug-bg: rgb(99 102 241 / 0.12);  --debug-border: rgb(99 102 241 / 0.32);  --debug-text: #a5b4fc;
+        --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+        --shadow-md: 0 8px 28px -10px rgb(0 0 0 / 0.6), 0 1px 2px rgb(0 0 0 / 0.4);
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0b1220; --surface: #111a2b; --surface-2: #0f1727; --border: #1e293b; --border-strong: #334155;
+      --text: #e2e8f0; --text-2: #a8b5c7; --text-3: #8696ab;
+      --accent: #38bdf8; --accent-strong: #0284c7; --accent-strong-hover: #0369a1;
+      --accent-soft: rgb(56 189 248 / 0.12); --accent-text: #7dd3fc; --bubble-user: #0369a1; --ring: rgb(56 189 248 / 0.25);
+      --success-bg: rgb(16 185 129 / 0.12); --success-border: rgb(16 185 129 / 0.32); --success-text: #6ee7b7;
+      --warning-bg: rgb(245 158 11 / 0.10); --warning-border: rgb(245 158 11 / 0.30); --warning-text: #fcd34d;
+      --danger-bg: rgb(239 68 68 / 0.10);  --danger-border: rgb(239 68 68 / 0.32);  --danger-text: #fca5a5;
+      --debug-bg: rgb(99 102 241 / 0.12);  --debug-border: rgb(99 102 241 / 0.32);  --debug-text: #a5b4fc;
+      --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+      --shadow-md: 0 8px 28px -10px rgb(0 0 0 / 0.6), 0 1px 2px rgb(0 0 0 / 0.4);
+    }
+
+    /* === Base ========================================================================= */
+    *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      height: 100vh; height: 100dvh;
+      display: flex; flex-direction: column;
+      font: 15px/1.55 var(--font);
+      color: var(--text); background: var(--bg);
+      -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    }
+    button { font: inherit; color: inherit; }
+    svg.i { width: 18px; height: 18px; flex: none; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    /* Customer view: tool calls, server notices and the bot's notes only with "Ladenie" on. */
+    body:not(.debug) .debug-only { display: none !important; }
+
+    /* === Buttons & switch ============================================================== */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      height: 36px; padding: 0 14px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text);
+      font-size: 13.5px; font-weight: 500; cursor: pointer; white-space: nowrap;
+      transition: background-color .15s, border-color .15s, color .15s;
+    }
+    .btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
+    .btn svg.i { width: 16px; height: 16px; }
+    .btn-primary { background: var(--accent-strong); border-color: transparent; color: #fff; }
+    .btn-primary:hover { background: var(--accent-strong-hover); border-color: transparent; }
+    .btn-sm { height: 30px; padding: 0 10px; font-size: 12.5px; border-radius: 8px; }
+
+    .switch { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); cursor: pointer; user-select: none; }
+    .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .switch-track { position: relative; width: 34px; height: 20px; border-radius: 999px; background: var(--border-strong); transition: background-color .2s; }
+    .switch-track::after {
+      content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); transition: transform .2s;
+    }
+    .switch input:checked + .switch-track { background: var(--accent-strong); }
+    .switch input:checked + .switch-track::after { transform: translateX(14px); }
+    .switch input:focus-visible + .switch-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* === Header ======================================================================== */
+    .app-header {
+      flex: none; display: flex; align-items: center; gap: 16px;
+      padding: 10px clamp(12px, 3vw, 24px);
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      position: relative; z-index: 3;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; margin-right: auto; }
+    .brand-mark {
+      width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center; color: #fff;
+      background: linear-gradient(140deg, #38bdf8 0%, #0369a1 100%);
+      box-shadow: 0 4px 14px -4px rgb(3 105 161 / 0.55);
+    }
+    .brand-mark svg.i { width: 20px; height: 20px; }
+    .brand-text { min-width: 0; }
+    .brand-name { margin: 0; font-size: 15.5px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-sub { margin: 0; font-size: 12.5px; color: var(--text-3); line-height: 1.3; }
+    .brand-sub .online { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #10b981; margin-right: 6px; vertical-align: 1px; box-shadow: 0 0 0 3px rgb(16 185 129 / 0.18); }
+    .header-actions { display: flex; align-items: center; gap: 14px; }
+
+    .demo-strip {
+      flex: none; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 8px clamp(12px, 3vw, 24px);
+      background: var(--warning-bg); border-bottom: 1px solid var(--warning-border); color: var(--warning-text);
+      font-size: 13px; line-height: 1.45; text-align: center;
+    }
+    .demo-strip svg.i { width: 16px; height: 16px; }
+    .demo-strip a { color: inherit; font-weight: 600; }
+
+    /* Tabs: only on narrow screens, where the panels can't sit side by side. */
+    .view-tabs { display: none; flex: none; gap: 4px; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .view-tabs button {
+      flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--text-2);
+      font-size: 13.5px; font-weight: 550; cursor: pointer;
+    }
+    .view-tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent-text); }
+    .view-tabs .dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
+
+    /* === Workspace ===================================================================== */
+    .workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(320px, 420px); }
+    body:not(.debug) .workspace { grid-template-columns: minmax(0, 1fr) minmax(340px, 440px); }
+    .panel { min-width: 0; min-height: 0; overflow-y: auto; background: var(--surface); }
+    .panel-notes { border-right: 1px solid var(--border); }
+    .panel-brief { border-left: 1px solid var(--border); }
+    .panel-inner { padding: 20px; }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+    .panel-head h2 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+    .panel-sub { margin: 3px 0 0; font-size: 12.5px; color: var(--text-3); }
+    .pill {
+      flex: none; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap;
+      background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border);
+    }
+    .pill[data-state="ready"] { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
+    .empty-state { text-align: center; color: var(--text-3); padding: 36px 8px; }
+    .empty-state .icon { width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 13px; display: grid; place-items: center; background: var(--surface-2); color: var(--text-3); }
+    .empty-state h3 { margin: 0 0 6px; font-size: 14px; color: var(--text-2); }
+    .empty-state p { margin: 0 auto; max-width: 300px; font-size: 13px; }
+
+    /* === Chat ========================================================================== */
+    .chat { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .messages { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 28px clamp(12px, 4vw, 40px) 16px; }
+    .message-list { max-width: var(--column); margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+    .welcome { text-align: center; margin: 4vh auto 4px; max-width: 680px; }
+    .welcome-mark {
+      width: 60px; height: 60px; margin: 0 auto 18px; border-radius: 18px; display: grid; place-items: center; color: #fff;
+      background: linear-gradient(140deg, #38bdf8 0%, #0369a1 100%); box-shadow: 0 12px 30px -10px rgb(3 105 161 / 0.6);
+    }
+    .welcome-mark svg.i { width: 30px; height: 30px; }
+    .welcome h2 { margin: 0 0 8px; font-size: clamp(20px, 2.6vw, 24px); font-weight: 700; letter-spacing: -0.02em; }
+    .welcome > p { margin: 0 auto 20px; max-width: 520px; color: var(--text-2); }
+    .steps { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    .steps li {
+      display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--border); font-size: 13px; color: var(--text-2);
+    }
+    .steps b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: var(--accent-soft); color: var(--accent-text); }
+    .suggestions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; text-align: left; }
+    .suggestion {
+      display: flex; flex-direction: column; gap: 2px; padding: 13px 15px; border-radius: 14px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-sm); text-align: left;
+      transition: border-color .15s, box-shadow .15s, transform .15s;
+    }
+    .suggestion:hover { border-color: var(--accent); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+    .suggestion strong { font-size: 14px; font-weight: 600; }
+    .suggestion span { font-size: 13px; color: var(--text-3); }
+
+    .row { display: flex; align-items: flex-end; gap: 10px; animation: rise .2s ease-out; }
+    .row.bot { align-items: flex-start; }
+    .row.user { justify-content: flex-end; }
+    .replaying .row { animation: none; }
+    .msg-col { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; max-width: min(82%, 640px); }
+    .msg-col .bubble { max-width: 100%; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+    .avatar {
+      width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center;
+      background: var(--accent-soft); color: var(--accent-text);
+    }
+    .avatar svg.i { width: 16px; height: 16px; }
+    .bubble { max-width: min(82%, 640px); padding: 10px 15px; border-radius: var(--radius); overflow-wrap: anywhere; }
+    .row.bot .bubble { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 6px; box-shadow: var(--shadow-sm); }
+    .row.user .bubble { background: var(--bubble-user); color: #fff; border-bottom-right-radius: 6px; white-space: pre-wrap; }
+    .bubble.plain { white-space: pre-wrap; }
+
+    /* Markdown in bot replies and the PM record */
+    .md > :first-child { margin-top: 0; }
+    .md > :last-child { margin-bottom: 0; }
+    .md p { margin: 0 0 0.6em; }
+    .md ul, .md ol { margin: 0.25em 0 0.7em; padding-left: 1.3em; }
+    .md li { margin: 0.2em 0; }
+    .md li::marker { color: var(--text-3); }
+    .md strong { font-weight: 650; }
+    .md a { color: var(--accent-text); text-underline-offset: 2px; }
+    .md code { font: 0.88em var(--mono); background: var(--surface-2); border: 1px solid var(--border); padding: 0.05em 0.35em; border-radius: 5px; }
+    .md hr { border: 0; border-top: 1px solid var(--border); margin: 1em 0; }
+    .md blockquote { margin: 0.6em 0; padding-left: 12px; border-left: 3px solid var(--border-strong); color: var(--text-2); }
+    .table-wrap { overflow-x: auto; margin: 0.5em 0 0.8em; border: 1px solid var(--border); border-radius: 10px; }
+    .md table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+    .md th, .md td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .md th { background: var(--surface-2); font-weight: 600; color: var(--text-2); }
+    .md tr:last-child td { border-bottom: 0; }
+
+    /* Reply feedback: subtle until the row is hovered, always visible on touch screens */
+    .reply-actions { display: flex; gap: 2px; padding-left: 4px; opacity: .55; transition: opacity .15s; }
+    .row:hover .reply-actions, .reply-actions:focus-within, .reply-actions.voted { opacity: 1; }
+    @media (hover: none) { .reply-actions { opacity: 1; } }
+    .fb-btn {
+      width: 28px; height: 26px; border: 0; border-radius: 7px; background: transparent; color: var(--text-3);
+      display: grid; place-items: center; cursor: pointer;
+    }
+    .fb-btn svg.i { width: 15px; height: 15px; }
+    .fb-btn:hover { background: var(--surface-2); color: var(--text); }
+    .fb-btn[aria-pressed="true"] { color: var(--accent-text); background: var(--accent-soft); }
+
+    /* Consent buttons under the canonical question */
+    .quick-replies { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: 40px; }
+    .qr {
+      height: 36px; padding: 0 16px; border-radius: 999px; cursor: pointer; font-size: 14px; font-weight: 550;
+      border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+      transition: background-color .15s, border-color .15s;
+    }
+    .qr:hover { border-color: var(--accent); }
+    .qr-yes { background: var(--accent-strong); border-color: transparent; color: #fff; }
+    .qr-yes:hover { background: var(--accent-strong-hover); }
+    .qr-hint { font-size: 12.5px; color: var(--text-3); }
+
+    /* Price card: every figure comes from quote() */
+    .avatar.ghost { visibility: hidden; }
+    .quote-card {
+      width: min(100%, 520px); border-radius: 16px; overflow: hidden;
+      background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-md);
+    }
+    .qc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 16px; background: var(--accent-soft); color: var(--accent-text); }
+    .qc-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; font-size: 14px; }
+    .qc-title svg.i { width: 16px; height: 16px; }
+    .qc-sub { font-size: 12px; opacity: .85; }
+    .qc-lines { list-style: none; margin: 0; padding: 4px 16px; }
+    .qc-lines li { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .qc-lines li:last-child { border-bottom: 0; }
+    .qc-desc { font-weight: 550; font-size: 14px; }
+    .qc-qty { color: var(--text-3); font-weight: 600; margin-right: 4px; }
+    .qc-codes { font: 12px/1.5 var(--mono); color: var(--text-3); overflow-wrap: anywhere; }
+    .qc-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; margin-top: 4px; font-size: 12.5px; }
+    .qc-avail { color: var(--success-text); }
+    .qc-unit { color: var(--text-2); font-variant-numeric: tabular-nums; }
+    .qc-totals { margin: 0; padding: 10px 16px 12px; background: var(--surface-2); border-top: 1px solid var(--border); font-size: 13.5px; }
+    .qc-totals > div { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
+    .qc-totals dt { color: var(--text-2); }
+    .qc-totals dd { margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .qc-totals .grand { margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 15.5px; font-weight: 700; }
+    .qc-totals .grand dt { color: var(--text); }
+    .qc-notes { list-style: none; margin: 0; padding: 10px 16px 14px; font-size: 12.5px; color: var(--text-3); display: grid; gap: 3px; }
+
+    .typing .bubble { display: inline-flex; align-items: center; gap: 10px; color: var(--text-3); font-size: 13.5px; }
+    .dots { display: inline-flex; gap: 4px; }
+    .dots i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: blink 1.2s infinite ease-in-out; }
+    .dots i:nth-child(2) { animation-delay: .15s; }
+    .dots i:nth-child(3) { animation-delay: .3s; }
+    @keyframes blink { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+
+    .notice {
+      align-self: center; max-width: 92%; padding: 5px 12px; border-radius: 999px; font-size: 12.5px; text-align: center;
+      background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border);
+    }
+    .notice.debug-only { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+    .tool-chip {
+      align-self: flex-start; display: inline-flex; align-items: baseline; gap: 6px; max-width: 92%; margin-left: 40px;
+      padding: 5px 10px; border-radius: 8px; font: 12px/1.45 var(--mono);
+      background: var(--debug-bg); color: var(--debug-text); border: 1px solid var(--debug-border);
+    }
+    .tool-chip svg.i { width: 13px; height: 13px; align-self: center; }
+    .tool-chip .name { font-weight: 700; }
+    .tool-chip .input { opacity: .85; overflow-wrap: anywhere; }
+    .tool-chip.error { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
+    .alert {
+      align-self: center; display: flex; align-items: flex-start; gap: 10px; max-width: 92%;
+      padding: 10px 14px; border-radius: 12px; font-size: 13.5px;
+      background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border);
+    }
+    .alert svg.i { margin-top: 1px; }
+
+    /* === Composer ====================================================================== */
+    .composer-wrap { position: relative; flex: none; padding: 6px clamp(12px, 4vw, 40px) calc(14px + env(safe-area-inset-bottom)); }
+    .jump-btn {
+      position: absolute; top: -46px; left: 50%; transform: translateX(-50%);
+      display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-2); box-shadow: var(--shadow-md);
+      font-size: 13px; cursor: pointer;
+    }
+    .jump-btn svg.i { width: 15px; height: 15px; }
+    .composer {
+      max-width: var(--column); margin: 0 auto; display: flex; align-items: flex-end; gap: 8px;
+      padding: 7px 7px 7px 16px; border-radius: 18px;
+      background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-md);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring), var(--shadow-md); }
+    .composer textarea {
+      flex: 1; min-height: 40px; max-height: 168px; padding: 9px 0; border: 0; outline: 0; resize: none;
+      background: transparent; color: var(--text); font: inherit; line-height: 1.5;
+    }
+    .composer textarea::placeholder { color: var(--text-3); }
+    .send-btn {
+      flex: none; width: 40px; height: 40px; border: 0; border-radius: 12px; display: grid; place-items: center; cursor: pointer;
+      background: var(--accent-strong); color: #fff; transition: background-color .15s, opacity .15s;
+    }
+    .send-btn:hover { background: var(--accent-strong-hover); }
+    .send-btn:disabled { opacity: .4; cursor: not-allowed; background: var(--accent-strong); }
+    .composer-meta {
+      max-width: var(--column); margin: 6px auto 0; padding: 0 6px; min-height: 18px;
+      display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--text-3);
+    }
+    .composer-meta kbd { font: 11px var(--mono); padding: 1px 5px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; background: var(--surface); }
+    .composer-meta .right { margin-left: auto; display: flex; gap: 12px; }
+    #char-count.warn { color: var(--danger-text); font-weight: 600; }
+
+    /* === Customer notes (debugging) ======================================================= */
+    .kv { margin: 0; }
+    .kv > div { padding: 8px 0; border-bottom: 1px dashed var(--border); }
+    .kv > div:last-child { border-bottom: 0; }
+    .kv dt { font: 500 11.5px/1.35 var(--mono); color: var(--text-3); }
+    .kv dd { margin: 2px 0 0; font-size: 13.5px; overflow-wrap: anywhere; }
+    .kv dd.v-true { color: var(--success-text); font-weight: 600; }
+    .kv dd.v-false { color: var(--danger-text); }
+    .kv dd.v-num { font-variant-numeric: tabular-nums; }
+    .kv dd.v-list { color: var(--accent-text); }
+
+    /* === PM record ======================================================================= */
+    .brief-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 14px; }
+    .brief-doc {
+      padding: 18px 20px; border-radius: 14px; font-size: 13.5px; line-height: 1.55;
+      background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+    }
+    .brief-doc h1 { margin: 0 0 10px; font-size: 16px; letter-spacing: -0.01em; }
+    .brief-doc h2 { margin: 18px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
+    .brief-doc h3 { margin: 14px 0 4px; font-size: 13.5px; }
+    .brief-doc ul { padding-left: 1.15em; }
+    .brief-note { display: flex; gap: 8px; margin-top: 12px; font-size: 12.5px; color: var(--text-3); }
+    .brief-note svg.i { width: 15px; height: 15px; margin-top: 1px; }
+
+    /* === Dialog & toasts ================================================================= */
+    dialog {
+      width: min(420px, calc(100% - 32px)); padding: 22px; border: 1px solid var(--border); border-radius: 18px;
+      background: var(--surface); color: var(--text); box-shadow: 0 24px 60px -12px rgb(0 0 0 / 0.35);
+    }
+    dialog::backdrop { background: rgb(15 23 42 / 0.45); backdrop-filter: blur(2px); }
+    dialog h2 { margin: 0 0 8px; font-size: 17px; letter-spacing: -0.01em; }
+    dialog p { margin: 0 0 20px; color: var(--text-2); font-size: 14px; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .toasts {
+      position: fixed; left: 50%; bottom: calc(112px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 20;
+      display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; width: min(92vw, 460px);
+    }
+    .toast {
+      pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 12px;
+      background: #0f172a; color: #f8fafc; font-size: 13.5px; box-shadow: 0 10px 30px -8px rgb(0 0 0 / 0.45); animation: rise .2s ease-out;
+    }
+    .toast-action { border: 0; background: rgb(255 255 255 / 0.12); color: #fff; font-weight: 600; font-size: 13px; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+
+    /* === Scrollbars ====================================================================== */
+    .messages, .panel { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+
+    /* === Responsive ====================================================================== */
+    @media (max-width: 1279px) {
+      .workspace { grid-template-columns: 250px minmax(0, 1fr) 330px; }
+      body:not(.debug) .workspace { grid-template-columns: minmax(0, 1fr) 360px; }
+    }
+    /* Below 1024 px one panel at a time, switched by the tabs. */
+    @media (max-width: 1023px) {
+      .view-tabs { display: flex; }
+      .workspace, body:not(.debug) .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+      .panel-notes, .panel-brief { border: 0; }
+      body:not([data-view="brief"]) .panel-brief,
+      body:not([data-view="notes"]) .panel-notes,
+      body[data-view="brief"] .chat,
+      body[data-view="notes"] .chat { display: none; }
+      .panel-inner { max-width: var(--column); margin: 0 auto; }
+    }
+    @media (max-width: 640px) {
+      body { font-size: 15px; }
+      .brand-sub, .brand-owner, .btn-label, .composer-meta .hint, .demo-extra { display: none; }
+      .brand-name { font-size: 15px; }
+      .header-actions { gap: 10px; }
+      .btn.icon-sm { width: 36px; padding: 0; }
+      .demo-strip { font-size: 12.5px; text-align: left; justify-content: flex-start; }
+      .messages { padding-top: 18px; }
+      .bubble { max-width: 88%; }
+      .avatar { width: 26px; height: 26px; }
+      .tool-chip, .quick-replies { margin-left: 36px; }
+      .msg-col { max-width: 88%; }
+      .suggestions { grid-template-columns: minmax(0, 1fr); }
+      .steps { flex-direction: column; align-items: center; }
+      .composer textarea { font-size: 16px; } /* iOS doesn't zoom into 16 px inputs */
+      .toasts { bottom: calc(100px + env(safe-area-inset-bottom)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body data-view="chat">
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M12 2v20M20 16l-4-4 4-4M4 8l4 4-4 4M16 4l-4 4-4-4M8 20l4-4 4 4"/></svg>
+    </div>
+    <div class="brand-text">
+      <h1 class="brand-name"><span class="brand-owner">Samuel Malíšek </span>Klimabot</h1>
+      <p class="brand-sub"><span class="online" aria-hidden="true"></span>AI asistent · Samsung a Toshiba</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <label class="switch" title="Zobrazí volania nástrojov, hlásenia servera a poznámky bota o zákazníkovi">
+      <input type="checkbox" id="debug-toggle" role="switch">
+      <span class="switch-track" aria-hidden="true"></span>
+      <span>Ladenie</span>
+    </label>
+    <button class="btn icon-sm" id="reset-btn" type="button" aria-label="Nová konverzácia" title="Nová konverzácia">
+      <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+      <span class="btn-label">Nová konverzácia</span>
+    </button>
+  </div>
+</header>
+<div class="demo-strip" id="demo-banner" role="note" hidden></div>
+
+<nav class="view-tabs" role="tablist" aria-label="Zobrazenie">
+  <button role="tab" type="button" id="tab-chat" data-view="chat" aria-controls="panel-chat" aria-selected="true">Rozhovor</button>
+  <button role="tab" type="button" id="tab-brief" data-view="brief" aria-controls="panel-brief" aria-selected="false" tabindex="-1">
+    Zápis pre PM <span class="dot" id="brief-dot" aria-label="nový" hidden></span>
+  </button>
+  <button role="tab" type="button" id="tab-notes" data-view="notes" aria-controls="panel-notes" aria-selected="false" tabindex="-1" class="debug-only">Poznámky</button>
+</nav>
+
+<main class="workspace">
+  <aside class="panel panel-notes debug-only" id="panel-notes" aria-label="Poznámky bota o zákazníkovi">
+    <div class="panel-inner">
+      <div class="panel-head">
+        <div>
+          <h2>Poznámky bota</h2>
+          <p class="panel-sub">Stav zákazníka, ako si ho bot zapisuje</p>
+        </div>
+      </div>
+      <div id="state-content"></div>
+    </div>
+  </aside>
+
+  <section class="chat" id="panel-chat" aria-label="Rozhovor">
+    <div class="messages" id="messages">
+      <div class="message-list" id="message-list" role="log" aria-live="polite" aria-label="Správy">
+        <div class="welcome" id="welcome">
+          <div class="welcome-mark" aria-hidden="true">
+            <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M12 2v20M20 16l-4-4 4-4M4 8l4 4-4 4M16 4l-4 4-4-4M8 20l4-4 4 4"/></svg>
+          </div>
+          <h2>Dobrý deň, som Klimabot</h2>
+          <p>Pomôžem vám vybrať klimatizáciu Samsung alebo Toshiba, poviem presnú cenu a pripravím podklady pre projektového manažéra.</p>
+          <ol class="steps">
+            <li><b>1</b>Opíšete priestor</li>
+            <li><b>2</b>Dostanete odporúčanie a cenu</li>
+            <li><b>3</b>Ozve sa vám projektový manažér</li>
+          </ol>
+          <div class="suggestions">
+            <button class="suggestion" type="button" data-prompt="Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?">
+              <strong>Spálňa 14 m²</strong><span>Koľko stojí vhodná klimatizácia?</span>
+            </button>
+            <button class="suggestion" type="button" data-prompt="Máme rodinný dom a chceme chladiť 3 izby (12, 15 a 20 m²). Je lepší multi-split alebo samostatné jednotky?">
+              <strong>Rodinný dom, 3 izby</strong><span>Multi-split, či samostatné jednotky?</span>
+            </button>
+            <button class="suggestion" type="button" data-prompt="Potrebujem klimatizáciu do kancelárie 35 m² s ovládaním cez Wi-Fi, rozpočet do 2 000 € s DPH.">
+              <strong>Kancelária 35 m²</strong><span>S Wi-Fi, rozpočet do 2 000 €</span>
+            </button>
+            <button class="suggestion" type="button" data-prompt="Hľadám čo najtichšiu klimatizáciu do detskej izby, má 12 m².">
+              <strong>Tichá do detskej izby</strong><span>Detská izba 12 m²</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <button class="jump-btn" id="jump-btn" type="button" hidden>
+        <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+        Nové správy
+      </button>
+      <form class="composer" id="composer" autocomplete="off">
+        <label class="sr-only" for="input">Vaša správa</label>
+        <textarea id="input" rows="1" placeholder="Opíšte, čo potrebujete…" enterkeyhint="send"></textarea>
+        <button class="send-btn" id="send-btn" type="submit" aria-label="Odoslať správu" disabled>
+          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </form>
+      <div class="composer-meta">
+        <span class="hint"><kbd>Enter</kbd> odošle · <kbd>Shift</kbd>+<kbd>Enter</kbd> nový riadok</span>
+        <span class="right"><span id="turns-left" hidden></span><span id="char-count" hidden></span></span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel panel-brief" id="panel-brief" aria-label="Zápis pre projektového manažéra">
+    <div class="panel-inner">
+      <div class="panel-head">
+        <div>
+          <h2>Zápis pre projektového manažéra</h2>
+          <p class="panel-sub">Podklad, ktorý dostane predajca</p>
+        </div>
+        <span class="pill" id="brief-status">Zatiaľ prázdny</span>
+      </div>
+      <div class="brief-actions" id="brief-actions" hidden>
+        <button class="btn btn-sm" id="copy-brief" type="button">
+          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Kopírovať
+        </button>
+        <button class="btn btn-sm" id="download-brief" type="button">
+          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Stiahnuť .md
+        </button>
+      </div>
+      <div id="handoff-content"></div>
+      <p class="brief-note" id="brief-note" hidden></p>
+    </div>
+  </aside>
+</main>
+
+<dialog id="reset-dialog" aria-labelledby="reset-title" aria-describedby="reset-text">
+  <h2 id="reset-title">Začať novú konverzáciu?</h2>
+  <p id="reset-text">Aktuálny rozhovor sa ukončí a začnete odznova.</p>
+  <div class="dialog-actions">
+    <button class="btn" type="button" data-close="cancel">Zrušiť</button>
+    <button class="btn btn-primary" type="button" data-close="ok">Začať novú</button>
+  </div>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<noscript><p style="padding:16px;text-align:center">Klimabot potrebuje zapnutý JavaScript.</p></noscript>
+
+<!-- Pinned local copies (no CDN): marked renders Markdown, DOMPurify sanitizes it (replies and the
+     PM record contain text the visitor typed). Versions in the file names; see README → Web UI. -->
+<script src="static/vendor/marked-18.0.14.umd.js"></script>
+<script src="static/vendor/purify-3.4.16.min.js"></script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const messagesEl = $("messages");      // the scroll container
+const listEl = $("message-list");      // rows go here
+const welcomeEl = $("welcome");
+const stateEl = $("state-content");
+const handoffEl = $("handoff-content");
+const inputEl = $("input");
+const sendBtn = $("send-btn");
+const resetBtn = $("reset-btn");
+const jumpBtn = $("jump-btn");
+const briefStatus = $("brief-status");
+const briefActions = $("brief-actions");
+const briefNote = $("brief-note");
+const briefDot = $("brief-dot");
+const charCount = $("char-count");
+const turnsLeftEl = $("turns-left");
+const resetDialog = $("reset-dialog");
+
+let currentBotBubble = null;   // the bubble of the current LLM response
+let typingRow = null;          // "bot is preparing the reply" row, kept last
+let lastToolEl = null;         // most recent tool chip, marked red if its result is an error
+let busy = false;
+let sessionId = null;          // one server-side conversation per page load
+let config = { demo: false, lead_mail: false, max_turns: 0, max_message_chars: 0, repo_url: "" };
+let turnsUsed = 0;
+let lastHandoff = "";
+let botReplies = 0;            // numbers the replies for feedback
+let quickRepliesEl = null;     // consent buttons, valid only for the next message
+let replaying = false;         // rebuilding the conversation after a reload
+const SESSION_KEY = "klimabot-session";
+
+const ICONS = {
+  snow: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h20M12 2v20M20 16l-4-4 4-4M4 8l4 4-4 4M16 4l-4 4-4-4M8 20l4-4 4 4"/></svg>',
+  wrench: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+  alert: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
+  info: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  file: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>',
+  up: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>',
+  down: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>',
+  tag: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+  notes: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+};
+// What the visitor sees while a tool runs (tool chips themselves are for debugging only).
+const TOOL_LABELS = {
+  search_knowledge: "Hľadám v katalógu…",
+  lookup_product: "Overujem parametre…",
+  compare_products: "Porovnávam modely…",
+  check_compatibility: "Overujem kompatibilitu zostavy…",
+  quote: "Počítam cenu…",
+  update_customer_state: "Zapisujem si poznámky…",
+  capture_lead: "Pripravujem zápis pre projektového manažéra…",
+  request_human_handoff: "Odovzdávam požiadavku kolegom…",
+};
+const EMPTY_STATE_HTML =
+  `<div class="empty-state"><div class="icon">${ICONS.notes}</div><h3>Zatiaľ bez poznámok</h3>` +
+  `<p>Bot sem zapisuje, čo sa o zákazníkovi dozvie: priestor, rozpočet, vybraný model.</p></div>`;
+const EMPTY_BRIEF_HTML =
+  `<div class="empty-state"><div class="icon">${ICONS.file}</div><h3>Zápis vznikne po súhlase</h3>` +
+  `<p>Keď si vyberiete model a súhlasíte so spracovaním údajov, bot tu pripraví podklad pre projektového ` +
+  `manažéra: priestor, odporúčaný model a cenovú ponuku.</p></div>`;
+
+// ----- Markdown -------------------------------------------------------------------
+
+if (window.DOMPurify) {
+  DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+    if (node.tagName === "A") { node.setAttribute("target", "_blank"); node.setAttribute("rel", "noopener noreferrer"); }
+  });
+}
+function renderMarkdown(md) {
+  if (!window.marked || !window.DOMPurify) return null;  // libraries missing: callers fall back to plain text
+  return DOMPurify.sanitize(marked.parse(md, { gfm: true, breaks: true }));
+}
+function wrapTables(root) {
+  for (const table of root.querySelectorAll("table")) {
+    if (table.parentElement.classList.contains("table-wrap")) continue;
+    const wrap = document.createElement("div");
+    wrap.className = "table-wrap";
+    table.replaceWith(wrap);
+    wrap.appendChild(table);
+  }
+}
+function setMarkdown(el, md) {
+  const html = renderMarkdown(md);
+  if (html === null) { el.classList.add("plain"); el.textContent = md; return; }
+  el.innerHTML = html;
+  wrapTables(el);
+}
+
+// ----- Session -------------------------------------------------------------------
+
+async function startSession() {
+  const resp = await fetch("/api/session", { method: "POST" });
+  if (!resp.ok) throw new Error(await errorMessage(resp));
+  sessionId = (await resp.json()).session_id;
+  try { sessionStorage.setItem(SESSION_KEY, sessionId); } catch {}
+}
+// After a reload: the same tab continues its conversation (sessionStorage is per tab). The
+// server keeps a closed tab's conversation for a short grace, so the reload finds it.
+async function resumeSession() {
+  let saved = null;
+  try { saved = sessionStorage.getItem(SESSION_KEY); } catch {}
+  if (!saved) return false;
+  sessionId = saved;
+  try {
+    const resp = await api("/api/history");
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    replayHistory(data.events || []);
+    turnsUsed = data.turns || 0;
+    // The reload's own "tab closed" beacon may arrive after this request: touch the session again.
+    setTimeout(() => { api("/api/state").catch(() => {}); }, 3000);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function replayHistory(events) {
+  replaying = true;
+  document.body.classList.add("replaying");
+  for (const { event, data } of events) {
+    if (event === "user") { currentBotBubble = null; addMessage("user", data.text); }
+    else handleEvent(event, data);
+  }
+  currentBotBubble = null;
+  replaying = false;
+  document.body.classList.remove("replaying");
+  scrollToBottom();
+}
+function api(path, options = {}) {
+  return fetch(path, { ...options, headers: { ...(options.headers || {}), "X-Session-Id": sessionId || "" } });
+}
+async function errorMessage(resp) {
+  try {
+    const j = await resp.json();
+    if (j && j.error) return j.error;
+  } catch {}
+  return `Chyba: ${resp.status} ${resp.statusText}`;
+}
+function clearConversation(noticeText) {
+  for (const el of [...listEl.children]) if (el !== welcomeEl) el.remove();
+  welcomeEl.hidden = false;
+  typingRow = null;
+  lastToolEl = null;
+  currentBotBubble = null;
+  quickRepliesEl = null;
+  botReplies = 0;
+  turnsUsed = 0;
+  if (noticeText) addNotice(noticeText, false);
+  stateEl.innerHTML = EMPTY_STATE_HTML;
+  resetBrief();
+  updateTurnsLeft();
+  scrollToBottom();
+}
+
+// ----- Messages ------------------------------------------------------------------
+
+function nearBottom() {
+  return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 140;
+}
+function scrollToBottom() {
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  jumpBtn.hidden = true;
+}
+// Follow new content only when the visitor is at the bottom; otherwise offer a jump button.
+function append(el, force = false) {
+  const follow = force || nearBottom();
+  listEl.insertBefore(el, typingRow);  // typingRow null → at the end
+  if (follow) scrollToBottom(); else jumpBtn.hidden = false;
+}
+function makeRow(role) {
+  const row = document.createElement("div");
+  row.className = `row ${role}`;
+  if (role === "bot") {
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.innerHTML = ICONS.snow;
+    row.appendChild(avatar);
+  }
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  if (role === "bot") {
+    const col = document.createElement("div");
+    col.className = "msg-col";
+    col.appendChild(bubble);
+    row.appendChild(col);
+  } else {
+    row.appendChild(bubble);
+  }
+  return { row, bubble };
+}
+function addMessage(role, text) {
+  welcomeEl.hidden = true;
+  const { row, bubble } = makeRow(role);
+  if (role === "bot") {
+    bubble.classList.add("md");
+    bubble.dataset.raw = text;
+    setMarkdown(bubble, text);
+    botReplies += 1;
+    attachFeedback(row, bubble, botReplies);
+  } else {
+    removeQuickReplies();
+    bubble.textContent = text;
+  }
+  append(row, role === "user");
+  return bubble;
+}
+// 👍 / 👎 under a reply, logged on the server (cost_report.py lists the replies rated down).
+function attachFeedback(row, bubble, index) {
+  const bar = document.createElement("div");
+  bar.className = "reply-actions";
+  for (const [rating, label] of [["up", "Užitočná odpoveď"], ["down", "Neužitočná odpoveď"]]) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "fb-btn";
+    btn.dataset.rating = rating;
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("aria-pressed", "false");
+    btn.title = label;
+    btn.innerHTML = ICONS[rating];
+    btn.addEventListener("click", () => sendFeedback(bar, btn, bubble, index));
+    bar.appendChild(btn);
+  }
+  row.querySelector(".msg-col").appendChild(bar);
+}
+async function sendFeedback(bar, btn, bubble, index) {
+  if (btn.getAttribute("aria-pressed") === "true") return;
+  for (const b of bar.querySelectorAll(".fb-btn")) b.setAttribute("aria-pressed", String(b === btn));
+  const first = !bar.classList.contains("voted");
+  bar.classList.add("voted");
+  try {
+    await api("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rating: btn.dataset.rating, reply_index: index, excerpt: (bubble.dataset.raw || "").slice(0, 300) }),
+    });
+    if (first) showToast("Ďakujeme za hodnotenie.");
+  } catch {}
+}
+
+// ----- Consent buttons ---------------------------------------------------------------
+// They send the same explicit words a customer could type; the server decides consent from them.
+function showQuickReplies(data) {
+  removeQuickReplies();
+  const options = data.options || [];
+  if (!options.length) return;
+  const wrap = document.createElement("div");
+  wrap.className = "quick-replies";
+  wrap.setAttribute("role", "group");
+  wrap.setAttribute("aria-label", "Rýchla odpoveď");
+  for (const option of options) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = option.kind === "yes" ? "qr qr-yes" : "qr";
+    btn.textContent = option.text;
+    btn.addEventListener("click", () => { if (!busy) sendMessage(option.text); });
+    wrap.appendChild(btn);
+  }
+  const hint = document.createElement("span");
+  hint.className = "qr-hint";
+  hint.textContent = /^yes/i.test(options[0].text) ? "Or reply in your own words." : "Alebo odpíšte vlastnými slovami.";
+  wrap.appendChild(hint);
+  quickRepliesEl = wrap;
+  append(wrap);
+}
+function removeQuickReplies() {
+  if (quickRepliesEl) { quickRepliesEl.remove(); quickRepliesEl = null; }
+}
+
+// ----- Price card ----------------------------------------------------------------------
+// Every figure is a quote() field formatted by the server; the card is built with textContent.
+const CARD_TEXT = {
+  sk: {
+    title: "Cenová ponuka", sub: "vypočítaná z cenníka", piece: "ks", withVat: "s DPH",
+    catalog: "Cenníková cena bez DPH", discount: "Zľava", promotion: "Akcia",
+    total: "Spolu bez DPH", vat: "DPH 23 %", grand: "Spolu s DPH",
+    fee: (f) => `Recyklačný poplatok ${f.min}–${f.max} € za jednotku (${f.units} ks), presná suma pri objednávke.`,
+    install: "Montáž: cenu určí projektový manažér po bezplatnej obhliadke.",
+    budget: (b) => `Rozpočet ${b.amount}: ${b.status}${b.basis ? ` (${b.basis})` : ""}.`,
+  },
+  en: {
+    title: "Price quote", sub: "calculated from the price list", piece: "pc", withVat: "incl. VAT",
+    catalog: "List price excl. VAT", discount: "Discount", promotion: "Promotion",
+    total: "Total excl. VAT", vat: "VAT 23 %", grand: "Total incl. VAT",
+    fee: (f) => `Recycling fee ${f.min}–${f.max} € per unit (${f.units} pcs), exact amount with the order.`,
+    install: "Installation: priced by the project manager after a free site visit.",
+    budget: (b) => `Budget ${b.amount}: ${b.status}${b.basis ? ` (${b.basis})` : ""}.`,
+  },
+};
+function h(tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+function addQuoteCard(card) {
+  const T = CARD_TEXT[card.language] || CARD_TEXT.sk;
+  const el = h("section", "quote-card");
+  el.setAttribute("aria-label", T.title);
+  const head = h("header", "qc-head");
+  const title = h("span", "qc-title");
+  title.innerHTML = ICONS.tag;
+  title.append(T.title);
+  head.append(title, h("span", "qc-sub", T.sub));
+  const lines = h("ul", "qc-lines");
+  for (const line of card.lines || []) {
+    const li = h("li");
+    const desc = h("div", "qc-desc");
+    desc.append(h("span", "qc-qty", `${line.qty}×`), line.description);
+    const meta = h("div", "qc-meta");
+    meta.append(h("span", "qc-avail", line.availability || ""), h("span", "qc-unit", `${line.unit_price_with_vat} ${T.withVat} / ${T.piece}`));
+    li.append(desc, h("div", "qc-codes", line.codes), meta);
+    lines.appendChild(li);
+  }
+  const totals = h("dl", "qc-totals");
+  const total = (label, value, cls) => {
+    const row = h("div", cls);
+    row.append(h("dt", "", label), h("dd", "", value));
+    totals.appendChild(row);
+  };
+  if (card.discount_total) {
+    total(T.catalog, card.catalog_total);
+    total(card.promotion ? `${T.discount} (${T.promotion}: ${card.promotion})` : T.discount, `−${card.discount_total}`);
+  }
+  total(T.total, card.total);
+  total(T.vat, card.vat);
+  total(T.grand, card.total_with_vat, "grand");
+  const notes = h("ul", "qc-notes");
+  if (card.recycling_fee && card.recycling_fee.min != null) notes.appendChild(h("li", "", T.fee(card.recycling_fee)));
+  notes.appendChild(h("li", "", T.install));
+  if (card.budget) notes.appendChild(h("li", "", T.budget(card.budget)));
+  el.append(head, lines, totals, notes);
+  const row = h("div", "row bot card-row");
+  const spacer = h("div", "avatar ghost");
+  spacer.setAttribute("aria-hidden", "true");
+  row.append(spacer, el);
+  append(row);
+}
+function appendBotText(bubble, text) {
+  bubble.dataset.raw = (bubble.dataset.raw || "") + text;
+  setMarkdown(bubble, bubble.dataset.raw);
+  if (nearBottom()) scrollToBottom();
+}
+function setTyping(on) {
+  if (on && !typingRow) {
+    const { row, bubble } = makeRow("bot");
+    row.classList.add("typing");
+    row.setAttribute("aria-hidden", "true");
+    bubble.innerHTML = '<span class="dots"><i></i><i></i><i></i></span><span class="typing-label">Pripravujem odpoveď…</span>';
+    typingRow = row;
+    listEl.appendChild(row);
+    scrollToBottom();
+  } else if (!on && typingRow) {
+    typingRow.remove();
+    typingRow = null;
+  }
+}
+function setTypingLabel(text) {
+  const label = typingRow && typingRow.querySelector(".typing-label");
+  if (label) label.textContent = text;
+}
+// Server notices (consent recorded, regeneration, limits…) are for debugging; a notice the
+// page itself writes for the visitor passes debugOnly = false.
+function addNotice(text, debugOnly = true) {
+  const div = document.createElement("div");
+  div.className = debugOnly ? "notice debug-only" : "notice";
+  div.textContent = text;
+  append(div);
+}
+function addError(text) {
+  const div = document.createElement("div");
+  div.className = "alert";
+  div.setAttribute("role", "alert");
+  div.innerHTML = ICONS.alert;
+  const span = document.createElement("span");
+  span.textContent = text;
+  div.appendChild(span);
+  append(div, true);
+}
+function addToolCall(name, input) {
+  const div = document.createElement("div");
+  div.className = "tool-chip debug-only";
+  const inputStr = typeof input === "string" ? input : JSON.stringify(input);
+  div.innerHTML = `${ICONS.wrench}<span class="name">${escapeHtml(name)}</span><span class="input">${escapeHtml(truncate(inputStr, 160))}</span>`;
+  append(div);
+  return div;
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+}
+function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+function plural(n, one, few, many) { return n === 1 ? one : n >= 2 && n <= 4 ? few : many; }
+
+function showToast(text, action) {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.setAttribute("role", "status");
+  const span = document.createElement("span");
+  span.textContent = text;
+  toast.appendChild(span);
+  if (action) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toast-action";
+    btn.textContent = action.label;
+    btn.addEventListener("click", () => { action.onClick(); toast.remove(); });
+    toast.appendChild(btn);
+  }
+  $("toasts").appendChild(toast);
+  setTimeout(() => toast.remove(), 6000);
+}
+
+// ----- Customer notes (debugging) --------------------------------------------------
+
+function renderState(state) {
+  const keys = Object.keys(state || {});
+  if (keys.length === 0) { stateEl.innerHTML = EMPTY_STATE_HTML; return; }
+  // Order: lead_* first, then consent, place, segment, models, predpríprava, others.
+  const orderHint = (k) => {
+    if (k.startsWith("lead_")) return 0;
+    if (k.startsWith("consent_")) return 1;
+    if (k.startsWith("place_") || k === "usage" || k === "housing_type") return 2;
+    if (k === "segment" || k === "b2b_ico" || k === "b2b_dic") return 3;
+    if (k.startsWith("model_") || k === "models_shown") return 4;
+    if (k.startsWith("predpriprava")) return 5;
+    if (k === "outdoor_placement" || k === "antivib_brackets") return 6;
+    if (k === "must_have_features") return 7;
+    return 8;
+  };
+  keys.sort((a, b) => orderHint(a) - orderHint(b) || a.localeCompare(b));
+  const dl = document.createElement("dl");
+  dl.className = "kv";
+  for (const k of keys) {
+    const v = state[k];
+    const item = document.createElement("div");
+    const dt = document.createElement("dt");
+    dt.textContent = k;
+    const dd = document.createElement("dd");
+    if (Array.isArray(v)) { dd.textContent = v.join(", ") || "—"; dd.className = "v-list"; }
+    else if (typeof v === "boolean") { dd.textContent = v ? "Áno" : "Nie"; dd.className = v ? "v-true" : "v-false"; }
+    else if (typeof v === "number") { dd.textContent = String(v); dd.className = "v-num"; }
+    else if (v === null || v === undefined) { dd.textContent = "—"; }
+    else if (typeof v === "object") { dd.textContent = JSON.stringify(v); }
+    else { dd.textContent = String(v); }
+    item.append(dt, dd);
+    dl.appendChild(item);
+  }
+  stateEl.replaceChildren(dl);
+}
+
+// ----- PM record -----------------------------------------------------------------
+
+function resetBrief() {
+  lastHandoff = "";
+  handoffEl.innerHTML = EMPTY_BRIEF_HTML;
+  briefStatus.textContent = "Zatiaľ prázdny";
+  delete briefStatus.dataset.state;
+  briefActions.hidden = true;
+  briefNote.hidden = true;
+  briefDot.hidden = true;
+}
+function renderHandoff(markdown, path) {
+  lastHandoff = markdown;
+  const doc = document.createElement("article");
+  doc.className = "brief-doc md";
+  setMarkdown(doc, markdown);  // sanitized: the record contains text the visitor typed
+  handoffEl.replaceChildren(doc);
+  briefStatus.textContent = "Pripravený";
+  briefStatus.dataset.state = "ready";
+  briefActions.hidden = false;
+  briefNote.innerHTML = ICONS.info;
+  const note = document.createElement("span");
+  note.textContent = config.lead_mail
+    ? "Projektovému manažérovi ho pošleme e-mailom, keď rozhovor skončí (zatvorenie okna alebo nová konverzácia)."
+    : "V tejto ukážke sa zápis nikam neposiela.";
+  briefNote.appendChild(note);
+  if (path) {
+    const code = document.createElement("code");
+    code.className = "debug-only";
+    code.textContent = ` ${path}`;
+    note.appendChild(code);
+  }
+  briefNote.hidden = false;
+  if (narrow.matches && document.body.dataset.view !== "brief" && !replaying) {
+    briefDot.hidden = false;
+    showToast("Zápis pre projektového manažéra je pripravený.", { label: "Zobraziť", onClick: () => setView("brief") });
+  }
+}
+async function copyBrief() {
+  try {
+    await navigator.clipboard.writeText(lastHandoff);
+    showToast("Zápis je skopírovaný.");
+  } catch {
+    showToast("Kopírovanie tu nie je dostupné, použite Stiahnuť.");
+  }
+}
+function downloadBrief() {
+  const url = URL.createObjectURL(new Blob([lastHandoff], { type: "text/markdown;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "zapis-pre-projektoveho-manazera.md";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ----- Composer ------------------------------------------------------------------
+
+function autoGrow() {
+  inputEl.style.height = "auto";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 168) + "px";
+}
+function updateComposer() {
+  const len = inputEl.value.length;
+  const max = config.max_message_chars;
+  sendBtn.disabled = busy || !inputEl.value.trim();
+  if (max && len >= max * 0.8) {
+    charCount.hidden = false;
+    charCount.textContent = `${len} / ${max}`;
+    charCount.classList.toggle("warn", len >= max * 0.95);
+  } else {
+    charCount.hidden = true;
+  }
+}
+function updateTurnsLeft() {
+  const max = config.max_turns;
+  if (!max) { turnsLeftEl.hidden = true; return; }
+  const left = Math.max(max - turnsUsed, 0);
+  turnsLeftEl.hidden = left > 5;
+  turnsLeftEl.textContent = left
+    ? `V ukážke ${plural(left, "zostáva", "zostávajú", "zostáva")} ${left} ${plural(left, "správa", "správy", "správ")}`
+    : "Limit správ v ukážke je vyčerpaný, začnite novú konverzáciu.";
+}
+function submitComposer() {
+  const text = inputEl.value.trim();
+  if (!text || busy) return;  // while the bot answers, the visitor may keep typing
+  inputEl.value = "";
+  autoGrow();
+  updateComposer();
+  sendMessage(text);
+}
+
+// ----- Send a message (server-sent events) ---------------------------------------------
+
+async function sendMessage(text) {
+  if (busy) return;
+  busy = true;
+  updateComposer();
+  addMessage("user", text);
+  currentBotBubble = null;
+  setTyping(true);
+  try {
+    const resp = await api("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    });
+    if (resp.status === 409) {
+      // The server dropped the idle session: start a new one; the message wasn't processed.
+      const msg = await errorMessage(resp);
+      await startSession();
+      clearConversation(msg);
+      return;
+    }
+    if (!resp.ok || !resp.body) {
+      addError(await errorMessage(resp));
+      return;
+    }
+    turnsUsed += 1;
+    updateTurnsLeft();
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;  // SSE events are separated by a blank line
+      while ((idx = buffer.indexOf("\n\n")) !== -1) {
+        const raw = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        if (!raw.trim()) continue;
+        const ev = parseSseBlock(raw);
+        if (ev) handleEvent(ev.event, ev.data);
+      }
+    }
+  } catch (e) {
+    addError(`Spojenie sa prerušilo (${e.message}). Skúste to prosím znova.`);
+  } finally {
+    setTyping(false);
+    currentBotBubble = null;
+    busy = false;
+    updateComposer();
+    if (!narrow.matches) inputEl.focus({ preventScroll: true });  // on phones don't pop the keyboard up
+  }
+}
+function parseSseBlock(raw) {
+  let event = "message";
+  const dataLines = [];
+  for (const line of raw.split("\n")) {
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+  }
+  if (dataLines.length === 0) return null;
+  try {
+    return { event, data: JSON.parse(dataLines.join("\n")) };
+  } catch {
+    return { event, data: dataLines.join("\n") };
+  }
+}
+function handleEvent(event, data) {
+  switch (event) {
+    case "token":
+      // The server sends each reply only after its checks passed, as one chunk.
+      if (!currentBotBubble) currentBotBubble = addMessage("bot", data.text);
+      else appendBotText(currentBotBubble, data.text);
+      break;
+    case "notice":
+      addNotice(data.text);
+      break;
+    case "tool_call":
+      currentBotBubble = null;  // text after the tool goes into a new bubble
+      lastToolEl = addToolCall(data.name, data.input);
+      setTypingLabel(TOOL_LABELS[data.name] || "Pripravujem odpoveď…");
+      break;
+    case "tool_result":
+      if (data.is_error && lastToolEl) lastToolEl.classList.add("error");
+      break;
+    case "state":
+      renderState(data);
+      break;
+    case "handoff":
+      renderHandoff(data.markdown, data.path);
+      break;
+    case "quote":
+      addQuoteCard(data);
+      break;
+    case "quick_replies":
+      showQuickReplies(data);
+      break;
+    case "turn_complete":
+      currentBotBubble = null;  // the loop may continue with another LLM response
+      setTypingLabel("Pripravujem odpoveď…");
+      break;
+    case "error":
+      addError(data.message);
+      break;
+    case "done":
+      break;
+  }
+}
+
+// ----- New conversation ------------------------------------------------------------
+
+function confirmReset() {
+  if (typeof resetDialog.showModal !== "function") return Promise.resolve(confirm("Začať novú konverzáciu?"));
+  resetDialog.returnValue = "";
+  resetDialog.showModal();
+  return new Promise((resolve) => {
+    resetDialog.addEventListener("close", () => resolve(resetDialog.returnValue === "ok"), { once: true });
+  });
+}
+for (const btn of resetDialog.querySelectorAll("[data-close]")) {
+  btn.addEventListener("click", () => resetDialog.close(btn.dataset.close));
+}
+async function doReset() {
+  if (busy) return;
+  if (!(await confirmReset())) return;
+  try {
+    const resp = await api("/api/reset", { method: "POST" });
+    if (resp.status === 409) await startSession();
+    else if (!resp.ok) { addError(await errorMessage(resp)); return; }
+  } catch (e) {
+    addError(`Spojenie sa prerušilo (${e.message}).`);
+    return;
+  }
+  clearConversation("Začali ste novú konverzáciu.");
+  setView("chat");
+}
+
+// ----- Views (tabs on narrow screens) ----------------------------------------------
+
+const narrow = window.matchMedia("(max-width: 1023px)");
+const tabs = [...document.querySelectorAll('.view-tabs [role="tab"]')];
+function setView(view) {
+  document.body.dataset.view = view;
+  for (const tab of tabs) {
+    const on = tab.dataset.view === view;
+    tab.setAttribute("aria-selected", String(on));
+    tab.tabIndex = on ? 0 : -1;
+  }
+  if (view === "brief") briefDot.hidden = true;
+  if (view === "chat") scrollToBottom();
+}
+for (const tab of tabs) {
+  tab.addEventListener("click", () => setView(tab.dataset.view));
+  tab.addEventListener("keydown", (e) => {  // arrow keys move between tabs
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const visible = tabs.filter((t) => t.offsetParent !== null);
+    const i = visible.indexOf(tab) + (e.key === "ArrowRight" ? 1 : -1);
+    const next = visible[(i + visible.length) % visible.length];
+    next.focus();
+    setView(next.dataset.view);
+  });
+}
+
+// ----- Customer view / debugging -----------------------------------------------------
+// Off by default in the demo, on for local debugging; ?debug=1 or ?debug=0 overrides, and
+// the visitor's own choice is remembered in this browser.
+const debugToggle = $("debug-toggle");
+function setDebug(on, remember) {
+  document.body.classList.toggle("debug", on);
+  debugToggle.checked = on;
+  if (!on && document.body.dataset.view === "notes") setView("chat");
+  if (remember) { try { localStorage.setItem("klimabot-debug", on ? "1" : "0"); } catch {} }
+}
+function initialDebug(isDemo) {
+  const fromUrl = new URLSearchParams(location.search).get("debug");
+  if (fromUrl !== null) return fromUrl === "1";
+  let saved = null;
+  try { saved = localStorage.getItem("klimabot-debug"); } catch {}
+  return saved !== null ? saved === "1" : !isDemo;
+}
+debugToggle.addEventListener("change", () => setDebug(debugToggle.checked, true));
+
+// Closing the tab finishes the conversation (a captured lead is e-mailed to the PM then).
+// sendBeacon survives the page unloading but can't set headers, so the id goes in the body.
+// A page kept in the back/forward cache (event.persisted) may come back: the conversation stays open
+// (if it never does, the server's idle sweep ends it).
+window.addEventListener("pagehide", (event) => {
+  if (sessionId && !event.persisted) navigator.sendBeacon("/api/end", JSON.stringify({ session_id: sessionId }));
+});
+
+// ----- Wiring -----------------------------------------------------------------------
+
+$("composer").addEventListener("submit", (e) => { e.preventDefault(); submitComposer(); });
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); submitComposer(); }
+});
+inputEl.addEventListener("input", () => { autoGrow(); updateComposer(); });
+resetBtn.addEventListener("click", doReset);
+jumpBtn.addEventListener("click", scrollToBottom);
+messagesEl.addEventListener("scroll", () => { if (nearBottom()) jumpBtn.hidden = true; }, { passive: true });
+$("copy-brief").addEventListener("click", copyBrief);
+$("download-brief").addEventListener("click", downloadBrief);
+for (const btn of document.querySelectorAll(".suggestion")) {
+  btn.addEventListener("click", () => { if (!busy) sendMessage(btn.dataset.prompt); });
+}
+
+// ----- Start ----------------------------------------------------------------------
+
+stateEl.innerHTML = EMPTY_STATE_HTML;
+resetBrief();
+(async () => {
+  if (!(await resumeSession())) {
+    try {
+      await startSession();
+    } catch (e) {
+      addError(e.message);
+    }
+  }
+  try {
+    const cfg = await fetch("/api/config").then((r) => r.json());
+    config = { ...config, ...cfg };
+    setDebug(initialDebug(cfg.demo), false);
+    if (config.max_message_chars) inputEl.maxLength = config.max_message_chars;
+    $("reset-text").textContent = config.lead_mail
+      ? "Aktuálny rozhovor sa ukončí. Ak v ňom vznikol zápis pre projektového manažéra, pošleme mu ho."
+      : "Aktuálny rozhovor sa ukončí a začnete odznova.";
+    if (cfg.demo) {
+      const banner = $("demo-banner");
+      banner.innerHTML = ICONS.info;
+      const text = document.createElement("span");
+      text.textContent = "Ukážka: fiktívny predajca, nič sa nepredáva. Zadávajte iba vymyslené meno a telefón.";
+      if (cfg.lead_mail) {
+        const extra = document.createElement("span");
+        extra.className = "demo-extra";  // hidden on phones
+        extra.textContent = " Zápis pre projektového manažéra mu po skončení rozhovoru pošleme e-mailom.";
+        text.appendChild(extra);
+      }
+      banner.appendChild(text);
+      if (cfg.repo_url) {
+        const link = document.createElement("a");
+        link.href = cfg.repo_url;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "Zdrojový kód";
+        text.append(" · ", link);
+      }
+      banner.hidden = false;
+    }
+    updateTurnsLeft();
+  } catch {}
+  updateComposer();
+})();
+</script>
+</body>
+</html>

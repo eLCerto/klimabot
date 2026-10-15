@@ -1,0 +1,8 @@
+* text=auto
+*.sh text eol=lf
+*.npy binary
+Dockerfile text eol=lf
+Caddyfile text eol=lf
+.dockerignore text eol=lf
+*.yml text eol=lf
+Makefile text eol=lf

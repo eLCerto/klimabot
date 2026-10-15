@@ -1,0 +1,131 @@
+{
+  "_metadata": {
+    "company": "Samuel Malíšek Klimabot",
+    "sold_brands": [
+      "Samsung",
+      "Toshiba"
+    ],
+    "purpose": "UKÁŽKOVÁ cenová politika (fiktívne percentá). Uplatňuje ju výhradne nástroj quote v bot.py. Cenu montáže bot neuvádza: závisí od konkrétnej inštalácie a určí ju projektový manažér po bezplatnej obhliadke.",
+    "valid_from": "2026-01-01",
+    "valid_until": "2026-12-31",
+    "last_updated": "2026-10-05",
+    "currency": "EUR",
+    "edit_instructions": "Percentá sú 0–100 (0 = bez zľavy). Bot súbor načíta pri štarte a skontroluje, že obsahuje všetky kategórie — po úprave ho reštartuj.",
+    "calculation_formula": "final_price = catalog_price × (1 - min(category_pct + segment_pct + promo_pct, max_total_discount_pct) / 100)"
+  },
+  "category_discount_pct": {
+    "_comment": "Základná zľava podľa kategórie produktu — rovnaká pre Samsung aj Toshiba. Kategóriu určí quote z cenníka, v ktorom produkt je.",
+    "single_split_sets": 8,
+    "single_split_units": 11,
+    "multi_split_outdoor": 3,
+    "multi_split_indoor": 2,
+    "commercial_outdoor": 10,
+    "commercial_indoor": 14,
+    "panels": 0,
+    "controls": 14,
+    "accessories": 4
+  },
+  "_category_descriptions": {
+    "single_split_sets": "Single-split set (vnútorná + vonkajšia jednotka) — Samsung RAC, Toshiba RAS",
+    "single_split_units": "Single-split vnútorná alebo vonkajšia jednotka kúpená samostatne",
+    "multi_split_outdoor": "Multi-split vonkajšia jednotka — Samsung FJM, Toshiba RAS Multi",
+    "multi_split_indoor": "Multi-split vnútorná jednotka (nástenná, kazeta, kanálová, parapetná)",
+    "commercial_outdoor": "Komerčná vonkajšia jednotka — Samsung CAC, Toshiba RAV",
+    "commercial_indoor": "Komerčná vnútorná jednotka — Samsung CAC, Toshiba RAV",
+    "panels": "Dekoračné panely ku kazetám",
+    "controls": "Ovládače, Wi-Fi moduly, senzory, centrálne a BMS rozhrania",
+    "accessories": "Ostatné príslušenstvo (refnety, kity, čerpadlá kondenzátu, filtre, kryty)"
+  },
+  "customer_segment_modifiers": {
+    "_comment": "Dodatočná zľava podľa typu zákazníka, pripočíta sa k zľave kategórie. Segment s verification_required v chate nenaceňujeme — overí ho predajca.",
+    "max_total_discount_pct": 25,
+    "retail_B2C": {
+      "additional_pct": 0,
+      "description": "Štandardný zákazník (občan, súkromná osoba)",
+      "trigger_phrases": []
+    },
+    "B2B_firma": {
+      "additional_pct": 3,
+      "description": "Firma s IČO – fakturácia s DPH (s odpočtom)",
+      "trigger_phrases": [
+        "máme firmu",
+        "fakturujeme na firmu",
+        "ičo",
+        "s.r.o.",
+        "a.s.",
+        "ako právnická osoba"
+      ]
+    },
+    "partner_dealer": {
+      "additional_pct": 5,
+      "description": "Autorizovaný predajca / dealer so zmluvným vzťahom",
+      "trigger_phrases": [
+        "sme dealer",
+        "zmluvný partner",
+        "autorizovaný predajca"
+      ],
+      "verification_required": true
+    },
+    "instalator_certifikovany": {
+      "additional_pct": 5,
+      "description": "Certifikovaný inštalatér s odbornou spôsobilosťou",
+      "trigger_phrases": [
+        "som inštalatér",
+        "mám oprávnenie",
+        "klimatizatér",
+        "certifikovaný technik"
+      ],
+      "verification_required": true
+    },
+    "velkoobchodny_odber": {
+      "additional_pct": 7,
+      "description": "Veľkoobchodný odber (5+ jednotiek v jednej objednávke)",
+      "trigger_phrases": [
+        "chceme 5 a viac",
+        "veľký odber",
+        "objednávka pre projekt",
+        "developerský projekt"
+      ],
+      "verification_required": true
+    }
+  },
+  "active_promotions": {
+    "_comment": "Časovo obmedzené akcie. quote ich uplatní, len ak _active=true, dnešný dátum je medzi valid_from a valid_until a kategória produktu je v applies_to.",
+    "promotions": [
+      {
+        "_active": false,
+        "code": "JAR2026",
+        "description": "Jarná akcia na single-split sety – príklad (vypnutá)",
+        "valid_from": "2026-03-01",
+        "valid_until": "2026-04-30",
+        "additional_pct": 5,
+        "applies_to": [
+          "single_split_sets"
+        ]
+      },
+      {
+        "_active": false,
+        "code": "PRELET2026",
+        "description": "Predletová akcia na multi-split – príklad (vypnutá)",
+        "valid_from": "2026-05-15",
+        "valid_until": "2026-06-30",
+        "additional_pct": 5,
+        "applies_to": [
+          "multi_split_outdoor",
+          "multi_split_indoor"
+        ]
+      }
+    ]
+  },
+  "recycling_fee_eur_per_unit": {
+    "_comment": "Recyklačný poplatok (HEEE) za jednu klimatizáciu; presná suma pri objednávke. Nezľavňuje sa.",
+    "min": 5,
+    "max": 15
+  },
+  "_never_discounted": [
+    "Montáž a inštalačné práce",
+    "Servisné výjazdy a opravy mimo záruky",
+    "Recyklačné poplatky (HEEE)",
+    "DPH 23 % – počíta sa zo zľavnenej ceny"
+  ]
+}

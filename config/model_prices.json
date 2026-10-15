@@ -1,0 +1,13 @@
+{
+  "_metadata": {
+    "purpose": "USD per million tokens. bot.py prices every API call from this table (the per-turn and per-conversation budgets) and cost_report.py prices the logs from it.",
+    "source": "https://platform.claude.com/docs/en/about-claude/pricing (checked 2026-10-09)",
+    "note": "bot.py uses 5-minute cache writes (cache_control ephemeral, no ttl)."
+  },
+  "claude-haiku-4-5-20251001": {
+    "input": 1.00,
+    "output": 5.00,
+    "cache_write_5m": 1.25,
+    "cache_read": 0.10
+  }
+}

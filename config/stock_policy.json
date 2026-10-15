@@ -1,0 +1,31 @@
+{
+  "_metadata": {
+    "purpose": "Skladová dostupnosť, ktorú quote vracia pri každej položke (pole availability). Pravidlo knowledge/rules/feedback_dodacia_lehota_non_stock.md sa na tento súbor odvoláva a zoznamy neopakuje.",
+    "source": "Distribútor AIR-COND International, cenník Toshiba 2026 (non-stock položky sú v katalógu označené). Samsung cenník 2026 skladovosť neuvádza.",
+    "how_it_works": "Kód v non_stock_codes alebo zhoda s non_stock_code_patterns → non_stock. Inak platí default_by_brand. Položka (napr. set) je non_stock, ak je non_stock ktorýkoľvek jej kód.",
+    "last_updated": "2026-10-11"
+  },
+  "default_by_brand": {
+    "Toshiba": "stock",
+    "Samsung": "unknown"
+  },
+  "non_stock_codes": [
+    "RAS-B10S4KVDG-E",
+    "RAS-B13S4KVDG-E",
+    "RAS-B18S4KVDG-E",
+    "RAV-HM561UT-E",
+    "RAV-HM801UT-E",
+    "RAV-HM1101UT-E",
+    "RAV-HM1401UT-E",
+    "RBC-MTSC1",
+    "TO-RC-BAC-1"
+  ],
+  "non_stock_code_patterns": [
+    "^RAV-HM\\d+FT-E$"
+  ],
+  "labels": {
+    "stock": "štandardne skladom (termín dodania potvrdí projektový manažér)",
+    "non_stock": "nie je skladový tovar — vyrába sa na objednávku, dodaciu lehotu potvrdí projektový manažér",
+    "unknown": "dostupnosť overí projektový manažér"
+  }
+}

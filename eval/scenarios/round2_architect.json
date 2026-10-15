@@ -1,0 +1,204 @@
+[
+  {
+    "id": "a01_reklamacia_support_suhlas",
+    "author": "architect",
+    "title": "Reklamácia Toshiby — spätné volanie so súhlasom na podporu, žiadny lead",
+    "targets": [
+      "P0-2 support consent",
+      "P0-1 typed-phrase bypass removed",
+      "P0-4 no auto-capture after handoff, no name heuristics ('Moje')",
+      "c14 regression"
+    ],
+    "review": "Reklamáciu bot nerieši (rozhodnutie majiteľa 2026-10-11): request_human_handoff s účelom support, žiadna otázka o súhlase, nepýta si meno ani telefón, nič nesľubuje (záruku, technika, termín) a dá zákazníkovi e-mail (a telefón) firmy. Údaje, ktoré zákazník sám napíše (správa 3), sa nikam neuložia; žiadny lead, handoff_records ani quote. Poznámka o druhej klíme do spálne je len zmienka — nanajvýš krátka ponuka pomôcť neskôr.",
+    "expect": {
+      "lead": false,
+      "consent": "none",
+      "handoff_request": true,
+      "quote": false,
+      "price_before_gdpr": null,
+      "commercial": null,
+      "segment": null,
+      "language": "sk",
+      "codes_any": [],
+      "must_not_say": [
+        "účelom prípravy cenovej ponuky",
+        "účelom vybavenia"
+      ]
+    },
+    "messages": [
+      "Dobrý deň, v apríli ste nám montovali Toshibu do obývačky a od pondelka nechladí, len fúka teplý vzduch a na jednotke bliká kontrolka.",
+      "Chcem to reklamovať, je to v záruke. Číslo zákazky neviem, faktúru mám niekde doma. Môže sa mi niekto ozvať?",
+      "Moje číslo je 0927 000 214, Marek Hudák, Komárno. Súhlasím so spracovaním údajov, nech mi zavolá technik.",
+      "Áno, súhlasím — ale iba na vybavenie tej reklamácie, nič iné mi neposielajte.",
+      "Inak rozmýšľame aj o druhej klime do spálne, ale to až neskôr, teraz nech sa vyrieši toto."
+    ]
+  },
+  {
+    "id": "a02_odmietnutie_bez_stopy",
+    "author": "architect",
+    "title": "Cena hneď, „súhlasím s cenou“, potom odmietnutie GDPR — údaje nesmú zostať",
+    "targets": [
+      "P0-1 consent window ('súhlasím s tou cenou' is not consent)",
+      "P0-1 code re-asks when contacts arrive without a token",
+      "P0-5 redaction + log rewrite on refusal",
+      "P1-13 price before contacts",
+      "c13 regression"
+    ],
+    "review": "Msg 2 ('súhlasím s tou cenou') must not be recorded as consent; after msg 3 code re-asks the canonical question, msg 4 is recorded as a refusal, and the bot gives info@klimabot.example with an in-chat recap (msg 5) that uses quote amounts only. Grep the session log, sessions/*.json and handoff_queue.jsonl for 'Mrázová', '0923 000 213' and 'zuzana.mrazova@example.com': expect 0 hits outside masked values (a name typed before it was known is the documented residual). No leads.jsonl line, no handoff_records file.",
+    "expect": {
+      "lead": false,
+      "consent": "refused",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [
+        "RAS-B10B2KVG-E2",
+        "RAS-10B2AVG-E2",
+        "RAS-B13B2KVG-E2",
+        "RAS-13B2AVG-E2"
+      ],
+      "must_not_say": [
+        "\\b(zapísal|uložil|zaznamenal)a?\\s+som\\s+si\\s+(váš|vaše|vás)",
+        "\\b(zapísali|uložili|zaznamenali)\\s+sme\\s+si\\s+(váš|vaše|vás)"
+      ]
+    },
+    "messages": [
+      "dobry den, chcem klimu do spalne 12 m2, byt na prizemi v Trnave. kolko by stala najlacnejsia toshiba aj s montazou?",
+      "ok, suhlasim s tou cenou, to je v pohode. nech je to ta najlacnejsia, wifi netreba.",
+      "Zuzana Mrázová, 0923 000 213, zuzana.mrazova@example.com",
+      "Nie, nesúhlasím. Nechcem, aby ste si moje údaje niekam ukladali, ozvem sa sama.",
+      "Ešte mi prosím zhrňte, aký model to bol a koľko to vyjde aj s montážou, nech si to zapíšem."
+    ]
+  },
+  {
+    "id": "a03_cz_chalupa_rozpocet_brief",
+    "author": "architect",
+    "title": "Český zákazník, chalupa, 2 izby, rozpočet s DPH vrátane montáže",
+    "targets": [
+      "P1-11 grounded budget and name in the PM brief",
+      "P1-10 budget verdict on the all-in range with DPH",
+      "P1-12 Czech in, Slovak out",
+      "P0-1 Czech consent token after re-ask",
+      "P0-4 no name heuristics ('Moje', 'jmenuji')",
+      "c03 + c16 regression"
+    ],
+    "review": "Slovak replies with no Czech words. The 'vojdeme sa?' answer may confirm only whether the units fit (budget.status, on the price with DPH); the installation is priced by the PM after the site visit, so the bot never claims the whole fits and gives no installation figure, and the Wi-Fi/app wish is met (standard or quoted module). PM brief: budget exactly '4 000 € s DPH vrátane montáže' (no invented, converted or net figure); name Tomáš Procházka, not 'Moje'/'Jmenuji'; phone 0926 000 217; Terchová; Czech noted as the language. Sales consent comes from 'Ano, souhlasím.'",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [],
+      "must_not_say": [
+        "\\bmístnost",
+        "\\bmestnos",
+        "\\bděkuj",
+        "\\bsouhlas",
+        "\\bvčetně\\b",
+        "\\bdobrý den\\b"
+      ]
+    },
+    "messages": [
+      "Dobrý den, stavíme chalupu na Slovensku kousek od Terchové a chtěli bychom klimatizaci do obýváku s kuchyní, má 35 m², a do ložnice 14 m².",
+      "Dohromady na to máme max 4 000 € s DPH včetně montáže, víc opravdu ne. Vejdeme se do toho? Značka je nám jedno, jen ať se to dá ovládat přes mobil.",
+      "Předpřípravu nemáme, všechno by se dělalo najednou. Vyberte nám, co dává smysl.",
+      "Moje číslo je 0926 000 217, jmenuji se Tomáš Procházka, chalupa je v Terchové.",
+      "Ano, souhlasím."
+    ]
+  },
+  {
+    "id": "a04_en_home_office_windfree",
+    "author": "architect",
+    "title": "Anglicky hovoriaca zákazníčka, home office, WindFree, rozpočet all-in",
+    "targets": [
+      "P1-12 English in, English out",
+      "P0-1 SK question + EN translation, English consent after re-ask",
+      "P1-10 all-in range with DPH and budget verdict",
+      "P0-6 price validator on English number formats",
+      "c17 regression"
+    ],
+    "review": "≥ 90 % English, including the recap; the GDPR question is the canonical Slovak sentence plus an English translation, and 'Yes, I agree.' counts only because it follows the latest (re-)ask. No installation figure is given (the PM prices it after the site visit); the verdict against '€2,500' covers only the units (budget.status, with VAT) and never says the whole fits. Check bot_reply_violations for English-formatted amounts ('€2,500', '1,234.56') wrongly flagged or stripped. PM brief notes English as the language.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "en",
+      "codes_any": [
+        "AR60F09C1AWNEU",
+        "AR60F12C1AWNEU",
+        "AR70F09C1AWNEU",
+        "AR70F12C1AWNEU",
+        "AR70F09C1ABNEU",
+        "AR70F12C1ABNEU",
+        "AR70H09C1AWNEU",
+        "AR70H12C1AWNEU",
+        "AR70H09C1ABNEU",
+        "AR70H12C1ABNEU",
+        "AR70H09CAAWNEU",
+        "AR70H12CAAWNEU",
+        "AR70H09CAABNEU",
+        "AR70H12CAABNEU"
+      ],
+      "must_not_say": [
+        "\\bDobrý deň",
+        "\\bĎakujem"
+      ]
+    },
+    "messages": [
+      "Hi, I need air conditioning for my home office, a room of about 18 m² in a flat in Bratislava. I'm on video calls all day, so it has to be really quiet.",
+      "I've read good things about Samsung WindFree. What would one cost all in, with installation and VAT?",
+      "My budget is around €2,500 all in. Does that fit?",
+      "Great, let's go with that one. I'm Emma Clarke, phone 0925 000 216, email emma.clarke@example.com.",
+      "Yes, I agree."
+    ]
+  },
+  {
+    "id": "a05_serverovna_heat_load_fit",
+    "author": "architect",
+    "title": "Serverovňa 3,5 kW tepelnej záťaže, zákazník skúša bytové jednotky, firma",
+    "targets": [
+      "P0-8 fit check: server room refuses residential lines",
+      "P0-8 2 independent units ≥ 1.2 × heat load + failover controller",
+      "P1-11 heat_load_kW grounded (not racks, not m²)",
+      "P0-4 'Kontakt:' is not a name",
+      "c06 regression"
+    ],
+    "review": "No residential line in any successful quote; if the model tried WindFree/RAS, quote returned the fit error and no override_reason was used, since the customer accepted. The accepted quote has 2 independent single-split pairs, each ≥ 4,2 kW (1,2 × 3,5 kW), plus RBC-AMSU52-E or MIM-B14; no multi-split or Twin; B2B segment; sized from the heat load, not the 9 m². PM brief: heat load 3,5 kW and 2 racks as separate facts (c06 stored '5 racks'); name Lenka Šusterová, not 'Kontakt'.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": true,
+      "segment": "B2B_firma",
+      "language": "sk",
+      "codes_any": [
+        "RBC-AMSU52-E",
+        "MIM-B14"
+      ],
+      "must_not_say": [
+        "twin\\w*\\s+(kit\\w*\\s+)?(pre|na|ako)\\s+(redundanc|záloh)"
+      ]
+    },
+    "messages": [
+      "Dobrý deň, potrebujeme chladenie do malej serverovne u nás vo firme, beží to nonstop 24/7.",
+      "Sú tam 2 racky, tepelný výkon serverov je podľa nášho IT-čkára spolu asi 3,5 kW. Miestnosť je bez okna, má cca 9 m², 3-fázu nemáme.",
+      "Nestačili by tam dve obyčajné nástenné klimy, aké sa dávajú do bytu, napríklad Samsung WindFree? Vraj sú lacnejšie.",
+      "Dobre, ak to nemá zmysel, tak radšej tú komerčnú. Sme s.r.o., faktúra na IČO 11223344. Koľko to bude stáť aj s montážou?",
+      "Kontakt: Ing. Lenka Šusterová, 0928 000 218, Žilina. Pošlite to, potrebujem to dať schváliť konateľovi.",
+      "Áno, súhlasím."
+    ]
+  }
+]

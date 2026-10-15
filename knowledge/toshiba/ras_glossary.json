@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "purpose": "Vyhľadávací slovník pre chatbota – pomáha pochopiť dotazy v EN/SK/hovorovej forme a mapovať ich na produkty v RAS databáze.",
+    "usage": "Bot pri vyhľadávaní v rac/multi/accessories rozšíri keyword o všetky synonymá z 'aliases'. Definície v 'definitions' používa pri vysvetľovaní zákazníkovi.",
+    "language": "Hovorí po slovensky, ale rozumie EN/CZ dotazom"
+  },
+
+  "product_type_aliases": {
+    "Nástenná jednotka": ["nástenná", "nastenna", "wall-mounted", "wall mounted", "wallmounted", "wall mount", "split nastenny", "stenova", "klimatizacia na stenu"],
+    "Parapetná jednotka": ["parapetná", "parapetna", "console", "konzola", "konzolova", "pod oknom", "podlahova jednotka nizka", "Bi-Flow", "biflow"],
+    "1-cestná kazetová jednotka FLAT": ["1-cestná kazeta", "1cestna kazeta", "1-way cassette", "one-way cassette", "1way cassette", "FLAT kazeta", "plocha kazeta"],
+    "60x60 Slim kazeta": ["60x60 kazeta", "60x60", "slim kazeta", "60 x 60", "euro kazeta", "euro mriezka", "slim cassette", "mini 4-way", "mini four-way", "mini cassette"],
+    "Kanálová jednotka": ["kanálová", "kanalova", "duct", "ducted", "kanalova jednotka", "skryta klimatizacia", "do podhladu"],
+    "Súprava / Set": ["súprava", "suprava", "set", "kit", "balík", "balik"],
+    "Vnútorná jednotka": ["vnútorná", "vnutorna", "indoor", "indoor unit", "vnutornaj jednotka"],
+    "Vonkajšia jednotka": ["vonkajšia", "vonkajsia", "outdoor", "outdoor unit", "kompresor", "kondenzator", "kondenzacna"],
+    "Multi-Split": ["multi-split", "multi split", "multisplit", "multi", "viac izieb", "viac miestnosti", "FJM"],
+    "Single-Split": ["single-split", "single split", "singlesplit", "single", "jedna izba", "jedna miestnost", "1 izba"]
+  },
+
+  "series_aliases": {
+    "SEIYA Classic 2": ["seiya classic", "seiya classic 2", "seiya 2", "classic 2", "B2KVG"],
+    "SEIYA": ["seiya", "seiya basic", "basic line", "E2KVG"],
+    "SHORAI CURVE White": ["shorai", "shorai curve", "shorai curve white", "shorai white", "shorai biely", "biela shorai", "P2KVSG"],
+    "SHORAI CURVE Black": ["shorai black", "shorai curve black", "shorai cierny", "cierna shorai", "P2KVSGB"],
+    "HAORI": ["haori", "haori design", "design line", "textil", "textilny", "tkanina", "N4KVRG"],
+    "DAISEIKAI 10 White": ["daiseikai", "daiseikai 10", "daiseikai biely", "daiseikai white", "premium", "premium line", "S4KVPG"],
+    "DAISEIKAI 10 Wood": ["daiseikai wood", "daiseikai drevo", "daiseikai drevena", "wood premium", "drevena klimatizacia", "S4KVDG"],
+    "Parapetná (Console)": ["parapetna", "console", "konzolova", "j2fvg", "bi-flow", "podlahova nizka"]
+  },
+
+  "feature_aliases": {
+    "WiFi": ["wifi", "wi-fi", "wireless", "smart", "aplikacia", "ovladanie cez telefon", "remote app", "smartphone control"],
+    "Energy Monitoring": ["energy monitoring", "monitoring spotreby", "spotreba energie", "elektricka spotreba", "kwh meranie"],
+    "Plazmový ionizátor": ["plazma", "plazmovy", "ionizator", "plasma", "ionizer", "plazmovy filter"],
+    "Filter Ultra Pure": ["ultra pure", "ultra pure 2.5", "PM2.5", "PM 2.5", "jemny prach", "fine particles", "antialergicky filter"],
+    "Filter Ultra Fresh": ["ultra fresh", "fresh filter", "antibakterialny", "antimikrobialny"],
+    "Aktívny karbón-katechínový filter": ["aktivny karbon", "carbon filter", "katechin", "uhlikovy filter", "deodorizing"],
+    "IAQ filter": ["iaq", "iaq filter", "kvalita vzduchu"],
+    "Ozónová čistička vzduchu": ["ozon", "ozonova", "ozone", "ozone purifier", "haori filter"],
+    "Funkcia SILENT": ["silent", "silent mode", "tichy rezim", "tichy chod", "nizka hlucnost", "tichy"],
+    "HADA careflow": ["hada", "careflow", "hada careflow", "jemny prud", "neaktivne prudenie", "rozptyleny vzduch"],
+    "Smart Sensing": ["smart sensing", "senzor pritomnosti", "presence sensor", "motion sensor", "detekcia osob"],
+    "Energetická trieda": ["energeticka trieda", "energy class", "trieda", "energy label"],
+    "SEER": ["seer", "sezonna ucinnost chladenie", "seasonal cooling"],
+    "SCOP": ["scop", "sezonna ucinnost vykurovanie", "seasonal heating"],
+    "EER": ["eer", "ucinnost chladenia"],
+    "COP": ["cop", "ucinnost vykurovania"],
+    "Chladiaci prostriedok R32": ["r32", "chladivo r32", "ekologicke chladivo", "refrigerant"],
+    "Bi-Flow Parapetná": ["bi-flow", "biflow", "dvojty vyfuk", "podlahove kurenie", "floor heating effect"],
+    "Leak Detection": ["leak detection", "detekcia uniku", "detekcia netesnosti", "uniky chladiva", "RB-I301-E"]
+  },
+
+  "technical_glossary": {
+    "Chladiaci výkon (kW)": "Maximálny výkon jednotky pri chladení izby v kilowatoch. Veľkosť 10 ≈ 2,5 kW (na 25 m²), veľkosť 18 ≈ 5,0 kW (na 50 m²).",
+    "Vykurovací výkon (kW)": "Maximálny výkon pri vykurovaní. Toshiba RAS funguje aj pri vonkajšej teplote do -15°C (SEIYA) alebo -20°C (SHORAI/HAORI/DAISEIKAI).",
+    "EER (Energy Efficiency Ratio)": "Pomer chladiaceho výkonu k spotrebovanej elektrine v menovitom bode. Vyššie = úspornejšie. Toshiba RAS dosahuje 2,7-5,3.",
+    "SEER (Seasonal EER)": "Sezónna účinnosť chladenia – realistickejšia hodnota počítaná cez rok. A+++ = SEER ≥ 8,5; A++ = ≥ 6,1; A+ = ≥ 5,6.",
+    "COP (Coefficient of Performance)": "Pomer vykurovacieho výkonu k spotrebe elektriny v menovitom bode. Toshiba RAS: 2,9-5,3.",
+    "SCOP (Seasonal COP)": "Sezónna účinnosť vykurovania. A+++ = SCOP ≥ 5,1; A++ = ≥ 4,6; A+ = ≥ 4,0.",
+    "Energetická trieda A+++": "Najvyššia trieda. SHORAI CURVE, HAORI, DAISEIKAI 10 ju dosahujú pri menších veľkostiach (10, 13).",
+    "WiFi modul": "Umožňuje ovládanie cez aplikáciu Toshiba Home AC Control. V SHORAI/HAORI/DAISEIKAI je štandardne, v SEIYA je voliteľný (RB-N105S-G, 115 €).",
+    "Plazmový ionizátor": "Zariadenie ktoré ionizuje vzduch a zachytáva mikročastice. SHORAI CURVE a DAISEIKAI 10 ho majú zabudovaný.",
+    "WindFree (Samsung)": "Toshiba RAS NEMÁ WindFree režim – to je Samsung technológia. Toshiba má vlastné riešenia: HADA careflow (DAISEIKAI), Bi-Flow (Parapetná).",
+    "HADA careflow": "Jemné prúdenie vzduchu bez priameho prievanu, dostupné len v DAISEIKAI 10.",
+    "Bi-Flow": "Parapetná jednotka s dvojitým vyfukovaním – horný aj spodný prúd vzduchu pre efekt podlahového kúrenia.",
+    "Filter Ultra Pure 2.5": "Filter na zachytávanie častíc PM2.5 (jemný prach pod 2,5 μm). V SHORAI, HAORI, DAISEIKAI.",
+    "Multi-Split (vonkajšia)": "Jedna vonkajšia + 2-5 vnútorných v rôznych miestnostiach. Toshiba RAS má modely 2M (2 izby), 3M (3 izby), 4M (4), 5M (5).",
+    "Veľkosť 05": "Najmenšia veľkosť (1,5 kW), dostupná LEN pre Multi-Split (nie pre Single-Split).",
+    "DC Twin Rotary kompresor": "Najúčinnejší typ kompresora, použitý v DAISEIKAI 10 a vyšších SEIYA modeloch."
+  },
+
+  "use_case_to_recommendation": {
+    "spalna_do_15m2": ["Multi-Split veľkosť 05 (1,5 kW)"],
+    "spalna_15-25m2": ["SEIYA 10 (2,5 kW)", "SHORAI 10", "HAORI 10"],
+    "obyvacka_25-40m2": ["SEIYA 13-16", "SHORAI 13-16", "DAISEIKAI 10/13"],
+    "velka_obyvacka_40-60m2": ["SEIYA 18", "SHORAI 18-22", "DAISEIKAI 18"],
+    "kancelaria_60-80m2": ["SHORAI 24", "DAISEIKAI 18", "Multi-Split 4M27/5M34"],
+    "tichy_rezim_potrebny": ["SHORAI CURVE (SILENT funkcia)", "HAORI"],
+    "alergici_filtracia": ["DAISEIKAI 10 (plazma + Ultra Pure)", "HAORI (ozón + Ultra Pure)"],
+    "dizajn_estetika": ["HAORI (textilný kryt)", "DAISEIKAI 10 Wood (drevo)", "SHORAI CURVE Black"],
+    "najlacnejsie_riesenie": ["SEIYA Classic 2 (od 1 000 €)"],
+    "ekonomicka_prevadzka": ["DAISEIKAI 10 White (SEER 10,7)", "SHORAI CURVE White"],
+    "studene_zimy_-20C": ["SHORAI CURVE", "HAORI", "DAISEIKAI 10", "Parapetná (všetky -20°C)"],
+    "viac_izieb_2": ["RAS-2M10G3AVG-E (najlacnejšia, 1 750 €)"],
+    "viac_izieb_3-5": ["RAS-3M18 / 3M26 / 4M27 / 5M34"],
+    "kanalove_skryte": ["RAS-M__U2DVG-E (kanálová Multi)"],
+    "kazeta_do_podhladu": ["60x60 Slim kazeta", "1-cestná FLAT kazeta"]
+  },
+
+  "common_questions_and_answers": {
+    "ake_klimatizacie_predavate": "Toshiba RAS HOME – domáce nástenné, parapetné a kazetové klimatizácie. 8 rád od entry SEIYA Classic 2 (1 000 €) po PREMIUM DAISEIKAI 10 Wood (2 600 €).",
+    "co_je_lepsie_shorai_alebo_daiseikai": "DAISEIKAI 10 má vyššiu účinnosť (SEER 10,7 vs 8,6), HADA careflow a Smart Sensing, ale je o ~50 % drahší. SHORAI je top voľba ak nepotrebujete extra účinnosť.",
+    "rozdiel_seiya_vs_seiya_classic_2": "SEIYA Classic 2 je entry CLASSIC Line (A++/A+, SEER 6,1). SEIYA je BASIC Line (A++/A++, SEER 7,0) s lepšou účinnosťou aj vykurovaním (-A++ namiesto A+).",
+    "ma_toshiba_wifi": "Áno – v SHORAI CURVE, HAORI, DAISEIKAI 10 je WiFi štandardne. V SEIYA Classic 2 a SEIYA je voliteľné (RB-N105S-G, 115 €).",
+    "potrebujem_ovladac_extra": "IR ovládač je v balení každého setu. Voliteľne RB-RXS33-E (105 €) s týždenným časovačom.",
+    "co_je_haori_special": "HAORI má textilný kryt v 6 farbách (2 v cene, 4 voliteľné po 125 €), ozónovú čističku vzduchu, Ultra Pure filter a štandardne WiFi."
+  }
+}

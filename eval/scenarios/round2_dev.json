@@ -1,0 +1,211 @@
+[
+  {
+    "id": "d01_kancelarie_kazety_dva_varianty",
+    "author": "dev",
+    "title": "Projekčná kancelária, 5 kaziet Toshiba RAV, dva varianty naraz",
+    "targets": [
+      "P0-7 max_tokens / truncated tool_use",
+      "P0-6 multi-hyphen codes (RBC-ASCU32Y-E)",
+      "P0-6 tool_use responses validated, no tool run twice",
+      "P1-10 verified difference between quotes + all-in range",
+      "c07 regression (cassette needs panel + controller)"
+    ],
+    "review": "Turn 2 asks for a long per-room breakdown of two variants at once: the session must survive (no api_error, no max_tokens response leaving a dangling tool_use, no reply cut mid-sentence) and no quote may run twice for the same variant in one turn. Every cassette needs its panel and a wired controller written in full (RBC-ASCU32Y-E, not dropped or regenerated away as 'invented'). The turn-3 difference must equal the difference of the two quote totals and both all-in ranges must come from quote.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": true,
+      "segment": "B2B_firma",
+      "language": "sk",
+      "codes_any": [
+        "RBC-ASCU32Y-E",
+        "RBC-AMSU52-E"
+      ],
+      "must_not_say": [
+        "RBC-ASCU32Y(?!-E)",
+        "RBC-AMSU52(?!-E)",
+        "(?<![\\d,.])25\\s?%",
+        "(~|\\bcca\\.?|\\bokolo|\\bpribl\\.|\\bpribližne|\\bzhruba)\\s*\\d[\\d\\s.,–-]*(€|eur)"
+      ]
+    },
+    "messages": [
+      "Dobrý deň, sme projekčná kancelária, s.r.o., IČO 12340201. Sťahujeme sa do nových priestorov a potrebujeme klimatizovať 3 kancelárie po 18 m², zasadačku 35 m² a recepciu 24 m². Všade je kazetový podhľad 60x60. Kolega má dobrú skúsenosť s Toshibou, tak chceme Toshibu.",
+      "Každá miestnosť má mať vlastný ovládač na stene. Pošlite mi cenu rozpísanú po miestnostiach – kód vnútornej aj vonkajšej jednotky, panel, ovládač, cenu po zľave za kus aj spolu. A rovno pripravte aj druhý variant, kde bude v zasadačke podstropná jednotka namiesto kazety, nech to vidím vedľa seba.",
+      "O koľko presne sa tie dva varianty líšia? A koľko zaplatíme pri každom celkovo, aj s montážou a DPH? Stačí rozsah.",
+      "Berieme prvý variant, všade kazety. Kontakt: Ing. Zuzana Hrubá, 0955 000 201, zuzana.hruba@example.com, Trenčín.",
+      "Áno, súhlasím."
+    ]
+  },
+  {
+    "id": "d02_spalna_porovnanie_bez_kontaktu",
+    "author": "dev",
+    "title": "Spálňa 18 m², Samsung vs. Toshiba, rozpočet 1800e s montážou, kontakt nedá",
+    "targets": [
+      "P1-13 price in the same turn, never conditional on contacts",
+      "P1-10 budget check incl. installation and DPH",
+      "P1-10 verified difference between two quotes",
+      "customer-typed amounts trusted (1800e, 1.450,- eur)",
+      "c03 regression ('v rozpočte' ignoring installation)",
+      "c10 regression (correct differences flagged)"
+    ],
+    "review": "Both prices must come in the turn they are asked, with no request for contacts or consent as a condition, and no lead at the end. The budget verdict may only say whether the units fit (budget.status, with DPH); installation is priced by the PM, so no claim that the whole fits, and the stated difference must equal the difference of the two quote totals. Echoes of the customer's 1800e and 1.450,- eur and the repeated totals in turn 5 must not be flagged or dropped (check bot_reply_violations / regen events).",
+    "expect": {
+      "lead": false,
+      "consent": null,
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "must_not_say": [
+        "(?<![\\d,.])25\\s?%",
+        "(~|\\bcca\\.?|\\bokolo|\\bpribl\\.|\\bpribližne|\\bzhruba)\\s*\\d[\\d\\s.,–-]*(€|eur)"
+      ]
+    },
+    "messages": [
+      "ahoj, chcem klimu do spalne 18 m2 v byte, predpripravu nemam. rozpocet mam max 1800e aj s montazou a DPH",
+      "porovnaj mi samsung a toshibu, nieco tiche a s wifi. kolko stoji jedna a kolko druha?",
+      "o kolko je ta drahsia drahsia ako ta lacnejsia? a zmesti sa aspon jedna do tych 1800e aj s montazou?",
+      "susedka mala ponuku na daikin za 1.450,- eur aj s montazou, preco ste o tolko drahsi?",
+      "kontakt ti zatial davat nechcem, najprv si to premyslim. napis mi este raz obe celkove sumy s DPH nech si to zapisem",
+      "dik, ozvem sa sam"
+    ]
+  },
+  {
+    "id": "d03_rodinny_dom_opakovane_ponuky",
+    "author": "dev",
+    "title": "Rodinný dom Samsung: multi-split hore + samostatná obývačka, opakované prepočty",
+    "targets": [
+      "repeated quotes across the maybe_summarize() boundary",
+      "P1-10 total of two systems + verified differences",
+      "P0-6 history = shown text, ≤ 2 regens per turn",
+      "P0-1 code re-asks when contacts arrive without a yes",
+      "c01 regression (contacts, then 'áno' in the next message)",
+      "c04 regression (multi-split compared by invented sums)"
+    ],
+    "review": "Eight turns with 3+ quote calls push the history past summarization: the sum repeated in turn 6 must exactly match the 4-bedroom + living-room quote (from S().quotes, not the summary), and every 'o koľko viac / lacnejšie' must equal a difference of quote totals. Multi-split lines must pass compatibility (5 indoor units only on a 5-port outdoor) with no multi-split-pravidla flag; turn 7 has contacts without a yes, so the canonical GDPR question must follow and turn 8 must yield the lead, with the PM brief listing each distinct quote once.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [
+        "AJ052TXJ3KG/EU",
+        "AJ068TXJ3KG/EU",
+        "AJ080TXJ4KG/EU",
+        "AJ100TXJ5KG/EU"
+      ],
+      "must_not_say": [
+        "(?<![\\d,.])25\\s?%",
+        "(~|\\bcca\\.?|\\bokolo|\\bpribl\\.|\\bpribližne|\\bzhruba)\\s*\\d[\\d\\s.,–-]*(€|eur)"
+      ]
+    },
+    "messages": [
+      "Dobry den, mame novy rodinny dom a chceme klimu do 3 spalni na poschodi a do obyvacky na prizemi. Spalne maju 12, 14 a 16 m2, obyvacka s kuchynou 38 m2. Chceme Samsung.",
+      "Hore by sme chceli jeden multisplit na vsetky spalne, dole samostatnu klimu. Predpripravu nemame. Kolko to bude stat? Zvlast multisplit, zvlast obyvacka a potom dokopy s DPH aj s montazou.",
+      "Este nam pribudla pracovna 10 m2 hore, dajte ju tiez na multisplit. Kolko to bude teraz a o kolko viac oproti predchadzajucej ponuke?",
+      "A co keby aj obyvacka isla na ten isty multisplit, cize 5 vnutornych na jednej vonkajsej? Vyslo by to lacnejsie? O kolko?",
+      "Hmm, jedna vonkajsia na cely dom sa mi nepaci, ked sa pokazi, nechladi nic. Nechajme multisplit na 4 izby hore a samostatnu obyvacku.",
+      "Zopakujte mi prosim presnu sumu tejto verzie bez DPH aj s DPH a odhad montaze, nech to mam pokope.",
+      "Ok, ideme do toho. Peter Hrdy, 0933 000 203, Malacky",
+      "ano suhlasim"
+    ]
+  },
+  {
+    "id": "d04_serverovna_modbus_ovladace",
+    "author": "dev",
+    "title": "Serverovňa 4 kW, 2× Toshiba RAV, RBC-AMSU52-E a Modbus TO-RC-MBS-1",
+    "targets": [
+      "P0-6 multi-hyphen code regex (TO-RC-MBS-1, RBC-AMSU52-E, RBC-ASCU32Y-E)",
+      "P0-8 server-room fit check (2 units, each ≥ 1.2 × 4 kW)",
+      "P1-10 verified difference (controller swap)",
+      "P0-1 consent typed before the question does not count",
+      "c09 regression (TO-RC-MBS flagged as invented, guessed 300 €)",
+      "c06 regression (undersized N+1)"
+    ],
+    "review": "The customer types the codes himself: the bot must repeat TO-RC-MBS-1, RBC-AMSU52-E and RBC-ASCU32Y-E in full, with prices only from quote (TO-RC-MBS-1 lists at 620 € before discount, not a guessed 200–300 €) and no model-code regen on them. Two independent RAV units of ≥ 4.8 kW each (size 56), no Twin or multi-split; the controller swap gets an exact quote difference plus the warning that the compact controller lacks the server-room functions. The unprompted 'Súhlasím' in turn 6 must not count unless the canonical question came right before it.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": true,
+      "segment": "B2B_firma",
+      "language": "sk",
+      "codes_any": [
+        "TO-RC-MBS-1"
+      ],
+      "must_not_say": [
+        "TO-RC-MBS(?!-1)",
+        "RBC-AMSU52(?!-E)",
+        "RBC-ASCU32Y(?!-E)",
+        "(?<![\\d,.])25\\s?%",
+        "(~|\\bcca\\.?|\\bokolo|\\bpribl\\.|\\bpribližne|\\bzhruba)\\s*\\d[\\d\\s.,–-]*(€|eur)"
+      ]
+    },
+    "messages": [
+      "Dobrý deň, potrebujeme chladenie do firemnej serverovne. Miestnosť má 10 m², racky majú tepelnú záťaž 4 kW a beží to 24/7. Chceme Toshibu a dve nezávislé jednotky, aby pri poruche jednej chladila druhá.",
+      "Sme s.r.o., IČO 12340204, faktúra na firmu. Podhľad nemáme, strop je betónový, prípojka je 1-fázová.",
+      "Potrebujeme ovládač, ktorý vie jednotky striedať a pri poruche prepnúť, a napojenie na náš dohľad cez Modbus. Koľko stojí samotný modul TO-RC-MBS-1, koľko ovládač RBC-AMSU52-E a koľko celá zostava?",
+      "Keby sme namiesto RBC-AMSU52-E dali lacnejší RBC-ASCU32Y-E, o koľko by sme ušetrili? Vie aj ten striedanie jednotiek?",
+      "Ok, ostávame pri RBC-AMSU52-E. Koľko to bude celkovo aj s montážou a DPH?",
+      "Pripravte nám ponuku. Ing. Marek Tichý, 0944 000 204, marek.tichy@example.com, Žilina. Súhlasím so spracovaním osobných údajov.",
+      "Áno, súhlasím."
+    ]
+  },
+  {
+    "id": "d05_english_dve_moznosti_format_eur",
+    "author": "dev",
+    "title": "Anglický zákazník, 2 izby, multi-split vs. 2× single-split, sumy €3,500",
+    "targets": [
+      "P0-6 amount regex: €-prefix, range lower bounds, English number format",
+      "customer-typed amounts in English format (€3,500, €2,890)",
+      "P1-10 verified difference + budget incl. installation",
+      "P0-1 consent question with English translation",
+      "c04 regression (one quote, invented 2 000 € / 6 200 €)",
+      "c17 regression (Slovak replies to an English customer)"
+    ],
+    "review": "Both options must be priced by two quote calls, and 'how much more' must equal the difference of their totals; no extra discount to match €2,890. English-formatted amounts (€1,243.63, €800–1,200) must neither be misread and flagged nor slip past the gate unchecked: check bot_reply_violations / regen events for correct amounts, and that echoes of the customer's €3,500 and €2,890 survive (the current parser reads '3,500' as 3.5). Replies in English, the GDPR question in Slovak plus English, lead after turn 6.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "en",
+      "codes_any": [
+        "AJ040TXJ2KG/EU",
+        "AJ050TXJ2KG/EU",
+        "AJ052TXJ3KG/EU",
+        "AJ068TXJ3KG/EU",
+        "RAS-2M14G3AVG-E",
+        "RAS-2M18G3AVG-E",
+        "RAS-3M18G3AVG-E"
+      ],
+      "must_not_say": [
+        "(?<![\\d,.])25\\s?%",
+        "(~|\\bapprox\\w*\\.?|\\baround|\\babout|\\broughly)\\s*(€\\s?\\d|\\d[\\d\\s.,–-]*(€|eur))",
+        "(~|\\bcca\\.?|\\bokolo|\\bpribl\\.|\\bpribližne|\\bzhruba)\\s*\\d[\\d\\s.,–-]*(€|eur)"
+      ]
+    },
+    "messages": [
+      "Hi! We just moved into a flat in Bratislava and want AC in the living room (28 m²) and the bedroom (14 m²). Our budget is €3,500 all-in – units, installation and VAT.",
+      "What's cheaper overall: two separate split units, or one multi-split with two indoor units? Please price both options, including installation and VAT.",
+      "So exactly how much more is the pricier option? And does either of them fit into our €3,500?",
+      "A friend paid €2,890 for two Mitsubishi units, installed. Can you match that, or give us a better discount?",
+      "OK, we'll go with the cheaper of your two options. Emma Brown, 0948 000 205, emma.brown@example.com, Bratislava.",
+      "Yes, I agree to the processing of my personal data."
+    ]
+  }
+]

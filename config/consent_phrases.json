@@ -1,0 +1,30 @@
+{
+  "_metadata": {
+    "purpose": "Jediný zdroj GDPR otázky a slovníka súhlasu. Číta ho bot.py (otázku pripája a súhlas vyhodnocuje kód), cost_report.py (audit) aj eval/analyze.py.",
+    "status": "NÁVRH — znenie a právny základ (súhlas vs. čl. 6 ods. 1 písm. b) schvaľuje DPO / právnik.",
+    "edit_instructions": "Pri zmene otázky presuň doterajšie slovenské znenie do previous_questions, aby audit uznal aj staršie logy. Regexy sa vyhodnocujú bez ohľadu na veľkosť písmen, na texte v NFC.",
+    "history": "2026-10-11: do otázky pribudol e-mail (bot ho ukladá do zápisu pre PM). Otázka na podporu (reklamácie) bola zrušená: reklamácie bot nerieši, zákazníkovi dá e-mail a telefón firmy."
+  },
+  "questions": {
+    "sales": {
+      "sk": "Súhlasíte so spracovaním osobných údajov (meno, telefón, e-mail, obec a vybraný model) spoločnosťou Samuel Malíšek Klimabot za účelom prípravy cenovej ponuky a kontaktovania projektovým manažérom?",
+      "en": "Do you consent to Samuel Malíšek Klimabot processing your personal data (name, phone, e-mail, town and the chosen model) to prepare a quote and have a project manager contact you?"
+    }
+  },
+  "previous_questions": {
+    "_comment": "Staršie znenia (iba slovenské), ktoré audit stále rozpozná v starších logoch. Bot ich už nepoužíva.",
+    "sales": [
+      "Súhlasíte so spracovaním osobných údajov (meno, telefón, obec a vybraný model) spoločnosťou Samuel Malíšek Klimabot za účelom prípravy cenovej ponuky a kontaktovania projektovým manažérom?"
+    ],
+    "support": [
+      "Súhlasíte so spracovaním osobných údajov (meno a telefón) spoločnosťou Samuel Malíšek Klimabot za účelom vybavenia vašej požiadavky a spätného kontaktovania?"
+    ]
+  },
+  "paraphrase_question_re": "\\b(?:s[úu]hlas[íi]te|s[úu]hlas[íi]š|souhlas[íi]te|souhlas[íi]š)\\s+(?:so|se)\\s+(?:spracovan|zpracov)\\w*[^?\\n]{0,400}\\?|\\bdo\\s+you\\s+(?:agree|consent)\\b[^?\\n]{0,200}\\bpersonal\\s+data\\b[^?\\n]{0,300}\\?",
+  "yes_re": "\\b(?:s[úu]hlas[íi]m|s[úu]hlas[íi]me|s[úu]hlas[íi]m\\s+so\\s+spracovan\\w*|d[áa]vam\\s+s[úu]hlas|s[úu]hlas\\s+d[áa]vam|souhlas[íi]m|[áa]no|ano|yes|i\\s+agree|i\\s+consent|agreed)\\b",
+  "yes_not_consent_re": "\\bs[úu]hlas[íi]m\\s+(?:s|so)\\s+(?:tou\\s+|touto\\s+|va[šs]ou\\s+|v[aá][šs]im\\s+)?(?:cen|ponuk|n[áa]vrh|rie[šs]en|v[ýy]ber|model|variant|term[íi]n)\\w*|\\b(?:s|so)\\s+(?:tou\\s+|touto\\s+|va[šs]ou\\s+|v[aá][šs]im\\s+)?(?:cen|ponuk|n[áa]vrh|rie[šs]en|v[ýy]ber|model|variant|term[íi]n)\\w*\\s+(?:s[úu]hlas[íi]m|s[úu]hlas[íi]me)\\b|\\b(?:agree|ok)\\s+with\\s+the\\s+(?:price|offer|quote)",
+  "no_re":"\\b(?:nes[úu]hlas\\w*|nesouhlas\\w*|ned[áa]vam\\s+s[úu]hlas|ned[áa]m\\s+s[úu]hlas|rad[šs]ej\\s+nie|nechcem\\b[^.?!\\n]{0,40}(?:[úu]daj|kontakt|telef|[čc][íi]sl|meno)|ned[áa]m\\b[^.?!\\n]{0,40}(?:[úu]daj|kontakt|telef|[čc][íi]sl)|(?:kontakt|[čc][íi]slo|telef[oó]n)\\w*[^.?!\\n]{0,20}\\bned[áa]m|don'?t\\s+(?:agree|consent)|do\\s+not\\s+(?:agree|consent)|disagree|i\\s+refuse)\\b",
+  "no_not_refusal_re": "\\bnes[úu]hlas[íi]m(?:e)?\\s+(?:s|so)\\s+(?:tou\\s+|touto\\s+|va[šs]ou\\s+|v[aá][šs]im\\s+|t[ýy]m\\s+|tak[oý]\\w*\\s+)?(?:cen|ponuk|n[áa]vrh|rie[šs]en|v[ýy]ber|model|variant|term[íi]n|z[ľl]av|sum)\\w*|\\b(?:s|so)\\s+(?:tou\\s+|touto\\s+|va[šs]ou\\s+|v[aá][šs]im\\s+)?(?:cen|ponuk|n[áa]vrh|z[ľl]av|sum)\\w*\\s+nes[úu]hlas[íi]m(?:e)?\\b|\\bnes[úu]hlas(?:í|i|ia)\\b|\\bnesouhlas[íi]m\\s+(?:s|se)\\s+(?:tou\\s+|touto\\s+|va[šs][íi]\\s+)?(?:cen|nab[íi]dk|n[áa]vrh)\\w*|\\b(?:(?:don'?t|do\\s+not)\\s+agree|disagree)\\s+with\\s+(?:the|this|that|your)\\s+(?:price|offer|quote|discount)\\b",
+  "no_in_window_re": "^\\W*(?:nie|ne|nope)\\b|^\\W*no\\W*$|\\brad[šs]ej\\s+nie\\b|\\bno\\s+thanks?\\b|\\bno\\s+thank\\s+you\\b|\\b(?:don'?t|do\\s+not)\\s+want\\b",
+  "_vocabulary_note": "no_re (výslovné odmietnutie) platí kedykoľvek a má prednosť pred yes_re; nesúhlas s cenou, ponukou či modelom (no_not_refusal_re) nie je odmietnutie súhlasu. no_in_window_re a yes_re platia len v správe hneď po otázke."
+}

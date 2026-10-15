@@ -1,0 +1,24 @@
+# HTTPS in front of the Klimabot web app: the "caddy" service in docker-compose.yml (profile
+# "https", README → Docker → On a server). Caddy gets and renews the Let's Encrypt certificate
+# itself; the domain's DNS must point at this server and ports 80 and 443 must be open.
+{$KLIMABOT_DOMAIN} {
+	# The app takes 16 KB per request; anything much bigger stops here.
+	request_body {
+		max_size 64KB
+	}
+
+	# Caddy drops the X-Forwarded-For a client sends and sets the address it sees, the one
+	# hop web.py trusts (KLIMABOT_TRUSTED_PROXIES=1). The event stream is flushed as it comes.
+	# No `encode`: compressing the event stream could hold replies back.
+	reverse_proxy klimabot:7860
+
+	# web.py sends the other security headers (CSP, nosniff, Referrer-Policy).
+	header Strict-Transport-Security "max-age=31536000"
+
+	# The app is starting (about a minute after a deploy) or down.
+	handle_errors 502 503 504 {
+		header Content-Type "text/plain; charset=utf-8"
+		header Retry-After "60"
+		respond "Klimabot sa práve spúšťa. Skúste to prosím o minútu." 503
+	}
+}

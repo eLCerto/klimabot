@@ -1,0 +1,1325 @@
+{
+  "metadata": {
+    "category": "Montaz",
+    "category_full": "Montážne príslušenstvo a chladivo – inštalácia klimatizácií a tepelných čerpadiel",
+    "source": "FIKTÍVNE CENY – generované vzorcom (výkon × rad × typ jednotky); štruktúra, rady a parametre podľa verejných katalógov výrobcov",
+    "validity": "ukážka",
+    "currency": "EUR (bez DPH a bez zľavy)",
+    "notes": [
+      "Ceny sú maloobchodné, bez DPH a bez zľavy.",
+      "Tento cenník nepodlieha rabatovej politike v discounts.json (značky Samsung/Toshiba). Pri kalkulácii zákazke ho použiť ako fixný náklad za inštalačný materiál.",
+      "Pre väčšie objednávky alebo dlhodobých partnerov je možná individuálna kalkulácia – handoff na predajcu."
+    ],
+    "company": "Samuel Malíšek Klimabot (ukážka)",
+    "kontakt": "info@klimabot.example"
+  },
+  "predizolovane_medene_potrubie": {
+    "category": "Predizolované medené potrubie (jednoduché aj duálne) – chladivový rozvod",
+    "common_note": "Bežné balenie 50 m/cievka; duálne potrubia obvykle 25 m. Silver verzia má striebornú izoláciu (vyššia odolnosť proti UV pri vonkajšom vedení).",
+    "items": [
+      {
+        "kod": "Cu 6,35 x 0,8",
+        "popis": "Cu potrubie 1/4 (6,35) x 0,8 - 50m/bal",
+        "cena_EUR": 27.7,
+        "jednotka": "m"
+      },
+      {
+        "kod": "Cu 6,35 x 1",
+        "popis": "Cu potrubie 1/4 (6,35) x 1 - 50m/bal",
+        "cena_EUR": 51.3,
+        "jednotka": "m"
+      },
+      {
+        "kod": "Cu 9,52 x 0,8",
+        "popis": "Cu potrubie 3/8 (9,52) x 0,8 - 50m/bal",
+        "cena_EUR": 50.0,
+        "jednotka": "m"
+      }
+    ]
+  },
+  "neizolovane_medene_tyce": {
+    "category": "Neizolované medené tyče (tvrdé, na pevné rozvody)",
+    "items": [
+      {
+        "kod": "Cu rura 28 x 1,0",
+        "popis": "Cu rúra 28x1mm tvrdá - 5m/ks",
+        "cena_EUR": 10.2,
+        "jednotka": "m"
+      },
+      {
+        "kod": "Cu rura 35 x 1,5",
+        "popis": "Cu rúra 35x1,5 tvrdá - 5m/ks",
+        "cena_EUR": 5.3,
+        "jednotka": "m"
+      },
+      {
+        "kod": "Cu rura 42 x 1,5",
+        "popis": "Cu rúra 42x1,5mm tvrdá - 5m/ks",
+        "cena_EUR": 10.8,
+        "jednotka": "m"
+      }
+    ]
+  },
+  "medene_tvarovky": {
+    "category": "Medené tvarovky – kolená, nátrubky, oblúky, T-kusy",
+    "subsections": {
+      "kolena_F_F_90": [
+        {
+          "kod": "5090 06",
+          "popis": "5090 Cu koleno 90° 06 mm i/i",
+          "cena_EUR": 11.2,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "5090 10",
+          "popis": "5090 Cu koleno 90° 10 mm i/i",
+          "cena_EUR": 10.8,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "5090 12",
+          "popis": "5090 Cu koleno 90° 12 mm i/i",
+          "cena_EUR": 11.1,
+          "jednotka": "ks"
+        }
+      ],
+      "natrubky_F_F": [
+        {
+          "kod": "5270 16",
+          "popis": "5270 Cu hrdlo 16 mm i/i",
+          "cena_EUR": 6.6,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "5270 28",
+          "popis": "5270 Cu hrdlo 28 mm i/i",
+          "cena_EUR": 5.0,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "5270 35",
+          "popis": "5270 Cu hrdlo 35 mm i/i",
+          "cena_EUR": 8.1,
+          "jednotka": "ks"
+        }
+      ],
+      "obluky_5002A_90": [
+        {
+          "kod": "5002A 16",
+          "popis": "5002A Cu oblúk 90° 16 mm i/i",
+          "cena_EUR": 10.3,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "5002A 19",
+          "popis": "5002A Cu oblúk 90° 19 mm i/i",
+          "cena_EUR": 6.5,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "5002A 22",
+          "popis": "5002A Cu oblúk 90° 22 mm",
+          "cena_EUR": 4.1,
+          "jednotka": "ks"
+        }
+      ],
+      "obluky_5041_45": [
+        {
+          "kod": "5041 22",
+          "popis": "5041 Cu oblúk 45° i/i 22 mm",
+          "cena_EUR": 8.6,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "5041 28",
+          "popis": "5041 Cu oblúk 45° i/i 28 mm",
+          "cena_EUR": 5.2,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "5041 35",
+          "popis": "5041 Cu oblúk 45° i/i 35 mm",
+          "cena_EUR": 7.4,
+          "jednotka": "ks"
+        }
+      ]
+    }
+  },
+  "gulove_ventily": {
+    "category": "Guľové ventily (GBC) a guľové ventily so servisným ventilom (SBV) – do chladivového okruhu",
+    "items": [
+      {
+        "kod": "GBC 06s",
+        "popis": "Guľový ventil GBC 06s",
+        "cena_EUR": 58.9,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "SBV 6",
+        "popis": "Guľový ventil SBV 6 mm let. so serv. ventilom",
+        "cena_EUR": 28.5,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "GBC 10s",
+        "popis": "Guľový ventil GBC 10s",
+        "cena_EUR": 38.4,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "medene_prislusenstvo": {
+    "category": "Medené príslušenstvo – servisné ventily, tesnenia, krytky, spájka",
+    "items": [
+      {
+        "kod": "9883544",
+        "popis": "Servisný ventilček s rozšírenou Cu trubkou 1/4\" - A-31004/10",
+        "cena_EUR": 6.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "serv.v.A-31999",
+        "popis": "Vnútro servisného ventilčeka A-31999",
+        "cena_EUR": 55.0,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "9884961",
+        "popis": "Čiapočka na vyťahovanie ventilu - NFT-118/10",
+        "cena_EUR": 30.3,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "sady_na_ohybanie_potrubia": {
+    "category": "Sady na ohýbanie medeného potrubia",
+    "items": [
+      {
+        "kod": "9899-850-00",
+        "popis": "Sada na ohýbanie medeného potrubia 1/4\" + 3/8\" + 1/2\" + 5/8\"",
+        "cena_EUR": 97.3,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "9899-852-00",
+        "popis": "Sada na ohýbanie medeného potrubia 1/2\" + 5/8\"",
+        "cena_EUR": 100.2,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "izolacia_k_flex": {
+    "category": "Izolácia K-flex – tepelná izolácia medeného potrubia",
+    "items": [
+      {
+        "kod": "IK EC 09X028",
+        "popis": "Izolácia K-flex 28 x 09mm - 2m/ks",
+        "cena_EUR": 39.8,
+        "jednotka": "m"
+      },
+      {
+        "kod": "IK EC 09X035",
+        "popis": "Izolácia K-flex 35 x 09mm - 2m/ks",
+        "cena_EUR": 57.0,
+        "jednotka": "m"
+      },
+      {
+        "kod": "IK EC 09X042",
+        "popis": "Izolácia K-flex 42 x 09mm - 2m/ks",
+        "cena_EUR": 3.7,
+        "jednotka": "m"
+      }
+    ]
+  },
+  "k_flex_pasky_a_lepiace_pasky": {
+    "category": "K-flex pásky a izolačné lepiace pásky",
+    "items": [
+      {
+        "kod": "FA 101",
+        "popis": "K-flex lepiaca izolačná páska čierna - 55mm x 10m",
+        "cena_EUR": 42.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "FA 102",
+        "popis": "Penová lepiaca izolačná páska biela - 55mm x 10m",
+        "cena_EUR": 47.7,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0010NBP",
+        "popis": "Penová lepiaca izolačná páska biela - 50 mm x 3 mm x 10 m",
+        "cena_EUR": 5.8,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "plastove_zlaby": {
+    "category": "Plastové žľaby (kanálky) – vedenie chladivového potrubia a kondenzu po stene/strope",
+    "color_codes": {
+      "W": "biely",
+      "B": "čierny",
+      "M": "hnedý",
+      "G": "šedý"
+    },
+    "items": [
+      {
+        "kod": "0612BCF-W",
+        "popis": "(Biely) Plastový žlab 06 - 2m/ks",
+        "cena_EUR": 33.4,
+        "jednotka": "m"
+      },
+      {
+        "kod": "0712BCF",
+        "popis": "Plastový žlab 07 - 2m/ks (24m/krab.)",
+        "cena_EUR": 57.2,
+        "jednotka": "m"
+      },
+      {
+        "kod": "0712BCF-W",
+        "popis": "(Biely) Plastový žlab 07 - 2m/ks (24m/krab.)",
+        "cena_EUR": 31.1,
+        "jednotka": "m"
+      }
+    ]
+  },
+  "prepojenie_zlabu": {
+    "category": "Prepojenie a flexi-spojky pre žľaby",
+    "items": [
+      {
+        "kod": "0811GF-W",
+        "popis": "(Biela) Flexi spojka (4ks/krab.)",
+        "cena_EUR": 9.9,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0823KF",
+        "popis": "Flexible Kit – prepájacia sada – 80 x 60 mm",
+        "cena_EUR": 138.5,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "1223KF",
+        "popis": "Flexible Kit – prepájacia sada – 110 x 75 mm",
+        "cena_EUR": 71.1,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "spojky_kanalu": {
+    "category": "Spojky kanálu (žľabové)",
+    "items": [
+      {
+        "kod": "0604GC-W",
+        "popis": "(Biela) Spojka kanálu (30ks/krab.)",
+        "cena_EUR": 42.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0704GC",
+        "popis": "Spojka kanálu (30ks/krab.)",
+        "cena_EUR": 55.2,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0704GC-W",
+        "popis": "(Biela) Spojka kanálu (30ks/krab.)",
+        "cena_EUR": 35.4,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "priechodky": {
+    "category": "Priechodky stenou pre žľaby",
+    "items": [
+      {
+        "kod": "0610PM-W",
+        "popis": "(Biela) Priechodka (10ks/krab.)",
+        "cena_EUR": 2.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0710PM",
+        "popis": "Priechodka (10ks/krab.)",
+        "cena_EUR": 3.8,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0710PM-W",
+        "popis": "(Biela) Priechodka (10ks/krab.)",
+        "cena_EUR": 45.8,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "rychlosvorky": {
+    "category": "Rýchlosvorky na žľaby",
+    "items": [
+      {
+        "kod": "0603ST",
+        "popis": "Rýchlosvorka",
+        "cena_EUR": 44.9,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0703ST",
+        "popis": "Rýchlosvorka (30ks/krab.)",
+        "cena_EUR": 7.6,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0803ST",
+        "popis": "Rýchlosvorka (30ks/krab.)",
+        "cena_EUR": 15.6,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "priechodky_roh": {
+    "category": "Priechodky rohové, vnútorné a vonkajšie rohy, plochá kolená",
+    "subsections": {
+      "priechodka_roh": [
+        {
+          "kod": "0609CM-W",
+          "popis": "(Biela) Priechodka roh (9ks/krab.)",
+          "cena_EUR": 31.2,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0709CM",
+          "popis": "Priechodka roh (9ks/krab.)",
+          "cena_EUR": 17.6,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0709CM-W",
+          "popis": "(Biela) Priechodka roh (9ks/krab.)",
+          "cena_EUR": 58.2,
+          "jednotka": "ks"
+        }
+      ],
+      "redukcia_plastova": [
+        {
+          "kod": "8060 RI-W",
+          "popis": "(Biely) Redukcia plastová",
+          "cena_EUR": 6.6,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "8070RI-W",
+          "popis": "(Biely) Redukcia plastová",
+          "cena_EUR": 12.2,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "9070RI",
+          "popis": "Redukcia plastová (12ks/krab.)",
+          "cena_EUR": 36.1,
+          "jednotka": "ks"
+        }
+      ],
+      "koncovky": [
+        {
+          "kod": "0608TT-W",
+          "popis": "(Biela) Koncovka (12ks/krab.)",
+          "cena_EUR": 46.7,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0708TT",
+          "popis": "Koncovka (12ks/krab.)",
+          "cena_EUR": 14.6,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0708TT-W",
+          "popis": "(Biela) Koncovka (12ks/krab.)",
+          "cena_EUR": 18.7,
+          "jednotka": "ks"
+        }
+      ],
+      "vonkajsi_roh": [
+        {
+          "kod": "0606AE-W",
+          "popis": "(Biely) Vonkajší roh (12ks/krab.)",
+          "cena_EUR": 33.9,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0621ER-W",
+          "popis": "(Biely) Vonkajší roh nastaviteľný (6ks/krab.)",
+          "cena_EUR": 3.7,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0706AE",
+          "popis": "Vonkajší roh (12ks/krab.)",
+          "cena_EUR": 13.9,
+          "jednotka": "ks"
+        }
+      ],
+      "vnutorny_roh": [
+        {
+          "kod": "0605AI-W",
+          "popis": "(Biely) Vnútorný roh (8ks/krab.)",
+          "cena_EUR": 44.9,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0620IR-W",
+          "popis": "(Biely) Vnútorný roh nastaviteľný (4ks/krab.)",
+          "cena_EUR": 24.6,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0705AI",
+          "popis": "Vnútorný roh (8ks/krab.)",
+          "cena_EUR": 8.4,
+          "jednotka": "ks"
+        }
+      ],
+      "koleno_ploche": [
+        {
+          "kod": "0607CP-W",
+          "popis": "(Biele) Koleno ploché (10ks/krab.)",
+          "cena_EUR": 36.4,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0614VS-W",
+          "popis": "(Biela) ľavý vertikálny odskok (4ks/krab.)",
+          "cena_EUR": 48.4,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0615VD-W",
+          "popis": "(Biela) Pravý vertikálny odskok",
+          "cena_EUR": 59.1,
+          "jednotka": "ks"
+        }
+      ],
+      "t_kus": [
+        {
+          "kod": "0813DT-W",
+          "popis": "(Biely) T-kus plastový (4ks/krab.)",
+          "cena_EUR": 40.8,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0813DT-G",
+          "popis": "(Šedý) T-kus plastový (4ks/krab.)",
+          "cena_EUR": 42.2,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "0913DT",
+          "popis": "T-kus plastový (4ks/krab.)",
+          "cena_EUR": 29.6,
+          "jednotka": "ks"
+        }
+      ]
+    }
+  },
+  "naradie_zlaby": {
+    "category": "Nástroje pre žľaby",
+    "items": [
+      {
+        "kod": "2100VD",
+        "popis": "Nožnice na plastové potrubie",
+        "cena_EUR": 9.7,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "listy_pre_kondenz": {
+    "category": "Lišty pre kondenz – odvod kondenzátu",
+    "items": [
+      {
+        "kod": "0312BC",
+        "popis": "Lišta pre kondenz - 2m/ks (64m/krab.)",
+        "cena_EUR": 49.5,
+        "jednotka": "m"
+      },
+      {
+        "kod": "0412BC",
+        "popis": "Lišta pre kondenz - 2m/ks (64m/krab.)",
+        "cena_EUR": 32.1,
+        "jednotka": "m"
+      },
+      {
+        "kod": "0412BC-W",
+        "popis": "Lišta pre kondenz (Biela) - 2m/ks (64m/krab.)",
+        "cena_EUR": 19.6,
+        "jednotka": "m"
+      }
+    ]
+  },
+  "odvod_kondenzu_hadicky_spojky": {
+    "category": "Odvod kondenzátu – Y spojky, T-kusy, kondenzné hadice",
+    "items": [
+      {
+        "kod": "Spojka Y 0016",
+        "popis": "Spojka kondenznej hadici Y 0016 - 30ks/bal",
+        "cena_EUR": 3.2,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0021GY",
+        "popis": "Spojka Y - kondenzu (20ks/krab.)",
+        "cena_EUR": 59.7,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0025GT",
+        "popis": "T-kus na kondenz (20ks/krab.)",
+        "cena_EUR": 55.1,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "redukcie_a_spojky_tvrdej_a_flexi": {
+    "category": "Redukcie a spojky medzi tvrdou rúrou a flexi hadicou",
+    "items": [
+      {
+        "kod": "1607RU",
+        "popis": "Redukcia medzi tvrdou rúrou a flexi hadicou – žltá",
+        "cena_EUR": 47.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "1807RU",
+        "popis": "Redukcia medzi tvrdou rúrou a flexi hadicou – červená",
+        "cena_EUR": 14.1,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "2007RU",
+        "popis": "Redukcia medzi tvrdou rúrou a flexi hadicou – modrá",
+        "cena_EUR": 48.6,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "vanicky_pod_vonkajsiu_jednotku": {
+    "category": "Vaničky pod vonkajšiu jednotku (záchyt kondenzátu) – nevyhrievané a vyhrievané",
+    "items": [
+      {
+        "kod": "0079BR",
+        "popis": "Vanička pod vonkajšiu jednotku - 790 x 390 mm",
+        "cena_EUR": 19.1,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0094BR",
+        "popis": "Vanička pod vonkajšiu jednotku - 940 x 420 mm",
+        "cena_EUR": 8.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0079BR-RS",
+        "popis": "Vanička pod vonkajšiu jednotku vyhrievaná - 790 x 390 mm",
+        "cena_EUR": 47.3,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "sifony_a_difuzory_kondenzatu": {
+    "category": "Sifóny pre odvod kondenzátu, difúzory, odparovače",
+    "items": [
+      {
+        "kod": "9899-240-01",
+        "popis": "Podomietkový sifón s boxom 20/26/32",
+        "cena_EUR": 29.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "9899-244-01",
+        "popis": "Podomietkový MIKRO trap kit sifón",
+        "cena_EUR": 39.8,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "HL 138",
+        "popis": "HL 138 sifón podomietkový pre odvod kondenzátu klimatizácie pr. 20-32mm, DN 32",
+        "cena_EUR": 8.6,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "kondenzne_cerpadla": {
+    "category": "Kondenzné čerpadlá – Sauermann, Aspen, Refco",
+    "items": [
+      {
+        "kod": "SI27CE01UN23",
+        "popis": "Čerpadlo na kondenz Sauermann Si-27 – max. výtlak: 10 m",
+        "cena_EUR": 160.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "SI20CE02UN23",
+        "popis": "Čerpadlo na kondenz Sauermann SI-20 Novinka – max. výtlak: 10 m",
+        "cena_EUR": 187.3,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "SI30CE02UN23",
+        "popis": "Čerpadlo na kondenz Sauermann SI-30",
+        "cena_EUR": 110.9,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "konzoly_stenove": {
+    "category": "Konzoly stenové pre vonkajšiu jednotku",
+    "_note_dimensions": "Rozmery uvedené ako šírka × hĺbka, prípadne aj výška. Nosnosť je orientačná.",
+    "items": [
+      {
+        "kod": "MS 117",
+        "popis": "Konzola MS117 - 465 x 375 - 140kg",
+        "cena_EUR": 23.4,
+        "jednotka": "pár"
+      },
+      {
+        "kod": "MS 118",
+        "popis": "Konzola MS118 - 550 x 375 - 140kg",
+        "cena_EUR": 27.4,
+        "jednotka": "pár"
+      },
+      {
+        "kod": "MS 119",
+        "popis": "Konzola MS119 - 550 x 490 - 200kg",
+        "cena_EUR": 75.9,
+        "jednotka": "pár"
+      }
+    ]
+  },
+  "konzoly_podstavce_a_podlahove": {
+    "category": "Konzoly podstavce (pre tepelné čerpadlá) a podlahové antivibračné konzoly",
+    "items": [
+      {
+        "kod": "SP 740",
+        "popis": "Konzola podstavec SP740 420 x 400 x 480-830 - 200kg",
+        "cena_EUR": 23.9,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "SP 930",
+        "popis": "Konzola podstavec na tepelné čerpadlo 975 x 342 x 592 - 250 kg",
+        "cena_EUR": 34.6,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "SP 930N",
+        "popis": "(Šedá) Konzola podstavec na tepelné čerpadlo 975 x 342 x 592 - 250 kg",
+        "cena_EUR": 58.8,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "antivibracne_podstavce_a_kity": {
+    "category": "Antivibračné podstavce, gumy a kity – ZNIŽUJÚ prenos vibrácií z vonkajšej jednotky do podlahy / steny",
+    "_use_case_note": "Pri postavení vonkajšej jednotky na podlahu balkóna/lodžie (bez kotvenia do fasády) sú TIETO ITEMY NEVYHNUTNÉ pre tichú prevádzku a aby sa nešírilo chvenie do bytov pod ňou. Vyberá ich PM pri obhliadke (pravidlo `umiestnenie-vonkajsej-jednotky`).",
+    "items": [
+      {
+        "kod": "Guma 300x600",
+        "popis": "Guma 300 x 600 (antivibračná podložka)",
+        "cena_EUR": 54.8,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0501SC",
+        "popis": "Kuželový podstavec (4ks/krab.)",
+        "cena_EUR": 22.1,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "0505BSR",
+        "popis": "Kuželový podstavec z antivibračnej gumy 100 x 100 x 55 mm",
+        "cena_EUR": 36.6,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "stresne_vstupy_plastove": {
+    "category": "Plastové strešné vstupy (krycí kus prechodu strechou)",
+    "items": [
+      {
+        "kod": "UT500",
+        "popis": "Plastový strešný vstup 125 x 250",
+        "cena_EUR": 15.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "UT300",
+        "popis": "Plastový strešný vstup 125 x 125",
+        "cena_EUR": 15.8,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "mosadzne_tvarovky": {
+    "category": "Mosadzné tvarovky – redukcie, spojky, matice, inverzné konektory pre vnútornú jednotku",
+    "items": [
+      {
+        "kod": "9020-101",
+        "popis": "Redukčná spojka vonkajší - vonkajší M-M 1/4 - 3/8",
+        "cena_EUR": 55.2,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "9020-102",
+        "popis": "Redukčná spojka vonkajší - vonkajší M-M 3/8 - 1/2",
+        "cena_EUR": 28.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "9020-103",
+        "popis": "Redukčná spojka vonkajší - vonkajší M-M 1/2 - 5/8",
+        "cena_EUR": 44.6,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "pvc_prislusenstvo_nibco": {
+    "category": "PVC príslušenstvo NIBCO – rúry, kolená, T-kusy, redukcie, nátrubky, lepidlo",
+    "items": [
+      {
+        "kod": "400105",
+        "popis": "Rúra 1/2\" PVC PN 15 - 3m/ks (90m/krab.)",
+        "cena_EUR": 8.7,
+        "jednotka": "m"
+      },
+      {
+        "kod": "400107",
+        "popis": "Rúra 3/4\" PVC PN 15 - 3m/ks (30m/krab.)",
+        "cena_EUR": 34.9,
+        "jednotka": "m"
+      },
+      {
+        "kod": "400110",
+        "popis": "Rúra 1\" PVC PN 15 - 3m/ks (30m/krab.)",
+        "cena_EUR": 50.0,
+        "jednotka": "m"
+      }
+    ]
+  },
+  "elektroinstalacne_prvky": {
+    "category": "Elektroinštalačné prvky – káble, trubky, ističe, krabice, vidlice, lišty",
+    "subsections": {
+      "kable": [
+        {
+          "kod": "CYKY-J 3x1,5",
+          "popis": "Kábel CYKY-J 3x1,5 - 100m/bal",
+          "cena_EUR": 50.4,
+          "jednotka": "m"
+        },
+        {
+          "kod": "CYKY-J 4x1,5",
+          "popis": "Kábel CYKY-J 4x1,5 - 100m/bal",
+          "cena_EUR": 54.3,
+          "jednotka": "m"
+        },
+        {
+          "kod": "CYKY-J 5x1,5",
+          "popis": "Kábel CYKY-J 5x1,5",
+          "cena_EUR": 49.4,
+          "jednotka": "m"
+        }
+      ],
+      "trubky_fxp": [
+        {
+          "kod": "FXP 16",
+          "popis": "Trubka FXP 16 - 50m/bal",
+          "cena_EUR": 9.2,
+          "jednotka": "m"
+        },
+        {
+          "kod": "FXP 20",
+          "popis": "Trubka FXP 20 - 50m/bal",
+          "cena_EUR": 10.4,
+          "jednotka": "m"
+        },
+        {
+          "kod": "FXP 25",
+          "popis": "Trubka FXP 25 - 50m/bal",
+          "cena_EUR": 48.2,
+          "jednotka": "m"
+        }
+      ],
+      "isticie_a_relevantne": [
+        {
+          "kod": "33871",
+          "popis": "Istič LTN 10B-1",
+          "cena_EUR": 45.8,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "33894",
+          "popis": "Istič LTN 16C-1",
+          "cena_EUR": 48.9,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "33873",
+          "popis": "Istič LTN 16B-1",
+          "cena_EUR": 58.3,
+          "jednotka": "ks"
+        }
+      ],
+      "krabice_a_skrinky": [
+        {
+          "kod": "krab. EKR000000202",
+          "popis": "Krabica rozvodná acdur 6455-11P/2 122 x 122 x 44,6 mm 5-pólová sivá malá",
+          "cena_EUR": 20.2,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "krab. EKR000000135",
+          "popis": "Krabica rozvodná acdur 6455-27P/2 144 x 144 x 67 mm 5-pólová sivá veľká",
+          "cena_EUR": 4.7,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "krab. EKR000000893",
+          "popis": "Krabica 2000001 A6 80 x 43 x 36 mm bez vývodiek sivá OBO malá",
+          "cena_EUR": 22.7,
+          "jednotka": "ks"
+        }
+      ],
+      "listy_pvc_a_pasky_kable": [
+        {
+          "kod": "18x14",
+          "popis": "Lišta PVC LV 18 x 14",
+          "cena_EUR": 40.5,
+          "jednotka": "m"
+        },
+        {
+          "kod": "18x18",
+          "popis": "Lišta PVC LV 18 x 18",
+          "cena_EUR": 38.0,
+          "jednotka": "m"
+        },
+        {
+          "kod": "7.810",
+          "popis": "Páska izolačná 38mm x 10m biela",
+          "cena_EUR": 43.4,
+          "jednotka": "ks"
+        }
+      ],
+      "vidlice_zasuvky_konektory": [
+        {
+          "kod": "5536-2154",
+          "popis": "Vidlica 250V biela bočný vývod",
+          "cena_EUR": 19.7,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "KPA000000632",
+          "popis": "Flexo šnúra PVC 3x1,5 5m uhlová vidlica biela",
+          "cena_EUR": 38.2,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "Zasuvka na sten",
+          "popis": "Zásuvka na stenu",
+          "cena_EUR": 37.3,
+          "jednotka": "ks"
+        }
+      ]
+    }
+  },
+  "dezinfekcne_prostriedky": {
+    "category": "Dezinfekčné prostriedky pre klimatizačné jednotky",
+    "items": [
+      {
+        "kod": "77-344",
+        "popis": "Clinex Nano Protect Silver Nice 1L",
+        "cena_EUR": 4.0,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "77-345",
+        "popis": "Clinex Nano Protect Silver Nice 5L - 5L/5 L",
+        "cena_EUR": 42.8,
+        "jednotka": "L"
+      },
+      {
+        "kod": "AB1085.M.01.EU",
+        "popis": "SANIBACT 500 ml - Koncentrovaný dezinfekčný prostriedok (riedenie 1:25, 1 balenie = 13 L)",
+        "cena_EUR": 14.3,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "cistiace_produkty_vnut_jednotka": {
+    "category": "Čistiace produkty na vnútorné jednotky",
+    "items": [
+      {
+        "kod": "77-554",
+        "popis": "Clinex A/C 1L",
+        "cena_EUR": 57.2,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "77-555",
+        "popis": "Clinex A/C 5L - 5L/5 L",
+        "cena_EUR": 24.4,
+        "jednotka": "L"
+      },
+      {
+        "kod": "AB1105.P.01",
+        "popis": "(AKCIA) UNIVERSAL NANO CLEANER - 5L - Univerzálny čistiaci prostriedok (riedenie 1:6)",
+        "cena_EUR": 51.0,
+        "jednotka": "L"
+      }
+    ]
+  },
+  "cistiace_produkty_vonk_jednotka": {
+    "category": "Čistiace produkty na vonkajšie jednotky (kondenzátory)",
+    "items": [
+      {
+        "kod": "AB1106.P.01",
+        "popis": "NANO ALKALINE CLEANER - 5L - Alkalický čistiaci prostriedok (riedenie 1:8)",
+        "cena_EUR": 15.6,
+        "jednotka": "L"
+      },
+      {
+        "kod": "AB1063.YW.01",
+        "popis": "POWER CLEAN OUT - 750 ml SPREJ - Vysokotlakový čistiaci prostriedok (aerosól)",
+        "cena_EUR": 31.6,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "AB1223.Q.S1",
+        "popis": "ALKALINE ULTRA - 250 ml - Silný alkalický čistiaci prostriedok (riedenie 1:20)",
+        "cena_EUR": 14.5,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "ochranne_obaly": {
+    "category": "Ochranné obaly na vnútornú jednotku počas čistenia/servisu",
+    "items": [
+      {
+        "kod": "PM1006.01",
+        "popis": "WALLY IN BUCKET - Ochranný PE obal - 15ks/bal",
+        "cena_EUR": 33.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "PM1010.01",
+        "popis": "CEILY - A/C COVER - Ochranný PE kryt v kovovom ráme (stropná klima, čistenie bez znečistenia okolia)",
+        "cena_EUR": 23.4,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "odstranovanie_unikov_chladiva": {
+    "category": "Tesniace prostriedky a detekcia úniku chladiva",
+    "items": [
+      {
+        "kod": "TR1163.AL.H3.S2",
+        "popis": "EXTREME ULTRA 6 ml - Stop mikro únikom (do 0,3 mm, do 21 kW)",
+        "cena_EUR": 32.1,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "TR1166.01",
+        "popis": "EXTERNAL 20 g - Pasta na zastavovanie únikov (dvojzložková, netesnosti do 5 mm, 40-57 bar)",
+        "cena_EUR": 31.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "TR1013.J.01",
+        "popis": "THOR - 200 ml SPREJ - Doplnok k paste External (príprava povrchu)",
+        "cena_EUR": 43.1,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "ine_chemikalie": {
+    "category": "Iné chemikálie – detektory kyslosti, neutralizátory, oleje",
+    "items": [
+      {
+        "kod": "RK1349.S1",
+        "popis": "Detektor kyslosti chladiaceho obehu (Acid-Test)",
+        "cena_EUR": 43.8,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "TR1124.C.H3.S2",
+        "popis": "Neutralizátor kyslosti (No-Acid) - 30 ml",
+        "cena_EUR": 42.0,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "TR1162.AL.01.S2",
+        "popis": "COMPRESSOR+ - Doplnkový prostriedok pri výmene kompresora a výplachu systému - 6 ml",
+        "cena_EUR": 38.3,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "vone_a_osviezovace": {
+    "category": "Vône a osviežovače vzduchu",
+    "items": [
+      {
+        "kod": "77-006",
+        "popis": "Clinex AIR Plus Fresh Breeze 650 ml",
+        "cena_EUR": 31.1,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "77-007",
+        "popis": "Clinex AIR Plus Oriental 650 ml",
+        "cena_EUR": 4.8,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "77-654",
+        "popis": "Clinex AIR - osviežovač vzduchu - 650 ml",
+        "cena_EUR": 13.8,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "chladivo": {
+    "category": "Chladivo (refrigerant) – plnenie a doplňovanie chladivového okruhu",
+    "_legal_note": "Predaj a manipulácia s chladivom podlieha F-plyn certifikácii (Nariadenie EÚ 517/2014). Bot nesmie predávať chladivo zákazníkovi bez certifikátu – odkáž ho na predajcu / certifikovaného inštalatéra.",
+    "items": [
+      {
+        "kod": "R32",
+        "popis": "Chladivo R32, 9kg / opätovne naplniteľná nádoba - 9kg/fľaša",
+        "cena_EUR": 54.8,
+        "jednotka": "kg"
+      },
+      {
+        "kod": "R410A",
+        "popis": "Chladivo R410A, 10kg / opätovne naplniteľná nádoba - 9,8 kg / 10 kg fľaša",
+        "cena_EUR": 35.4,
+        "jednotka": "kg"
+      },
+      {
+        "kod": "R134a",
+        "popis": "Chladivo R134a, 12kg / opätovne naplniteľná nádoba - 12kg/fľaša",
+        "cena_EUR": 26.8,
+        "jednotka": "kg"
+      }
+    ]
+  },
+  "spojovaci_material": {
+    "category": "Spojovací materiál – hliníkové pásky, tesniaca páska, montážna pena, hmoždinky, skrutky, kotvy",
+    "subsections": {
+      "hlinikove_pasky_a_tesniace": [
+        {
+          "kod": "700",
+          "popis": "Hliníková lepiaca páska 50mm/45m 30 mikr.",
+          "cena_EUR": 28.3,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "701",
+          "popis": "Hliníková lepiaca páska 75mm/45m 30 mikr.",
+          "cena_EUR": 33.5,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "702",
+          "popis": "Hliníková lepiaca páska 100mm/45m 30 mikr.",
+          "cena_EUR": 27.7,
+          "jednotka": "ks"
+        }
+      ],
+      "pena_montazna_a_lepidla": [
+        {
+          "kod": "2178923",
+          "popis": "Izolačná pena a pištolová CF I 500 ml",
+          "cena_EUR": 30.8,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "Pena 500ml",
+          "popis": "Pena montážna 500 ml",
+          "cena_EUR": 58.4,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "Pena 750ml",
+          "popis": "Pena montážna 750 ml",
+          "cena_EUR": 36.8,
+          "jednotka": "ks"
+        }
+      ],
+      "skrutky_do_dreva": [
+        {
+          "kod": "Srovbytex 4,2x13",
+          "popis": "Tex 4,2 x 13 pologuľatá hlava, štvorcový otvor",
+          "cena_EUR": 54.1,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "Tex 4,2X16",
+          "popis": "Tex 4,2 x 16 pologuľatá hlava, štvorcový otvor",
+          "cena_EUR": 6.4,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "Tex 4,2x19",
+          "popis": "Tex 4,2 x 19 pologuľatá hlava, štvorcový otvor",
+          "cena_EUR": 17.7,
+          "jednotka": "ks"
+        }
+      ],
+      "hmozdinky_a_kotvy": [
+        {
+          "kod": "121106035",
+          "popis": "Natĺkacie hmoždinky 6 x 40 s hríbovou hlavou",
+          "cena_EUR": 25.2,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "12008075 8x75",
+          "popis": "Natĺkacie hmoždinky 8 x 75",
+          "cena_EUR": 10.7,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "Hm.sta.UPA 8x40",
+          "popis": "Hmoždinka standard UPA 8 x 40",
+          "cena_EUR": 51.4,
+          "jednotka": "ks"
+        }
+      ],
+      "zavitove_tyce_a_zavesy": [
+        {
+          "kod": "9755 08",
+          "popis": "Závitová tyč M 8 x 1000",
+          "cena_EUR": 27.9,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "Závit. tyč 8 2m",
+          "popis": "Závitová tyč M 8 x 2000",
+          "cena_EUR": 59.1,
+          "jednotka": "ks"
+        },
+        {
+          "kod": "Záves ZZ 8",
+          "popis": "Záves ZZ 8",
+          "cena_EUR": 4.5,
+          "jednotka": "m"
+        }
+      ]
+    }
+  },
+  "gripple_zavesny_system": {
+    "category": "Gripple – lankové závesy a koncové upevnenia pre zavesenie potrubí/jednotiek",
+    "items": [
+      {
+        "kod": "UGR22FR",
+        "popis": "UniGrip - koncové upevnenie centrálnej výstupnej slučky (FR)",
+        "cena_EUR": 43.6,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "UGR22SP",
+        "popis": "UniGrip - centrálne výstupné kĺbové upevnenie (SP)",
+        "cena_EUR": 12.8,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "UGR25FR",
+        "popis": "UniGrip - koncové upevnenie centrálnej výstupnej slučky (FR)",
+        "cena_EUR": 4.8,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "tepelne_cerpadla_prislusenstvo": {
+    "category": "Príslušenstvo pre tepelné čerpadlá – zásobníky, ohrevné telesá, ventily, filtre, solárne ohrevy",
+    "items": [
+      {
+        "kod": "HT-200-E",
+        "popis": "HydroTank Nerezový zásobník TÚV s teplovodným výmenníkom, 200 l",
+        "cena_EUR": 136.4,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "AT-200",
+        "popis": "AkuTank nerezová akumulačná nádrž k TČ",
+        "cena_EUR": 81.1,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "DT-250-E-100",
+        "popis": "DuoTank Kombinovaný zásobník TÚV s teplovodným výmenníkom, 250 l",
+        "cena_EUR": 94.8,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "naradie_mastercool": {
+    "category": "Profesionálne servisné náradie Mastercool – manometre, vákuovačky, váhy, detektory",
+    "items": [
+      {
+        "kod": "94261-JT",
+        "popis": "Kompaktný 2-cestný manometer s vysokotlakovými hadicami 3-150 cm",
+        "cena_EUR": 74.5,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "52229",
+        "popis": "Ručný vodotesný digitálny teplomer",
+        "cena_EUR": 91.7,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "90068-2V-220SVBL",
+        "popis": "Vákuovačka so solenoidným ventilom 227 l/min. - NA OBJEDNÁVKU",
+        "cena_EUR": 146.0,
+        "jednotka": "ks",
+        "na_objednavku": true
+      }
+    ]
+  },
+  "naradie_ostatne": {
+    "category": "Ostatné servisné náradie a sady",
+    "items": [
+      {
+        "kod": "11131133",
+        "popis": "Rýchlospojka rohová 1/4",
+        "cena_EUR": 80.1,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "11131135",
+        "popis": "Rýchlospojka rohová 5/16",
+        "cena_EUR": 73.9,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "11131132",
+        "popis": "Rýchlospojka rovná 1/4",
+        "cena_EUR": 119.1,
+        "jednotka": "ks"
+      }
+    ]
+  },
+  "uchyty_a_drobnosti": {
+    "category": "Úchyty a drobné položky",
+    "items": [
+      {
+        "kod": "VZUS0011",
+        "popis": "Stenový úchyt",
+        "cena_EUR": 39.8,
+        "jednotka": "ks"
+      },
+      {
+        "kod": "418749",
+        "popis": "Nosník MM-C-30 2m",
+        "cena_EUR": 48.2,
+        "jednotka": "m"
+      }
+    ]
+  }
+}

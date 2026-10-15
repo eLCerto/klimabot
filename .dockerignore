@@ -1,0 +1,32 @@
+# Secrets: the key and SMTP password come from the environment at run time.
+.env
+.env.*
+
+# Runtime data (personal data in leads, logs and sessions) lives in the /data volume.
+logs/
+sessions/
+handoff_records/
+reports/
+data/
+leads.jsonl
+handoff_queue.jsonl
+.spend_breaker.json
+.demo_spend.json*
+.lead_mail_sent.json*
+.kb_vecs.npy
+.kb_hash.txt
+.kb_cache/
+
+# Not needed to run the app.
+.git/
+.venv/
+**/__pycache__/
+*.pyc
+eval/
+tests/
+docs/
+Dockerfile
+docker-compose.yml
+Caddyfile
+Makefile
+.dockerignore

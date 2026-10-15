@@ -1,0 +1,135 @@
+{
+  "metadata": {
+    "purpose": "Vyhľadávací slovník pre chatbota – pomáha pochopiť dotazy v EN/SK/hovorovej forme a mapovať ich na produkty v Samsung databáze.",
+    "usage": "Bot pri vyhľadávaní v rac/fjm/cac/accessories rozšíri keyword o všetky synonymá z 'aliases'. Definície v 'definitions' používa pri vysvetľovaní zákazníkovi.",
+    "language": "Hovorí po slovensky, ale rozumie EN/CZ dotazom"
+  },
+
+  "category_aliases": {
+    "RAC (Single-Split)": ["rac", "single-split", "single split", "1 izba", "jedna izba", "rezidencny split", "domaci split", "residential split"],
+    "FJM (Multi-Split)": ["fjm", "free joint multi", "multi-split", "multi split", "multisplit", "viac izieb", "viac miestnosti", "AJ outdoor", "viacero izieb"],
+    "CAC (Komerčný split)": ["cac", "commercial split", "komercna klimatizacia", "komercny split", "obchody klimatizacia", "kancelarie klimatizacia", "AC outdoor"]
+  },
+
+  "product_type_aliases": {
+    "Nástenná klimatizačná jednotka": ["nástenná", "nastenna", "wall-mounted", "wall mounted", "wallmounted", "stenova", "klimatizacia na stenu", "split nastenny"],
+    "360 Cassette (kruhová)": ["360 cassette", "360 kazeta", "kruhova kazeta", "round cassette", "circular cassette", "AC___RN4PKG", "BN6PKG"],
+    "WindFree Mini 4-Way Cassette (60x60)": ["mini 4-way", "mini 4cestna", "60x60 kazeta", "mini cassette", "euro kazeta", "euro mriezka", "mini four way", "AJ___TNN", "AC___RNN", "BNN"],
+    "WindFree 4-Way Cassette (95x95)": ["4-way cassette", "4cestna kazeta", "stvorcestna kazeta", "95x95 kazeta", "AC___RN4D", "BN4P"],
+    "WindFree 1-Way Cassette": ["1-way cassette", "1cestna kazeta", "one-way cassette", "AJ___TN1", "AC___RN1D"],
+    "Console (Parapetná)": ["console", "konzola", "parapetná", "parapetna", "konzolova", "pod oknom", "AJ___TNJ", "AC___RNJ"],
+    "LSP Slim Duct": ["lsp", "slim duct", "plocha kanalova", "nizka kanalova", "AJ___TNL", "AC___BNL"],
+    "MSP Duct": ["msp", "msp duct", "stredotlakova kanalova", "kanalova jednotka", "AJ___BNM", "AC___RNM", "BNM"],
+    "HSP Duct (R410a)": ["hsp", "hsp duct", "vysokotlakova", "high pressure duct", "AC200KNH", "AC250KNH"],
+    "Ceiling (Podstropná)": ["ceiling", "podstropna", "stropna", "AC___RNC", "BNC"],
+    "Wallmounted Max": ["wallmounted max", "max wallmounted", "AC100RNT", "BNT"],
+    "WindFree QMD Wallmounted": ["qmd", "qmd wallmounted", "windfree qmd", "AC___TNX", "BNA"],
+    "Floor Standing": ["floor standing", "stojanova", "skrinova", "AC___BNP"],
+    "AHU Kit": ["ahu", "ahu kit", "vzduchotechnika", "VZT", "kondenzacne pre vzt", "MXD-K100"]
+  },
+
+  "rac_series_aliases": {
+    "WindFree Première+ White": ["premiere plus", "premiere+ white", "premiere+ biely", "AR70H_CAAW", "premier plus white", "top model"],
+    "WindFree Première+ Black": ["premiere plus black", "premiere+ cierny", "AR70H_CAAB", "soapstone charcoal"],
+    "WindFree Première White": ["premiere", "premiere white", "premiere biely", "AR70H_C1AW", "premier white"],
+    "WindFree Première Black": ["premiere black", "premiere cierny", "AR70H_C1AB"],
+    "WindFree Avant S2 Black": ["avant s2 black", "avant black", "AR70F_C1AB", "airise"],
+    "WindFree Avant S2 (White)": ["avant s2", "avant white", "avant biely", "AR70F_C1AW", "geo design"],
+    "WindFree Comfort S2": ["comfort s2", "comfort", "AR60F_C1AW", "comfort biely"],
+    "Cebu S2": ["cebu", "cebu s2", "AR50F_C1AH", "airise cebu"],
+    "Luzon S2": ["luzon", "luzon s2", "AR50F_C1BH", "najlacnejsi smartthings"],
+    "AR35 WIFI": ["ar35", "ar35 wifi", "AR40H_C1AM"],
+    "AR30 WIFI": ["ar30", "ar30 wifi", "AR40H_C1BM", "najlacnejsi"]
+  },
+
+  "feature_aliases": {
+    "WindFree™ technológia": ["windfree", "wind-free", "wind free", "bez prievanu", "no draft", "kludny vzduch", "ASHRAE 0.15", "mikrootvory"],
+    "AI Motion Wings (Première+)": ["motion wings", "ai motion wings", "ai motion wind", "ai pohyb"],
+    "Motion Detect Sensor (MDS)": ["mds", "motion detect", "senzor pohybu", "presence sensor", "detekcia osob", "MCR-SMD"],
+    "Integrovaný radarový senzor (Première+)": ["radar sensor", "radarovy senzor", "radar"],
+    "Wi-Fi SmartThings": ["wifi", "wi-fi", "smartthings", "smart things", "samsung smartthings", "aplikacia", "smart home"],
+    "AI Bixby ovládanie": ["bixby", "ai bixby", "ai", "umelka inteligencia", "voice control", "hlasove ovladanie", "google assistant", "amazon alexa"],
+    "4-in-1 Filter (Première+/Première)": ["4in1 filter", "4-in-1", "ctyrnasobny filter", "kombinovany filter"],
+    "Easy Filter Plus": ["easy filter", "easy filter plus", "lahky filter", "umyvateľný filter"],
+    "Tri-care filter (Avant)": ["tri-care", "tricare", "trojity filter"],
+    "Freeze Wash (samočistenie)": ["freeze wash", "samocistenie", "samocistiaca funkcia", "self-cleaning"],
+    "Solárny IR ovládač (SolarCell)": ["solarcell", "solar cell", "solarny ovladac", "solarne dialkove", "AR-CH01E"],
+    "NASA komunikačný protokol": ["nasa", "nasa protocol", "samsung nasa"],
+    "AR-EH03E IR ovládač s WindFree": ["AR-EH03E", "ar eh03e", "ir s windfree"],
+    "MWR-WG01KN káblový SK/CZ": ["MWR-WG01KN", "wg01kn", "kablovy slovensky", "sk lokalizacia"],
+    "MWR-SH11N dotykový": ["MWR-SH11N", "sh11n", "dotykovy ovladac", "touch controller"],
+    "MIM-H04EN WiFi Kit centrálny": ["MIM-H04EN", "h04en", "wifi kit centralny", "smartthings adapter centrálny"],
+    "MIM-B19N Modbus": ["MIM-B19N", "modbus interface", "rs485"]
+  },
+
+  "design_lines": {
+    "GRID (Première/+)": ["grid", "grid design", "premiere design", "geometricky vzor"],
+    "GEO (Avant S2 White, Comfort S2)": ["geo", "geo design", "geometricky", "ploche"],
+    "AIRISE (Avant Black, Cebu, Luzon)": ["airise", "airise design", "vzdusny vzor"]
+  },
+
+  "panels_aliases": {
+    "PC4SUFMAN": ["mini 4-way panel", "60x60 panel", "panel mini cassette"],
+    "PC4SUFMANW": ["mini 4-way panel WiFi", "60x60 panel s wifi", "BNN panel"],
+    "PC1NWFMAN": ["1-way panel", "1cestna panel"],
+    "PC4NUFMAN": ["4-way panel", "4cestna panel", "RN4 panel"],
+    "PC4NUFMANW": ["4-way panel WiFi", "BN4 panel"],
+    "PC4NUDMAN": ["360 panel stvorec biely", "white square panel 360"],
+    "PC4NUNMAN": ["360 panel kruh biely", "white round panel 360"],
+    "PC6EUCMAN(W)": ["air purification panel", "panel s cistickou"],
+    "PC6EUXMAN(W)": ["auto elevation panel", "automaticky spustany panel"]
+  },
+
+  "technical_glossary": {
+    "WindFree™ chladenie": "Samsung patentovaná technológia chladenia bez priameho prievanu. Vzduch sa rozptyľuje cez 23 800 mikrootvorov v paneli (nástenné), 15 700 v 4-Way kazete, 13 000 v 1-Way. Spĺňa normu ASHRAE pre 'kľudný vzduch' (rýchlosť do 0,15 m/s).",
+    "WindFree™ Première+": "TOP rad s AI Motion Wings, integrovaným radarom, 4-in-1 filter, Freeze Wash a AI ovládaním. Trieda A+++/A+++.",
+    "AI Motion Wings": "Pohyblivé klapky s režimom AI Motion Wind – AI predpovedá potreby a optimalizuje smer prúdenia. Len v WindFree Première+.",
+    "Motion Detect Sensor (MDS)": "Senzor pohybu – ak sa 20 minút nedetekuje pohyb, prepne sa do WindFree režimu pre úsporu energie. Voliteľne v kazetách (MCR-SMD/SMC/SME 125 €).",
+    "Freeze Wash": "Samočistiaca funkcia – jednotka zmrazí vlhkosť na výparníku, potom rozmrazí a zmyje nečistoty. Dostupné v Comfort S2, Avant S2, Première, Première+.",
+    "Tri-care filter (Avant S2)": "Trojnásobný filter – mechanický + antibakteriálny + dezodoračný. Štandardne v WindFree Avant S2 (W/B).",
+    "4-in-1 Filter (Première+/Première)": "Pokročilý filter – mechanický + dezodoračný + antibakteriálny + Easy Filter Plus.",
+    "Easy Filter Plus": "Nezávislý umývateľný predfilter – jednoducho vybrať a umyť pod tečúcou vodou. Vo všetkých rezidenčných radoch.",
+    "SmartThings + Bixby AI 2.0": "Cloud platforma Samsung – ovládanie cez aplikáciu, monitoring spotreby, AI predikcie. Hlasové ovládanie cez Google Assistant / Amazon Alexa / Bixby.",
+    "Solárny IR ovládač (AR-CH01E)": "Solárne nabíjaný IR ovládač + USB-C núdzové dobíjanie. V balení Cebu/Comfort/Avant/Première/Première+. Nie Luzon a AR30/35.",
+    "FJM (Free Joint Multi)": "Multi-Split systém Samsung – 1 vonkajšia AJ + 2-5 vnútorných. Pripojovací pomer až 176 %. NASA protokol.",
+    "Pripojovací pomer 176 %": "Súčet menovitých výkonov vnútorných môže byť až 1,76× výkon vonkajšej. Umožňuje predimenzovanie pre rôznorodé časové vyťaženie.",
+    "NASA protokol": "Komunikačný protokol Samsung pre integráciu zariadení. Kompatibilný s MIM-H04EN WiFi Kit, MCM-A300BN centrálnym ovládačom.",
+    "DPM Twin/Triple/Quad": "Komerčné CAC riešenie – 2/3/4 vnútorné jednotky na 1 vonkajšiu so spoločným ovládačom. Vyžaduje refnet (MXJ-2/3/4D2509K, 157-287 €).",
+    "AHU Kit (R32 + R410a)": "Pripojenie vonkajšej jednotky CAC k vzduchotechnike (VZT/AHU). Obsahuje 3 senzory + reguláciu 0-10V. R32: MXD-K100XN1 (855 €), R410a: MXD-K100XN (814 €).",
+    "HighEE (HEE)": "High Energy Efficiency CAC variant – pracovný rozsah -20/+52°C chl., -25/+24°C vyk. (HEE), vnútorná teplota vykurovania od 8°C. SEER až 8,5 (4-Way HEE).",
+    "Refrigerant R32": "Ekologické chladivo s nízkym GWP (675). Všetky RAC, FJM, väčšina CAC.",
+    "Refrigerant R410a": "Staršie chladivo, vyšší GWP. Použité v Floor Standing AC100/140 BNPDKH a HSP Duct AC200/250.",
+    "MOC bez DPH": "Maloobchodná cena bez 23 % DPH a recyklačných poplatkov."
+  },
+
+  "use_case_to_recommendation": {
+    "spalna_15-25m2_rezidencne": ["AR30/35 WIFI 09 (entry, 809 €)", "Luzon S2 09 (990 €)", "Cebu S2 09 (1 028 €)", "Comfort S2 09 (1 221 €)"],
+    "obyvacka_25-40m2_rezidencne_windfree": ["Comfort S2 12 (1 357 €)", "Avant S2 12 (1 671 €)", "Première 12 (1 870 €)"],
+    "premium_dizajn_rezidencne": ["Première+ White 12 (2 047 €)", "Avant S2 Black 12 (1 701 €)"],
+    "rodinny_dom_3_izby": ["FJM AJ052TXJ3KG (5,2 kW, 2 izby) + 2-3 nástenné Comfort/Avant", "FJM AJ068TXJ3KG (6,8 kW, 3 izby)"],
+    "rodinny_dom_4-5_izieb": ["FJM AJ080TXJ4KG (8,0 kW, 4 izby)", "FJM AJ100TXJ5KG (10,0 kW, 5 izieb)"],
+    "obchod_50m2_jeden_priestor": ["CAC WindFree QMD Wallmounted 052 + AC052RXAD", "CAC Mini 4-Way 052 + panel"],
+    "obchod_otevreny_priestor_kazeta": ["360 Cassette CAC", "WindFree 4-Way Cassette CAC"],
+    "kancelaria_komercne": ["MSP Duct CAC HighEE", "Ceiling HighEE", "WindFree QMD HighEE"],
+    "vzt_kondenzator": ["AHU Kit MXD-K100XN1 (R32) + AC___RXAD outdoor", "AHU Kit MXD-K100XN (R410a) + AC___BXPDKH/KXAPNH"],
+    "tichy_rezim_potrebny": ["WindFree režim (všetky WindFree série)", "Comfort S2 a vyššie"],
+    "alergici_filtracia": ["Avant S2 (Tri-care filter)", "Première (4-in-1 filter)"],
+    "ekonomicke_riesenie_premium": ["Première+ White (SEER 9,7, A+++/A+++)", "Smart kazeta CAC (SEER 9,72)"],
+    "studeny_klimat_-20C": ["CAC HighEE (-20°C chl., -25°C vyk.)", "FJM AJ040 a AJ050 chladia od -5°C, väčšie AJ od -10°C"],
+    "BMS_integracia": ["MIM-B19N Modbus (115 €)", "MIM-B17BN BACnet (3 317 €)", "MIM-B18BN LonWorks (3 370 €)"],
+    "centralne_riadenie_viac_jednotiek": ["MCM-A300BN dotykový (1 485 €)", "MIM-D01AN DMS2.5 (1 946 €)", "MST-P3P S-NET3 (3 139 €)"]
+  },
+
+  "common_questions_and_answers": {
+    "co_je_windfree": "WindFree™ je Samsung technológia chladenia bez priameho prievanu. Studený vzduch sa rozptyľuje cez 23 800 mikrootvorov v paneli pri rýchlosti pod 0,15 m/s (norma ASHRAE 'kľudný vzduch'). Pocit ako keby chladenie nebolo cítiť, ale teplota klesá.",
+    "rozdiel_premiere_vs_premiere_plus": "Première+ má navyše: AI Motion Wings, integrovaný radarový senzor, A+++ pre vykurovanie (Première má len A++). Cena setu 12 (3,5 kW): Première+ 2 047 €, Première 1 870 €.",
+    "rozdiel_avant_s2_vs_comfort_s2": "Avant S2 má A+++ (Comfort A++), Tri-care filter (Comfort len Easy Filter Plus), Freeze Wash. Cena setu 12: Avant 1 671 €, Comfort 1 357 €.",
+    "rozdiel_cebu_vs_luzon": "Cebu má lepšiu účinnosť (SEER 7,4 vs 6,7), Solárny IR ovládač v balení (Luzon má len bežný IR). Cena setu 09: Cebu 1 028 €, Luzon 990 €.",
+    "ma_AR30_AR35_smartthings": "ÁNO – aj AR30 a AR35 majú Wi-Fi SmartThings. Líšia sa len v ostatných funkciách (bez WindFree, AI, solárneho ovládača). Najlacnejšie Samsung WiFi modely.",
+    "co_je_FJM": "FJM = Free Joint Multi = Multi-Split systém. 1 vonkajšia jednotka AJ pripoji 2-5 vnútorných v rôznych miestnostiach. Každá izba má vlastné ovládanie ale rovnaký prevádzkový režim (chladenie alebo vykurovanie pre všetky).",
+    "co_je_CAC": "CAC = Commercial Air Conditioner = komerčný split. Pre obchody, kancelárie, gastronómiu. Vyššie výkony (5-25 kW), kazety, kanálové, podstropné, parapetné, stojanové. Kompatibilné s BMS systémami.",
+    "potrebujem_dekoracny_panel": "ÁNO pre kazety. 60x60 Slim potrebuje PC4SUFMAN(W) (252 €). 4-Way 95x95 potrebuje PC4NUFMAN(W) (270 €). 360 Cassette má 4 farby × 4 typy panelov (256-751 €). Bez panela kazeta nefunguje.",
+    "co_je_HighEE_HEE": "HighEE = vyššia účinnosť pre náročné podmienky: pracovný rozsah -20/+52°C chladenie, -25/+24°C vykurovanie. Pre regióny s extrémami. Stojí ~30 % viac ako bežná verzia.",
+    "ake_chladivo_pouzivat": "R32 (väčšina – ekologickejšie, nižší GWP) alebo R410a (staršie, len Floor Standing AC100/140 a HSP Duct AC200/250). R32 je dlhodobo bezpečnejšia voľba."
+  }
+}

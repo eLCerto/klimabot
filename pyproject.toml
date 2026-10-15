@@ -1,0 +1,24 @@
+[project]
+name = "samuel-malisek-klimabot"
+version = "0.1.0"
+description = "Samuel Malíšek Klimabot - AC sales chatbot with a Flask web UI"
+requires-python = ">=3.10"
+# Only what the app imports at runtime (bot.py + web/web.py), pinned to the versions
+# the tests and the Docker image ran with, so a rebuild can't pull in an untested release.
+# To upgrade: change a version, run the tests and `make build`, then commit both.
+dependencies = [
+    "anthropic==1.13.0",
+    "python-dotenv==1.2.4",
+    "flask==3.1.3",
+    "numpy==2.5.4",
+    "rank_bm25==0.2.2",
+    "sentence-transformers==6.1.0",  # pulls in torch; the Dockerfile and setup_project.sh pin its CPU-only build
+]
+
+# The app runs from source (python main.py); `pip install .` only installs the dependencies.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+bypass-selection = true

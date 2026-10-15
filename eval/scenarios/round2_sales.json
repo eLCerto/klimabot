@@ -1,0 +1,216 @@
+[
+  {
+    "id": "s01_lacna_s_wifi",
+    "author": "sales",
+    "title": "Spálňa 17 m², čo najlacnejšie, ale s Wi-Fi",
+    "targets": [
+      "c11 regression (lacná + Wi-Fi → ponúknutá SEIYA bez Wi-Fi)",
+      "P0-8 must-have Wi-Fi checked against key_features",
+      "P1-13 price answered in the same turn, not conditional on contacts",
+      "P1-10 all-in range s DPH from quote",
+      "P0-1 consent re-ask after contacts without a token, consent typed without diacritics"
+    ],
+    "review": "Vyhrať musí AR30 WIFI 09 alebo AR35 WIFI 09 (Wi-Fi SmartThings štandardne, najlacnejší set s Wi-Fi). Na otázku o SEIYA bot povie, že Wi-Fi je tam len voliteľný modul RB-N105S-G za príplatok, a SEIYA nepredá ako lacnejšiu voľbu. Cena s DPH z quote (montáž určí PM) padne v tom ťahu, v ktorom sa zákazník pýta, bez podmienky kontaktu; lead a PM brief majú AR30/AR35 ako hlavný model.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [
+        "AR40H09C1BMNEU",
+        "AR40H09C1BMXEU",
+        "AR40H09C1AMNEU",
+        "AR40H09C1AMXEU"
+      ],
+      "must_not_say": [
+        "\\b(hneď\\s+ako|keď|ak|akonáhle|po\\s+tom,?\\s+čo)\\s+(mi\\s+)?(potvrdíte|pošlete|dáte|zanecháte|necháte|napíšete|uvediete|poskytnete|odsúhlasíte)[^.?!\\n]{0,60}(pošlem|pripravím|vypočítam|poviem|uvediem|spočítam|prepočítam|zistím)\\w*[^.?!\\n]{0,40}\\b(cen[auy]|sum[auy]|kalkuláci\\w*)\\b",
+        "\\bcen[auy]?\\b[^.?!\\n]{0,60}\\b(až|iba|len)\\s+(po|keď|ak)\\b[^.?!\\n]{0,40}(kontakt|telef[oó]n|čísl|e-?mail|súhlas)"
+      ]
+    },
+    "messages": [
+      "ahoj, potrebujem klimu do spalne v byte, ma asi 17 m2, sme na 3. poschodi",
+      "chcem co najlacnejsiu, znacka mi je jedno, ale musi mat wifi – chcem ju zapinat z mobilu cestou z roboty. kolko by to stalo?",
+      "susedovi montovali toshibu seiya, ta ma tiez wifi? a kolko to vyjde dokopy aj s montazou a dph?",
+      "ok, beriem tu najlacnejsiu s wifi. Jan Mrkvicka, 0915 000 201, Nitra",
+      "ano, suhlasim"
+    ]
+  },
+  {
+    "id": "s02_konkurencia_mitsubishi",
+    "author": "sales",
+    "title": "Ponuka Mitsubishi 1 590 € s DPH bez montáže – prebiť porovnateľným modelom",
+    "targets": [
+      "c10 regression (konkurenčná ponuka, ktorú sme mohli prebiť)",
+      "P1-10 \"25 %\" removed from prompt and quote description",
+      "P1-10 all-in range s DPH + installation shown separately",
+      "P1-13 price answered in the same turn",
+      "P0-1 consent window: contacts first, then yes after the re-ask"
+    ],
+    "review": "Vecne a bez zhadzovania Mitsubishi ponúkne porovnateľný 3,5 kW model (napr. WindFree Comfort S2 12 alebo SEIYA 13), ktorého cena s DPH z quote je pod 1 590 €, a porovnáva jednotku s jednotkou, keďže konkurencia je bez montáže; montáž bez ceny (určí ju PM po obhliadke). Na otázku o maximálnej zľave neprezradí strop ani nevymyslí extra zľavu, ponúkne nanajvýš lacnejší model. Súhlas sa zaráta až z „áno, súhlasím“ po GDPR otázke, nie zo správy s kontaktmi.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [
+        "AR60F12C1AWNEU",
+        "AR60F12C1AWXEU",
+        "RAS-B13E2KVG-E",
+        "RAS-13E2AVG-E",
+        "AR50F12C1AHNEU",
+        "AR50F12C1AHXEU",
+        "AR50F12C1BHNEU",
+        "AR50F12C1BHXEU",
+        "RAS-B13B2KVG-E2",
+        "RAS-13B2AVG-E2"
+      ],
+      "must_not_say": [
+        "\\b25\\s*%",
+        "mitsubishi[^.?!\\n]{0,40}(preceňovan|nekvalitn|poruchov|podradn)",
+        "(preceňovan|nekvalitn|poruchov|podradn)\\w*[^.?!\\n]{0,40}mitsubishi",
+        "\\b(hneď\\s+ako|keď|ak|akonáhle|po\\s+tom,?\\s+čo)\\s+(mi\\s+)?(potvrdíte|pošlete|dáte|zanecháte|necháte|napíšete|uvediete|poskytnete|odsúhlasíte)[^.?!\\n]{0,60}(pošlem|pripravím|vypočítam|poviem|uvediem|spočítam|prepočítam|zistím)\\w*[^.?!\\n]{0,40}\\b(cen[auy]|sum[auy]|kalkuláci\\w*)\\b"
+      ]
+    },
+    "messages": [
+      "Dobrý deň, mám ponuku od inej firmy na Mitsubishi Electric MSZ-AY35 (3,5 kW) za 1 590 € s DPH, montáž by účtovali zvlášť. Viete mi ponúknuť niečo porovnateľné lacnejšie?",
+      "Je to do obývačky 30 m² v byte, chcem chladiť aj kúriť v prechodnom období. Značka mi je jedno, ale nechcem úplne najlacnejší model, nech je to kvalitou porovnateľné.",
+      "Koľko by bola vaša jednotka s DPH, aby som to porovnal jedna k jednej? A koľko u vás stojí montáž?",
+      "A aká je u vás maximálna zľava? Keď pridáte ešte niečo, podpíšem hneď.",
+      "Dobre, beriem to, čo ste odporučili. Marek Holub, 0913 000 202, marek.holub@example.com, Zvolen",
+      "áno, súhlasím"
+    ]
+  },
+  {
+    "id": "s03_multi_vs_2x_single_toshiba",
+    "author": "sales",
+    "title": "Rodinný dom, 2 izby: multi-split vs. 2× single-split Toshiba, beriem lacnejšie",
+    "targets": [
+      "c04 regression (predaný multi-split, hoci 2× single-split bol lacnejší)",
+      "P1-10 verified differences between two quotes allowed",
+      "P1-10 all-in range s DPH incl. installation per variant",
+      "P1-11 PM brief main model = last accepted quote",
+      "multi-split compatibility checked by quote"
+    ],
+    "review": "Dve volania quote s rovnakými vnútornými jednotkami základného radu (SEIYA Classic 2 / SEIYA): multi-split s overenou kompatibilitou a 2× single-split, celý variant v jednom volaní (2× single-split = qty 2). Bot nesmie tvrdiť, že multi-split je lacnejší, keď quote ukazuje opak; rozdiel, ak ho uvedie, musí presne sedieť s výsledkami quote (bez/s DPH jasne označené). Po „beriem tú lacnejšiu“ obsahuje lead aj PM brief 2× single-split, nie multi-split.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [
+        "RAS-10B2AVG-E2",
+        "RAS-13B2AVG-E2",
+        "RAS-10E2AVG-E",
+        "RAS-13E2AVG-E"
+      ],
+      "must_not_say": [
+        "\\b(hneď\\s+ako|keď|ak|akonáhle|po\\s+tom,?\\s+čo)\\s+(mi\\s+)?(potvrdíte|pošlete|dáte|zanecháte|necháte|napíšete|uvediete|poskytnete|odsúhlasíte)[^.?!\\n]{0,60}(pošlem|pripravím|vypočítam|poviem|uvediem|spočítam|prepočítam|zistím)\\w*[^.?!\\n]{0,40}\\b(cen[auy]|sum[auy]|kalkuláci\\w*)\\b"
+      ]
+    },
+    "messages": [
+      "Dobrý deň, v rodinnom dome chceme klimatizovať spálňu 20 m² a pracovňu 12 m², obe sú na poschodí vedľa seba. Chceli by sme Toshibu.",
+      "Neviem sa rozhodnúť, či multisplit s jednou vonkajšou jednotkou alebo dve samostatné klímy. Porovnajte mi prosím obe varianty aj s montážou, vnútorné jednotky nech sú v oboch rovnaké, stačí základný rad.",
+      "Ktorá varianta vyjde celkovo lacnejšie a o koľko? A čo by ste zobrali vy na mojom mieste?",
+      "Dobre, beriem tú lacnejšiu variantu. Rastislav Kollár, 0918 000 203, Banská Štiavnica",
+      "áno súhlasím"
+    ]
+  },
+  {
+    "id": "s04_kozmeticky_salon_b2b",
+    "author": "sales",
+    "title": "Kozmetický salón 40 m², IČO, zákazník tlačí na lacnú nástennú do bytu",
+    "targets": [
+      "c08 regression (salón → rezidenčný lead aj tak odišiel)",
+      "P0-8 fit check: salon + residential lines = hard error",
+      "P0-9 approved claims (no invented warranty terms)",
+      "P1-13 price incl. installation in the same turn",
+      "B2B_firma segment from IČO"
+    ],
+    "review": "Rezidenčné Samsung Cebu ani iné RAC/RAS neponúkne a nenacení ani na porovnanie; vecne vysvetlí, prečo komerčný rad, bez vymyslených záručných podmienok. Navrhne podstropnú CAC/RAV primeranú záťaži (nie nástennú nad kreslom, nie kazetu bez podhľadu), pri RAV pridá ovládač RBC-ASCU32Y-E. Ceny sú v segmente B2B_firma, bez DPH aj s DPH, bez ceny montáže, v ťahu so zákazníkovou otázkou.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": true,
+      "segment": "B2B_firma",
+      "language": "sk",
+      "codes_any": [
+        "AC052RNCDKG/EU",
+        "AC071RNCDKG/EU",
+        "AC071BNCPKG/EU",
+        "RAV-HM561CTP-E",
+        "RAV-HM801CTP-E"
+      ],
+      "must_not_say": [
+        "(?:^|[.?!\\n])(?=[^.?!\\n]*záruk)(?=[^.?!\\n]*(?:neplatí|nebude\\s+platiť|zanik|stratí|prepad|nevzťahuje))(?=[^.?!\\n]*(?:komerčn|salón|prevádzk|podnikan|firemn))"
+      ]
+    },
+    "messages": [
+      "Dobrý deň, otváram kozmetický salón, 40 m² na prízemí, jedna stena je celá presklená na juh. Fakturovať budeme na firmu, IČO 11223344.",
+      "Sú tam 2 kozmetické lôžka a manikúra, naraz tak 3 klientky a 2 zamestnankyne, bežia lampy a sterilizátor. Podhľad nemáme a nechcem, aby to fúkalo klientkam do tváre.",
+      "Nestačila by obyčajná nástenná ako do bytu? Známy mi ponúkol Samsung Cebu, vyšla by oveľa lacnejšie.",
+      "Dobre, chápem. Tak čo teda odporúčate a koľko to bude stáť aj s montážou, bez DPH aj s DPH?",
+      "Ok, ideme do toho. Veronika Sládková, 0917 000 204, veronika.sladkova@example.com, Trenčín",
+      "áno, súhlasím"
+    ]
+  },
+  {
+    "id": "s05_cena_s_montazou_skladom_bez_kontaktu",
+    "author": "sales",
+    "title": "Koľko aj s montážou a je to skladom? Kontakt nedám, kým nepoznám cenu",
+    "targets": [
+      "c16 regression (\"koľko aj s montážou\" bez odpovede)",
+      "c20 regression (\"je skladom?\" odbité)",
+      "P1-13 price and stock answered in the same turn, quote as soon as m² is known",
+      "P1-13 price never conditional on contacts or consent",
+      "no lead / no auto-capture without contacts and consent"
+    ],
+    "review": "Hneď v prvej odpovedi zavolá quote pre Toshiba single-split 2,5 kW s uvedenými predpokladmi a dá sumu s DPH a povie, že cenu montáže určí PM po obhliadke, namiesto ďalších otázok. Na „je skladom?“ odpovie v tom istom ťahu (pole availability z quote; presný termín overí PM, žiadny sľúbený ani „reálny“ dátum). Cenu nepodmieňuje kontaktom ani súhlasom, po odmietnutí kontaktu netlačí; nevznikne lead ani handoff.",
+    "expect": {
+      "lead": false,
+      "consent": "none",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [
+        "RAS-B10B2KVG-E2",
+        "RAS-10B2AVG-E2",
+        "RAS-B10E2KVG-E",
+        "RAS-10E2AVG-E",
+        "RAS-B10P2KVSG-E",
+        "RAS-B10P2KVSGB-E",
+        "RAS-10P2AVSG-E",
+        "RAS-B10S4KVPG-E",
+        "RAS-10S4AVPG-E"
+      ],
+      "must_not_say": [
+        "\\bnajprv\\w*\\s+(potrebujem|budem\\s+potrebovať|mi\\s+(prosím\\s+)?(dajte|pošlite|napíšte|zanechajte|nechajte))[^.?!\\n]{0,40}(kontakt|telef[oó]n|čísl|e-?mail|men[oa]\\b)",
+        "\\b(hneď\\s+ako|keď|ak|akonáhle|po\\s+tom,?\\s+čo)\\s+(mi\\s+)?(potvrdíte|pošlete|dáte|zanecháte|necháte|napíšete|uvediete|poskytnete|odsúhlasíte)[^.?!\\n]{0,60}(pošlem|pripravím|vypočítam|poviem|uvediem|spočítam|prepočítam|zistím)\\w*[^.?!\\n]{0,40}\\b(cen[auy]|sum[auy]|kalkuláci\\w*)\\b",
+        "\\bcen[auy]?\\b[^.?!\\n]{0,60}\\b(až|iba|len)\\s+(po|keď|ak)\\b[^.?!\\n]{0,40}(kontakt|telef[oó]n|čísl|e-?mail|súhlas)"
+      ]
+    },
+    "messages": [
+      "Dobrý deň, koľko by ma stála klimatizácia do spálne 14 m² aj s montážou? Byt v paneláku v Bratislave, chcel by som Toshibu.",
+      "A je to skladom? Potrebujem to mať namontované do konca mesiaca, chcem s tým aj prikurovať.",
+      "Kontakt vám zatiaľ nedám, najprv chcem vedieť celkovú sumu s DPH aj s montážou, nech to porovnám s inými ponukami.",
+      "Ok, ďakujem, porozmýšľam a ozvem sa sám."
+    ]
+  }
+]

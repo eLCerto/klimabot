@@ -1,0 +1,29 @@
+# Secrets and local tools
+.env
+.venv/
+.claude/
+__pycache__/
+
+# Runtime output, personal data included. The bot writes everything to data/ (KLIMABOT_DATA_DIR);
+# the names below cover a data dir pointed at the project root.
+data/
+logs/
+sessions/
+handoff_records/
+reports/
+leads.jsonl
+handoff_queue.jsonl
+.kb_vecs.npy
+.kb_hash.txt
+.spend_breaker.json
+.demo_spend.json
+.demo_spend.json.tmp
+.lead_mail_sent.json
+.lead_mail_sent.json.tmp
+
+# Docker build output (the KB embedding cache built into the image)
+.kb_cache/
+
+# Eval output and the reviewers' notes
+eval/runs/
+eval/code_review_debate/

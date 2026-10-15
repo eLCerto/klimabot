@@ -1,0 +1,431 @@
+{
+  "_description": "Aliasy a synonymá pre BM25 vyhľadávanie nad cennikom montážneho príslušenstva. Pri ľubovoľnej forme dotazu (SK/CZ/EN) bot nájde príslušné položky.",
+  "source": "FIKTÍVNE CENY – generované vzorcom (výkon × rad × typ jednotky); štruktúra, rady a parametre podľa verejných katalógov výrobcov",
+  "category_aliases": {
+    "predizolované medené potrubie": [
+      "predizolované cu potrubie",
+      "izolované meděné potrubí",
+      "insulated copper pipe",
+      "pre-insulated cu pipe",
+      "CU s izoláciou"
+    ],
+    "duálne potrubie": [
+      "dual pipe",
+      "dual cu",
+      "dvojica trubiek",
+      "dvojité potrubie"
+    ],
+    "neizolované medené tyče": [
+      "meděné tyče tvrdé",
+      "rigid copper rod",
+      "Cu rúra tvrdá"
+    ],
+    "guľový ventil": [
+      "ball valve",
+      "kulovy ventil",
+      "uzatvárací ventil"
+    ],
+    "servisný ventil": [
+      "service valve",
+      "servisný ventilček",
+      "schraderovací ventil"
+    ],
+    "spájka": [
+      "spájkovacia tyč",
+      "L-Ag",
+      "tvrdá spájka",
+      "solder rod",
+      "brazing rod"
+    ],
+    "k-flex izolácia": [
+      "kflex",
+      "tepelná izolácia potrubia",
+      "izolácia chladivového vedenia",
+      "pipe insulation"
+    ],
+    "plastový žľab": [
+      "plast. kanál",
+      "cable duct",
+      "káblový žľab",
+      "elektroinštalačný kanál",
+      "PVC žľab",
+      "lišta na potrubie"
+    ],
+    "lišta pre kondenz": [
+      "odvod kondenzátu lišta",
+      "condensate trunking",
+      "kondenzná lišta"
+    ],
+    "kondenzná hadica": [
+      "odvod kondenzátu hadica",
+      "condensate hose",
+      "drain hose"
+    ],
+    "kondenzné čerpadlo": [
+      "condensate pump",
+      "Sauermann",
+      "Aspen",
+      "Refco",
+      "pump kondenzátu",
+      "čerpadlo kondenzu"
+    ],
+    "sifón": [
+      "siphon",
+      "podomietkový sifón",
+      "HL sifón",
+      "kondenzný sifón"
+    ],
+    "vanička pod jednotku": [
+      "vanička pod kondenz",
+      "drain tray",
+      "drip tray",
+      "kondenz vanička"
+    ],
+    "konzola stenová": [
+      "wall bracket",
+      "konzola na fasádu",
+      "consoles",
+      "stenový držiak"
+    ],
+    "konzola podstavec": [
+      "floor stand",
+      "podlahový podstavec",
+      "konzola pre tepelné čerpadlo",
+      "stand for heat pump"
+    ],
+    "konzola podlahová antivibračná": [
+      "antivibračná konzola",
+      "antivibration bracket",
+      "podlahová antivibračná",
+      "DXL konzola",
+      "anti-vibration floor bracket"
+    ],
+    "antivibračná podložka": [
+      "antivibration pad",
+      "silentblok",
+      "guma pod outdoor",
+      "anti vibration mount",
+      "antivibračná guma"
+    ],
+    "antivibračný kit": [
+      "antivibration kit",
+      "AV kit",
+      "antivibračná súprava"
+    ],
+    "mosadzná tvarovka": [
+      "brass fitting",
+      "redukcia mosadz",
+      "spojka mosadzná",
+      "matica mosadzná"
+    ],
+    "matica chladivová": [
+      "flare nut",
+      "matica na pertel"
+    ],
+    "redukcia": [
+      "reduction",
+      "redukcia priemeru"
+    ],
+    "PVC NIBCO": [
+      "pvc rúra",
+      "pvc príslušenstvo",
+      "PVC pipe",
+      "kanalizačná rúra"
+    ],
+    "kábel CYKY": [
+      "napájací kábel",
+      "silový kábel",
+      "CYKY pre klimatizáciu"
+    ],
+    "kábel CYSY": [
+      "H05VV-F",
+      "flexibilný kábel",
+      "ohybný kábel"
+    ],
+    "kábel YSLCY": [
+      "tienený kábel",
+      "shielded cable",
+      "kábel pre komunikáciu klímy"
+    ],
+    "trubka FXP": [
+      "chránička",
+      "ohybná trubka",
+      "flexible conduit"
+    ],
+    "istič": [
+      "mcb",
+      "breaker",
+      "ochranný istič"
+    ],
+    "krabica rozvodná": [
+      "junction box",
+      "rozvodná krabica",
+      "elektroinštalačná krabica"
+    ],
+    "skrinka modulová": [
+      "rozvodná skrinka",
+      "panel modulový",
+      "module enclosure"
+    ],
+    "izolačná páska": [
+      "insulation tape",
+      "elektroizolačná páska"
+    ],
+    "sťahovacia páska": [
+      "cable tie",
+      "viazací pásik",
+      "stahovacia páska"
+    ],
+    "wago svorka": [
+      "wago",
+      "spojovacia svorka",
+      "káblová svorka",
+      "spojka kábla"
+    ],
+    "dezinfekčný prostriedok": [
+      "disinfectant",
+      "sanibact",
+      "nano protect",
+      "dezinfekcia klímy"
+    ],
+    "čistiaci prostriedok výparník": [
+      "evaporator cleaner",
+      "evap coil",
+      "čistič výparníka"
+    ],
+    "čistiaci prostriedok kondenzátor": [
+      "condenser cleaner",
+      "power clean out",
+      "alkaline cleaner"
+    ],
+    "tablety odtok": [
+      "emerald tabs",
+      "drain tabs",
+      "tablety kondenz"
+    ],
+    "ochranný obal pre čistenie": [
+      "wally in bucket",
+      "ceily",
+      "ochranný kryt na klimu"
+    ],
+    "stop únikom": [
+      "leak stop",
+      "tesnenie úniku",
+      "extreme ultra",
+      "external pasta",
+      "stop micro leak"
+    ],
+    "detektor kyslosti": [
+      "acid test",
+      "acid detector",
+      "test kyslosti oleja"
+    ],
+    "olej na pertle": [
+      "flaring oil",
+      "olej na flare",
+      "ezi oil"
+    ],
+    "vône": [
+      "scents",
+      "fragrance",
+      "osviežovač"
+    ],
+    "osviežovač vzduchu": [
+      "air freshener",
+      "vôňa",
+      "clinex air"
+    ],
+    "chladivo R32": [
+      "r-32",
+      "r32 chladivo",
+      "refrigerant R32"
+    ],
+    "chladivo R410A": [
+      "r-410a",
+      "r410a chladivo",
+      "refrigerant R410a"
+    ],
+    "chladivo R134a": [
+      "r-134a",
+      "r134a chladivo",
+      "refrigerant R134a"
+    ],
+    "chladivo R407C": [
+      "r-407c",
+      "r407c chladivo",
+      "refrigerant R407C"
+    ],
+    "fľaša chladiva": [
+      "refrigerant bottle",
+      "kapsule chladivo",
+      "tank chladiva"
+    ],
+    "hliníková páska": [
+      "aluminium tape",
+      "AL páska",
+      "alu páska"
+    ],
+    "tesniaca páska": [
+      "sealing tape",
+      "izolačná páska tesniaca",
+      "TP páska"
+    ],
+    "montážna pena": [
+      "mounting foam",
+      "PUR pena",
+      "polyuretánová pena"
+    ],
+    "silikón": [
+      "silicone sealant",
+      "silikónový tmel"
+    ],
+    "tmel": [
+      "sealant",
+      "polyuretan tmel",
+      "tmel polyuretánový"
+    ],
+    "chemická kotva": [
+      "HIT kotva",
+      "chemical anchor"
+    ],
+    "hmoždinka": [
+      "wall plug",
+      "anchor",
+      "dowel",
+      "rámova hmoždinka",
+      "hmoždinka rámová"
+    ],
+    "skrutka do dreva": [
+      "wood screw",
+      "samorezná skrutka",
+      "tex skrutka"
+    ],
+    "kotva mosadzná": [
+      "brass anchor",
+      "kotva M8",
+      "kotva M10"
+    ],
+    "závitová tyč": [
+      "threaded rod",
+      "rebar závitová"
+    ],
+    "záves": [
+      "hanger",
+      "závesný systém",
+      "zavesovanie potrubia"
+    ],
+    "gripple": [
+      "unigrip",
+      "lankový záves",
+      "wire suspension",
+      "HF Express"
+    ],
+    "tepelné čerpadlo zásobník": [
+      "hydrotank",
+      "akutank",
+      "duotank",
+      "TC zásobník",
+      "TÚV nádrž"
+    ],
+    "ohrevné teleso": [
+      "heating element",
+      "elektrické teleso pre bojler"
+    ],
+    "3-cestný ventil": [
+      "3-way valve",
+      "MBA132",
+      "trojcestný ventil"
+    ],
+    "nemrznúci ventil": [
+      "antifreeze valve",
+      "anti-freeze valve TČ"
+    ],
+    "filter magnetický": [
+      "magnetic filter",
+      "QUADRO MAG",
+      "total filter TF1"
+    ],
+    "manometer chladiaci": [
+      "refrigerant manifold",
+      "kompaktný manometer",
+      "manometer 2-cestný"
+    ],
+    "vákuovačka": [
+      "vacuum pump",
+      "vakuová pumpa",
+      "evakuačná pumpa"
+    ],
+    "váha chladivo": [
+      "refrigerant scale",
+      "elektronická váha plnenie chladiva",
+      "bluetooth scale"
+    ],
+    "detektor úniku": [
+      "leak detector",
+      "úniková sonda",
+      "detektor mikróúnikov"
+    ],
+    "regulátor tlaku dusíka": [
+      "nitrogen pressure regulator",
+      "redukčný ventil dusíka"
+    ],
+    "pertlovačka": [
+      "flaring tool",
+      "flaring kit"
+    ],
+    "rezačka rúr": [
+      "pipe cutter",
+      "rezačka medeného potrubia",
+      "tube cutter"
+    ],
+    "expander chladivový": [
+      "swaging tool",
+      "tube expander",
+      "expander 7 hláv"
+    ],
+    "hrebeň na lamely": [
+      "fin comb",
+      "lamela hrebeň",
+      "comb pre kondenzátor"
+    ]
+  },
+  "code_prefixes": {
+    "5090": "Cu kolená 90° (medené tvarovky)",
+    "5270": "Cu hrdlá / nátrubky (medené tvarovky)",
+    "5002A": "Cu oblúky 90° (medené tvarovky)",
+    "5041": "Cu oblúky 45° (medené tvarovky)",
+    "GBC": "Guľové ventily bez servisu",
+    "SBV": "Guľové ventily so servisným ventilom",
+    "MS ": "Konzoly stenové Samuel Malíšek Klimabot",
+    "DXL": "Konzoly podlahové antivibračné (zvýšená odolnosť)",
+    "9898-": "Konzoly podlahové antivibračné (štandard)",
+    "AV": "Antivibračné kity (gumové podložky)",
+    "BCF": "Plastové žľaby",
+    "GC": "Spojky kanálu (žľabové)",
+    "PM": "Priechodky stenou pre žľaby",
+    "AE": "Vonkajšie rohy (žľabové)",
+    "AI": "Vnútorné rohy (žľabové)",
+    "CP": "Plochá kolená (žľabové)",
+    "DT": "T-kusy (žľabové)",
+    "TT": "Koncovky (žľabové)",
+    "ST": "Rýchlosvorky",
+    "SP": "Konzoly podstavce (pre tepelné čerpadlá)",
+    "CYKY": "Pevný silový kábel (Cu)",
+    "H05VV-F": "Flexibilný silový kábel CYSY",
+    "YSLCY-OZ": "Tienený riadiaci kábel",
+    "FXP": "Chrániky / flexibilné trubky",
+    "9020-": "Mosadzné tvarovky a redukcie",
+    "AB": "Čistiace prostriedky Aerosol Box (talianska značka)",
+    "TR": "Tesniace a servisné chemikálie",
+    "RBC": "Toshiba ovládače (sú v knowledge/toshiba/, nie tu)",
+    "UGR / XP": "Gripple lankové závesy",
+    "R32 / R410A / R134a / R407C": "Chladivá (refrigerants)"
+  },
+  "color_codes_zlaby": {
+    "W": "biely",
+    "B": "čierny",
+    "M": "hnedý",
+    "G": "šedý",
+    "no_suffix": "natural / bez farby (zvyčajne biely default)"
+  }
+}

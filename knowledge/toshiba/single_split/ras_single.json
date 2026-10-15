@@ -1,0 +1,1322 @@
+{
+  "metadata": {
+    "category": "RAS Single-Split",
+    "category_full": "Single-Split rezidenčné nástenné/parapetné jednotky (1 vnútorná + 1 vonkajšia)",
+    "source": "Toshiba Productcatalog_2026-2027_SK_FINAL.pdf (str. 4-33)",
+    "validity": "1.4.2026 – 31.3.2027",
+    "currency": "EUR (TOSHIBA / AIR-COND International, bez DPH)",
+    "refrigerant": "R32 (všetky RAS modely)",
+    "model_code_logic": {
+      "RAS-B__B2KVG-E2": "SEIYA Classic 2 vnútorná (CLASSIC Line)",
+      "RAS-B__E2KVG-E": "SEIYA vnútorná (BASIC Line)",
+      "RAS-B__P2KVSG-E": "SHORAI CURVE White vnútorná (HIGH Line)",
+      "RAS-B__P2KVSGB-E": "SHORAI CURVE Black vnútorná (HIGH Line)",
+      "RAS-B__N4KVRG-E1/E2": "HAORI vnútorná (DESIGN Line s textilom)",
+      "RAS-B__S4KVPG-E": "DAISEIKAI 10 White vnútorná (PREMIUM)",
+      "RAS-B__S4KVDG-E": "DAISEIKAI 10 Wood vnútorná (PREMIUM, drevo)",
+      "RAS-B__J2FVG-E1": "Parapetná jednotka Bi-Flow (CONSOLE)",
+      "RAS-__B2AVG-E2": "SEIYA Classic 2 vonkajšia",
+      "RAS-__E2AVG-E": "SEIYA vonkajšia",
+      "RAS-__P2AVSG-E": "Vonkajšia pre HAORI/SHORAI CURVE/CONSOLE",
+      "RAS-__S4AVPG-E": "Vonkajšia DAISEIKAI 10",
+      "size_10": "2,5 kW (chl.)",
+      "size_13": "3,3-3,5 kW",
+      "size_16": "4,2-4,6 kW",
+      "size_18": "5,0 kW",
+      "size_22": "6,1 kW (len SHORAI)",
+      "size_24": "6,5-7,0 kW"
+    },
+    "source_notes": {
+      "shared_outdoor_RAS-P2AVSG_acoustics": "RAS-13P2AVSG-E acoustics sound_pressure_heat is printed as --/--/46 on the SHORAI White set page (p.10) but --/--/49 on the SHORAI Black / HAORI / CONSOLE set pages (p.11-12) for the same outdoor SKU. JSON keeps --/--/49 (the value used on three of four set pages). Cross-check Toshiba databook before issuing binding noise quotes.",
+      "SHORAI_Black_indoor_weights_and_dims": "Catalog detail page (p.10-11) lists indoor 293x800x226 / 320x1053x245 and 10/10/10/14/14/14 kg; comparison overview (p.19) lists 293x822x226 / 320x1076x248 and 11/11/11/14/14/15 kg. JSON aligns with the detail page."
+    }
+  },
+  "SEIYA_Classic_2": {
+    "line": "CLASSIC Line",
+    "category": "Nástenná jednotka",
+    "features": [
+      "Kompaktný invertor CLASSIC Line",
+      "Trieda A++ chladenie / A+ vykurovanie",
+      "Prachový filter",
+      "Voliteľne WiFi modul (RB-N105S-G)"
+    ],
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A+",
+    "models": [
+      {
+        "size": 10,
+        "indoor": "RAS-B10B2KVG-E2",
+        "outdoor": "RAS-10B2AVG-E2",
+        "cooling_kW": 2.5,
+        "cooling_range_kW": "0,80-3,00",
+        "heating_kW": 3.2,
+        "heating_range_kW": "0,76-3,90",
+        "EER": 3.33,
+        "SEER": 6.1,
+        "COP": 3.81,
+        "SCOP": 4.0,
+        "fuse_A": 6,
+        "set_price_EUR": 1000,
+        "indoor_price_EUR": 320,
+        "outdoor_price_EUR": 680
+      },
+      {
+        "size": 13,
+        "indoor": "RAS-B13B2KVG-E2",
+        "outdoor": "RAS-13B2AVG-E2",
+        "cooling_kW": 3.3,
+        "cooling_range_kW": "1,00-3,50",
+        "heating_kW": 3.6,
+        "heating_range_kW": "0,76-4,30",
+        "EER": 2.75,
+        "SEER": 6.1,
+        "COP": 3.53,
+        "SCOP": 4.0,
+        "fuse_A": 6,
+        "set_price_EUR": 1100,
+        "indoor_price_EUR": 330,
+        "outdoor_price_EUR": 770
+      },
+      {
+        "size": 16,
+        "indoor": "RAS-B16B2KVG-E2",
+        "outdoor": "RAS-16B2AVG-E2",
+        "cooling_kW": 4.2,
+        "cooling_range_kW": "1,10-4,70",
+        "heating_kW": 5.0,
+        "heating_range_kW": "0,90-6,00",
+        "EER": 3.0,
+        "SEER": 6.1,
+        "COP": 3.45,
+        "SCOP": 4.0,
+        "fuse_A": 10,
+        "set_price_EUR": 1470,
+        "indoor_price_EUR": 370,
+        "outdoor_price_EUR": 1100
+      },
+      {
+        "size": 18,
+        "indoor": "RAS-B18B2KVG-E2",
+        "outdoor": "RAS-18B2AVG-E2",
+        "cooling_kW": 5.0,
+        "cooling_range_kW": "1,10-5,35",
+        "heating_kW": 5.4,
+        "heating_range_kW": "1,10-6,00",
+        "EER": 2.81,
+        "SEER": 6.1,
+        "COP": 3.23,
+        "SCOP": 4.0,
+        "fuse_A": 10,
+        "set_price_EUR": 1730,
+        "indoor_price_EUR": 430,
+        "outdoor_price_EUR": 1300
+      },
+      {
+        "size": 24,
+        "indoor": "RAS-B24B2KVG-E2",
+        "outdoor": "RAS-24B2AVG-E2",
+        "cooling_kW": 6.5,
+        "cooling_range_kW": "1,10-7,05",
+        "heating_kW": 7.0,
+        "heating_range_kW": "1,20-7,90",
+        "EER": 2.65,
+        "SEER": 6.1,
+        "COP": 3.5,
+        "SCOP": 4.0,
+        "fuse_A": "13/16",
+        "set_price_EUR": 2060,
+        "indoor_price_EUR": 510,
+        "outdoor_price_EUR": 1550
+      }
+    ],
+    "operating_range_cooling_C": "-15/+46",
+    "operating_range_heating_C": "-15/+24",
+    "power_supply": "220-240V/1+N/50Hz",
+    "indoor_dimensions_mm": {
+      "size_10_13": "288 x 770 x 225",
+      "size_16_18": "293 x 798 x 230",
+      "size_24": "320 x 1050 x 250"
+    },
+    "outdoor_dimensions_mm": {
+      "size_10_13": "530 x 660 x 240",
+      "size_16_18_24": "550 x 780 x 290"
+    }
+  },
+  "SEIYA": {
+    "line": "BASIC Line",
+    "category": "Nástenná jednotka",
+    "features": [
+      "Kompaktný invertor BASIC Line",
+      "Trieda A++ chladenie aj vykurovanie",
+      "Prachový filter a filter Ultra Fresh",
+      "Voliteľne WiFi modul (RB-N105S-G)",
+      "Energy Monitoring pre Single-Split a Multi-Split"
+    ],
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A++ (do veľkosti 16) / A+ (18, 24)",
+    "models": [
+      {
+        "size": 10,
+        "indoor": "RAS-B10E2KVG-E",
+        "outdoor": "RAS-10E2AVG-E",
+        "cooling_kW": 2.5,
+        "cooling_range_kW": "0,80-3,00",
+        "heating_kW": 3.2,
+        "heating_range_kW": "0,95-3,90",
+        "EER": 3.57,
+        "SEER": 7.0,
+        "COP": 3.72,
+        "SCOP": 4.6,
+        "fuse_A": 10,
+        "set_price_EUR": 1220,
+        "indoor_price_EUR": 390,
+        "outdoor_price_EUR": 830
+      },
+      {
+        "size": 13,
+        "indoor": "RAS-B13E2KVG-E",
+        "outdoor": "RAS-13E2AVG-E",
+        "cooling_kW": 3.3,
+        "cooling_range_kW": "1,20-3,60",
+        "heating_kW": 3.6,
+        "heating_range_kW": "0,97-4,50",
+        "EER": 3.0,
+        "SEER": 7.0,
+        "COP": 3.91,
+        "SCOP": 4.6,
+        "fuse_A": 10,
+        "set_price_EUR": 1330,
+        "indoor_price_EUR": 400,
+        "outdoor_price_EUR": 930
+      },
+      {
+        "size": 16,
+        "indoor": "RAS-B16E2KVG-E",
+        "outdoor": "RAS-16E2AVG-E",
+        "cooling_kW": 4.2,
+        "cooling_range_kW": "1,40-4,70",
+        "heating_kW": 5.0,
+        "heating_range_kW": "1,30-6,00",
+        "EER": 3.31,
+        "SEER": 7.0,
+        "COP": 3.73,
+        "SCOP": 4.6,
+        "fuse_A": 10,
+        "set_price_EUR": 1720,
+        "indoor_price_EUR": 420,
+        "outdoor_price_EUR": 1300
+      },
+      {
+        "size": 18,
+        "indoor": "RAS-B18E2KVG-E",
+        "outdoor": "RAS-18E2AVG-E",
+        "cooling_kW": 5.0,
+        "cooling_range_kW": "1,45-5,50",
+        "heating_kW": 5.4,
+        "heating_range_kW": "1,35-6,00",
+        "EER": 3.33,
+        "SEER": 7.0,
+        "COP": 3.6,
+        "SCOP": 4.4,
+        "fuse_A": 10,
+        "set_price_EUR": 2050,
+        "indoor_price_EUR": 500,
+        "outdoor_price_EUR": 1550
+      },
+      {
+        "size": 24,
+        "indoor": "RAS-B24E2KVG-E",
+        "outdoor": "RAS-24E2AVG-E",
+        "cooling_kW": 6.5,
+        "cooling_range_kW": "1,70-7,20",
+        "heating_kW": 7.0,
+        "heating_range_kW": "1,50-8,10",
+        "EER": 2.89,
+        "SEER": 6.9,
+        "COP": 3.33,
+        "SCOP": 4.3,
+        "fuse_A": 10,
+        "set_price_EUR": 2490,
+        "indoor_price_EUR": 610,
+        "outdoor_price_EUR": 1880
+      }
+    ],
+    "operating_range_cooling_C": "-15/+46",
+    "operating_range_heating_C": "-15/+24",
+    "power_supply": "220-240V/1+N/50Hz",
+    "compressor_type": "DC Rotary (DC Twin Rotary pre 24)"
+  },
+  "SHORAI_CURVE_White": {
+    "line": "HIGH Line",
+    "category": "Nástenná jednotka",
+    "features": [
+      "Dokonalý estetický dojem, HIGH LINE",
+      "Energetická trieda A+++",
+      "Prachový filter a plazmový ionizátor",
+      "WiFi modul ako štandardná súčasť",
+      "Energy Monitoring (Single + Multi)",
+      "Voliteľná funkcia SILENT"
+    ],
+    "energy_class_cooling": "A+++ (10, 13) / A++ (16-24)",
+    "energy_class_heating": "A+++",
+    "models": [
+      {
+        "size": 10,
+        "indoor": "RAS-B10P2KVSG-E",
+        "outdoor": "RAS-10P2AVSG-E",
+        "cooling_kW": 2.5,
+        "cooling_range_kW": "0,89-3,20",
+        "heating_kW": 3.2,
+        "heating_range_kW": "0,90-4,80",
+        "EER": 4.63,
+        "SEER": 8.6,
+        "COP": 4.57,
+        "SCOP": 5.1,
+        "fuse_A": 10,
+        "set_price_EUR": 1590,
+        "indoor_price_EUR": 680,
+        "outdoor_price_EUR": 910
+      },
+      {
+        "size": 13,
+        "indoor": "RAS-B13P2KVSG-E",
+        "outdoor": "RAS-13P2AVSG-E",
+        "cooling_kW": 3.5,
+        "cooling_range_kW": "1,00-4,10",
+        "heating_kW": 4.2,
+        "heating_range_kW": "1,00-5,30",
+        "EER": 4.07,
+        "SEER": 8.6,
+        "COP": 3.89,
+        "SCOP": 5.1,
+        "fuse_A": 10,
+        "set_price_EUR": 1820,
+        "indoor_price_EUR": 720,
+        "outdoor_price_EUR": 1100
+      },
+      {
+        "size": 16,
+        "indoor": "RAS-B16P2KVSG-E",
+        "outdoor": "RAS-16P2AVSG-E",
+        "cooling_kW": 4.6,
+        "cooling_range_kW": "1,20-5,30",
+        "heating_kW": 5.5,
+        "heating_range_kW": "1,10-6,50",
+        "EER": 3.41,
+        "SEER": 7.8,
+        "COP": 3.72,
+        "SCOP": 4.6,
+        "fuse_A": 10,
+        "set_price_EUR": 2130,
+        "indoor_price_EUR": 780,
+        "outdoor_price_EUR": 1350
+      },
+      {
+        "size": 18,
+        "indoor": "RAS-B18P2KVSG-E",
+        "outdoor": "RAS-18P2AVSG-E",
+        "cooling_kW": 5.0,
+        "cooling_range_kW": "1,20-6,00",
+        "heating_kW": 6.0,
+        "heating_range_kW": "1,10-6,50",
+        "EER": 3.52,
+        "SEER": 7.3,
+        "COP": 3.77,
+        "SCOP": 4.6,
+        "fuse_A": 10,
+        "set_price_EUR": 2490,
+        "indoor_price_EUR": 840,
+        "outdoor_price_EUR": 1650
+      },
+      {
+        "size": 22,
+        "indoor": "RAS-B22P2KVSG-E",
+        "outdoor": "RAS-22P2AVSG-E",
+        "cooling_kW": 6.1,
+        "cooling_range_kW": "1,39-6,07",
+        "heating_kW": 7.0,
+        "heating_range_kW": "1,15-7,50",
+        "EER": 3.07,
+        "SEER": 7.3,
+        "COP": 3.5,
+        "SCOP": 4.6,
+        "fuse_A": 10,
+        "set_price_EUR": 2840,
+        "indoor_price_EUR": 960,
+        "outdoor_price_EUR": 1880
+      },
+      {
+        "size": 24,
+        "indoor": "RAS-B24P2KVSG-E",
+        "outdoor": "RAS-24P2AVSG-E",
+        "cooling_kW": 7.0,
+        "cooling_range_kW": "1,70-7,70",
+        "heating_kW": 8.0,
+        "heating_range_kW": "1,70-8,80",
+        "EER": 2.98,
+        "SEER": 6.3,
+        "COP": 3.4,
+        "SCOP": 4.1,
+        "fuse_A": "13/16",
+        "set_price_EUR": 3290,
+        "indoor_price_EUR": 1120,
+        "outdoor_price_EUR": 2170
+      }
+    ],
+    "operating_range_cooling_C": "-15/+46",
+    "operating_range_heating_C": "-20/+24",
+    "power_supply": "220-240V/1+N/50Hz"
+  },
+  "SHORAI_CURVE_Black": {
+    "line": "HIGH Line",
+    "category": "Nástenná jednotka",
+    "features": [
+      "Čierne dizajnové vyhotovenie",
+      "Energetická trieda A+++",
+      "Prachový filter a plazmový ionizátor",
+      "WiFi modul ako štandardná súčasť",
+      "Energy Monitoring (Single + Multi)",
+      "Voliteľná funkcia SILENT"
+    ],
+    "energy_class_cooling": "A+++ (10, 13) / A++ (16-24)",
+    "energy_class_heating": "A+++",
+    "note": "Technické parametre identické so SHORAI CURVE White, líši sa len cena a dizajn (čierna farba). Vonkajšia jednotka je rovnaká (RAS-**P2AVSG-E).",
+    "models": [
+      {
+        "size": 10,
+        "indoor": "RAS-B10P2KVSGB-E",
+        "outdoor": "RAS-10P2AVSG-E",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "EER": 4.63,
+        "SEER": 8.6,
+        "COP": 4.57,
+        "SCOP": 5.1,
+        "set_price_EUR": 1665,
+        "indoor_price_EUR": 755
+      },
+      {
+        "size": 13,
+        "indoor": "RAS-B13P2KVSGB-E",
+        "outdoor": "RAS-13P2AVSG-E",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.2,
+        "EER": 4.07,
+        "SEER": 8.6,
+        "COP": 3.89,
+        "SCOP": 5.1,
+        "set_price_EUR": 1900,
+        "indoor_price_EUR": 800
+      },
+      {
+        "size": 16,
+        "indoor": "RAS-B16P2KVSGB-E",
+        "outdoor": "RAS-16P2AVSG-E",
+        "cooling_kW": 4.6,
+        "heating_kW": 5.5,
+        "EER": 3.41,
+        "SEER": 7.8,
+        "COP": 3.72,
+        "SCOP": 4.6,
+        "set_price_EUR": 2240,
+        "indoor_price_EUR": 890
+      },
+      {
+        "size": 18,
+        "indoor": "RAS-B18P2KVSGB-E",
+        "outdoor": "RAS-18P2AVSG-E",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "EER": 3.52,
+        "SEER": 7.3,
+        "COP": 3.77,
+        "SCOP": 4.6,
+        "set_price_EUR": 2610,
+        "indoor_price_EUR": 960
+      },
+      {
+        "size": 22,
+        "indoor": "RAS-B22P2KVSGB-E",
+        "outdoor": "RAS-22P2AVSG-E",
+        "cooling_kW": 6.1,
+        "heating_kW": 7.0,
+        "EER": 3.07,
+        "SEER": 7.3,
+        "COP": 3.5,
+        "SCOP": 4.6,
+        "set_price_EUR": 2980,
+        "indoor_price_EUR": 1100
+      },
+      {
+        "size": 24,
+        "indoor": "RAS-B24P2KVSGB-E",
+        "outdoor": "RAS-24P2AVSG-E",
+        "cooling_kW": 7.0,
+        "heating_kW": 8.0,
+        "EER": 2.98,
+        "SEER": 6.3,
+        "COP": 3.4,
+        "SCOP": 4.1,
+        "set_price_EUR": 3470,
+        "indoor_price_EUR": 1300
+      }
+    ]
+  },
+  "HAORI": {
+    "line": "DESIGN Line",
+    "category": "Nástenná jednotka",
+    "features": [
+      "Inovatívny textilný kryt (Dark Gray / Light Gray štandardne)",
+      "Trieda A+++ chladenie aj vykurovanie",
+      "Prachový filter, ozónová čistička vzduchu, filter Ultra Pure",
+      "WiFi modul štandardne",
+      "Energy Monitoring (Single + Multi)",
+      "Voliteľná funkcia SILENT"
+    ],
+    "energy_class_cooling": "A+++",
+    "energy_class_heating": "A+++",
+    "models": [
+      {
+        "size": 10,
+        "indoor": "RAS-B10N4KVRG-E2",
+        "outdoor": "RAS-10P2AVSG-E",
+        "cooling_kW": 2.5,
+        "cooling_range_kW": "0,89-3,20",
+        "heating_kW": 3.2,
+        "heating_range_kW": "0,90-4,70",
+        "EER": 4.63,
+        "SEER": 8.5,
+        "COP": 4.32,
+        "SCOP": 5.1,
+        "fuse_A": 10,
+        "set_price_EUR": 1790,
+        "indoor_price_EUR": 880,
+        "outdoor_price_EUR": 910
+      },
+      {
+        "size": 13,
+        "indoor": "RAS-B13N4KVRG-E1",
+        "outdoor": "RAS-13P2AVSG-E",
+        "cooling_kW": 3.5,
+        "cooling_range_kW": "1,00-4,10",
+        "heating_kW": 4.2,
+        "heating_range_kW": "1,00-5,30",
+        "EER": 4.38,
+        "SEER": 8.7,
+        "COP": 3.89,
+        "SCOP": 5.1,
+        "fuse_A": 10,
+        "set_price_EUR": 2060,
+        "indoor_price_EUR": 960,
+        "outdoor_price_EUR": 1100
+      },
+      {
+        "size": 16,
+        "indoor": "RAS-B16N4KVRG-E1",
+        "outdoor": "RAS-16P2AVSG-E",
+        "cooling_kW": 4.6,
+        "cooling_range_kW": "1,20-5,30",
+        "heating_kW": 5.5,
+        "heating_range_kW": "1,10-6,30",
+        "EER": 3.41,
+        "SEER": 7.8,
+        "COP": 3.62,
+        "SCOP": 4.6,
+        "fuse_A": 10,
+        "set_price_EUR": 2365,
+        "indoor_price_EUR": 1015,
+        "outdoor_price_EUR": 1350
+      }
+    ],
+    "operating_range_cooling_C": "-15/+46",
+    "operating_range_heating_C": "-20/+24",
+    "indoor_dimensions_mm": "300 x 987 x 210",
+    "textile_covers": [
+      {
+        "code": "RB-I4101-E",
+        "color": "Dark Gray",
+        "included": true,
+        "price_EUR": 0
+      },
+      {
+        "code": "RB-I4102-E",
+        "color": "Light Gray",
+        "included": true,
+        "price_EUR": 0
+      },
+      {
+        "code": "RB-I4103-E",
+        "color": "Bluish Gray",
+        "price_EUR": 125
+      },
+      {
+        "code": "RB-I4104-E",
+        "color": "Gray Beige",
+        "price_EUR": 125
+      },
+      {
+        "code": "RB-I4105-E",
+        "color": "Dark Brown",
+        "price_EUR": 125
+      },
+      {
+        "code": "RB-I4106-E",
+        "color": "Emerald Blue",
+        "price_EUR": 125
+      }
+    ]
+  },
+  "DAISEIKAI_10_White": {
+    "line": "PREMIUM Line",
+    "category": "Nástenná jednotka",
+    "features": [
+      "PREMIUM Line v bielom plastovom vyhotovení",
+      "Trieda A+++ chladenie aj vykurovanie",
+      "Prachový filter, plazmový ionizátor, filter Ultra Pure",
+      "WiFi modul štandardne",
+      "Energy Monitoring, HADA careflow, Smart Sensing"
+    ],
+    "energy_class_cooling": "A+++",
+    "energy_class_heating": "A+++ (10,13) / A++ (18)",
+    "models": [
+      {
+        "size": 10,
+        "indoor": "RAS-B10S4KVPG-E",
+        "outdoor": "RAS-10S4AVPG-E",
+        "cooling_kW": 2.5,
+        "cooling_range_kW": "0,60-3,50",
+        "heating_kW": 3.2,
+        "heating_range_kW": "0,65-5,80",
+        "EER": 5.32,
+        "SEER": 10.7,
+        "COP": 5.33,
+        "SCOP": 5.3,
+        "fuse_A": 10,
+        "set_price_EUR": 2400,
+        "indoor_price_EUR": 1050,
+        "outdoor_price_EUR": 1350
+      },
+      {
+        "size": 13,
+        "indoor": "RAS-B13S4KVPG-E",
+        "outdoor": "RAS-13S4AVPG-E",
+        "cooling_kW": 3.5,
+        "cooling_range_kW": "0,90-4,20",
+        "heating_kW": 4.0,
+        "heating_range_kW": "0,70-6,30",
+        "EER": 4.38,
+        "SEER": 9.7,
+        "COP": 5.0,
+        "SCOP": 5.2,
+        "fuse_A": 10,
+        "set_price_EUR": 2650,
+        "indoor_price_EUR": 1150,
+        "outdoor_price_EUR": 1500
+      },
+      {
+        "size": 18,
+        "indoor": "RAS-B18S4KVPG-E",
+        "outdoor": "RAS-18S4AVPG-E",
+        "cooling_kW": 5.0,
+        "cooling_range_kW": "0,90-6,00",
+        "heating_kW": 6.0,
+        "heating_range_kW": "0,80-7,20",
+        "EER": 3.57,
+        "SEER": 8.6,
+        "COP": 4.14,
+        "SCOP": 4.8,
+        "fuse_A": "13/16",
+        "set_price_EUR": 3400,
+        "indoor_price_EUR": 1350,
+        "outdoor_price_EUR": 2050
+      }
+    ],
+    "operating_range_cooling_C": "-15/+46",
+    "operating_range_heating_C": "-20/+24",
+    "indoor_dimensions_mm": "293 x 930 x 255",
+    "outdoor_dimensions_mm": "630 x 800 x 300",
+    "compressor_type": "DC Twin Rotary"
+  },
+  "DAISEIKAI_10_Wood": {
+    "line": "PREMIUM Line",
+    "category": "Nástenná jednotka",
+    "features": [
+      "PREMIUM Line vo vyhotovení z jaseňového dreva (WOOD)",
+      "Trieda A+++ chladenie aj vykurovanie",
+      "Prachový filter, plazmový ionizátor, filter Ultra Pure",
+      "WiFi modul štandardne",
+      "Energy Monitoring, HADA careflow, Smart Sensing"
+    ],
+    "note": "Technicky zhodný s DAISEIKAI 10 White, líši sa drevený front a vyššia cena.",
+    "models": [
+      {
+        "size": 10,
+        "indoor": "RAS-B10S4KVDG-E",
+        "outdoor": "RAS-10S4AVPG-E",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "EER": 5.32,
+        "SEER": 10.7,
+        "COP": 5.33,
+        "SCOP": 5.3,
+        "set_price_EUR": 2600,
+        "indoor_price_EUR": 1250,
+        "outdoor_price_EUR": 1350
+      },
+      {
+        "size": 13,
+        "indoor": "RAS-B13S4KVDG-E",
+        "outdoor": "RAS-13S4AVPG-E",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "EER": 4.38,
+        "SEER": 9.7,
+        "COP": 5.0,
+        "SCOP": 5.2,
+        "set_price_EUR": 2900,
+        "indoor_price_EUR": 1400,
+        "outdoor_price_EUR": 1500
+      },
+      {
+        "size": 18,
+        "indoor": "RAS-B18S4KVDG-E",
+        "outdoor": "RAS-18S4AVPG-E",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "EER": 3.57,
+        "SEER": 8.6,
+        "COP": 4.14,
+        "SCOP": 4.8,
+        "set_price_EUR": 3700,
+        "indoor_price_EUR": 1650,
+        "outdoor_price_EUR": 2050
+      }
+    ],
+    "indoor_dimensions_mm": "293 x 940 x 257"
+  },
+  "Parapetna_jednotka": {
+    "line": "CONSOLE",
+    "category": "Parapetná jednotka",
+    "features": [
+      "Parapetná jednotka Bi-Flow s variabilným výstupom vzduchu",
+      "Trieda A++ chladenie aj vykurovanie - efekt podlahového kúrenia",
+      "Veľkoplošný prachový filter a IAQ filter",
+      "Pripravené na voliteľnú funkciu Leak Detection (RB-I301-E, 255€)"
+    ],
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A++",
+    "models": [
+      {
+        "size": 10,
+        "indoor": "RAS-B10J2FVG-E1",
+        "outdoor": "RAS-10P2AVSG-E",
+        "cooling_kW": 2.5,
+        "cooling_range_kW": "0,95-3,20",
+        "heating_kW": 3.2,
+        "heating_range_kW": "0,85-4,40",
+        "EER": 4.24,
+        "SEER": 7.2,
+        "COP": 3.9,
+        "SCOP": 4.7,
+        "fuse_A": 10,
+        "set_price_EUR": 2070,
+        "indoor_price_EUR": 1160,
+        "outdoor_price_EUR": 910
+      },
+      {
+        "size": 13,
+        "indoor": "RAS-B13J2FVG-E1",
+        "outdoor": "RAS-13P2AVSG-E",
+        "cooling_kW": 3.5,
+        "cooling_range_kW": "1,05-4,10",
+        "heating_kW": 4.2,
+        "heating_range_kW": "1,00-5,00",
+        "EER": 4.02,
+        "SEER": 7.0,
+        "COP": 3.31,
+        "SCOP": 4.7,
+        "fuse_A": 10,
+        "set_price_EUR": 2370,
+        "indoor_price_EUR": 1270,
+        "outdoor_price_EUR": 1100
+      },
+      {
+        "size": 18,
+        "indoor": "RAS-B18J2FVG-E1",
+        "outdoor": "RAS-18P2AVSG-E",
+        "cooling_kW": 5.0,
+        "cooling_range_kW": "1,20-5,60",
+        "heating_kW": 6.0,
+        "heating_range_kW": "1,30-6,30",
+        "EER": 2.98,
+        "SEER": 6.8,
+        "COP": 2.93,
+        "SCOP": 4.6,
+        "fuse_A": 10,
+        "set_price_EUR": 3180,
+        "indoor_price_EUR": 1530,
+        "outdoor_price_EUR": 1650
+      }
+    ],
+    "operating_range_cooling_C": "-15/+46",
+    "operating_range_heating_C": "-20/+24",
+    "indoor_dimensions_mm": "600 x 700 x 220"
+  },
+  "outdoor_units_pipe_specs": {
+    "description": "Špecifikácie potrubí Single-Split vonkajších jednotiek (g/m = množstvo dopĺňania chladiva).",
+    "models": [
+      {
+        "model": "RAS-10B2AVG-E2",
+        "series": "SEIYA Classic 2",
+        "min_pipe_m": 2,
+        "max_pipe_m": 10,
+        "prefilled_m": 10,
+        "max_height_m": 8,
+        "gas_pipe_mm_inch": "9,5 (3/8)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.51,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-13B2AVG-E2",
+        "series": "SEIYA Classic 2",
+        "min_pipe_m": 2,
+        "max_pipe_m": 10,
+        "prefilled_m": 10,
+        "max_height_m": 8,
+        "gas_pipe_mm_inch": "9,5 (3/8)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.58,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-16B2AVG-E2",
+        "series": "SEIYA Classic 2",
+        "min_pipe_m": 2,
+        "max_pipe_m": 15,
+        "prefilled_m": 10,
+        "max_height_m": 8,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.68,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-18B2AVG-E2",
+        "series": "SEIYA Classic 2",
+        "min_pipe_m": 2,
+        "max_pipe_m": 15,
+        "prefilled_m": 10,
+        "max_height_m": 8,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.93,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-24B2AVG-E2",
+        "series": "SEIYA Classic 2",
+        "min_pipe_m": 2,
+        "max_pipe_m": 15,
+        "prefilled_m": 10,
+        "max_height_m": 8,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 1.23,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-10E2AVG-E",
+        "series": "SEIYA",
+        "min_pipe_m": 2,
+        "max_pipe_m": 15,
+        "prefilled_m": 15,
+        "max_height_m": 15,
+        "gas_pipe_mm_inch": "9,5 (3/8)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.49,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-13E2AVG-E",
+        "series": "SEIYA",
+        "min_pipe_m": 2,
+        "max_pipe_m": 15,
+        "prefilled_m": 15,
+        "max_height_m": 15,
+        "gas_pipe_mm_inch": "9,5 (3/8)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.54,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-16E2AVG-E",
+        "series": "SEIYA",
+        "min_pipe_m": 2,
+        "max_pipe_m": 20,
+        "prefilled_m": 15,
+        "max_height_m": 15,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.68,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-18E2AVG-E",
+        "series": "SEIYA",
+        "min_pipe_m": 2,
+        "max_pipe_m": 20,
+        "prefilled_m": 15,
+        "max_height_m": 15,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.93,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-24E2AVG-E",
+        "series": "SEIYA",
+        "min_pipe_m": 2,
+        "max_pipe_m": 20,
+        "prefilled_m": 15,
+        "max_height_m": 15,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 1.18,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-10P2AVSG-E",
+        "series": "HAORI/SHORAI/CONSOLE",
+        "min_pipe_m": 2,
+        "max_pipe_m": 20,
+        "prefilled_m": 15,
+        "max_height_m": 12,
+        "gas_pipe_mm_inch": "9,5 (3/8)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.65,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-13P2AVSG-E",
+        "series": "HAORI/SHORAI/CONSOLE",
+        "min_pipe_m": 2,
+        "max_pipe_m": 20,
+        "prefilled_m": 15,
+        "max_height_m": 12,
+        "gas_pipe_mm_inch": "9,5 (3/8)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.8,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-16P2AVSG-E",
+        "series": "HAORI/SHORAI/CONSOLE",
+        "min_pipe_m": 2,
+        "max_pipe_m": 20,
+        "prefilled_m": 15,
+        "max_height_m": 12,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.8,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-18P2AVSG-E",
+        "series": "HAORI/SHORAI/CONSOLE",
+        "min_pipe_m": 2,
+        "max_pipe_m": 20,
+        "prefilled_m": 15,
+        "max_height_m": 12,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 1.1,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-22P2AVSG-E",
+        "series": "HAORI/SHORAI/CONSOLE",
+        "min_pipe_m": 2,
+        "max_pipe_m": 20,
+        "prefilled_m": 15,
+        "max_height_m": 12,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 1.1,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-24P2AVSG-E",
+        "series": "HAORI/SHORAI/CONSOLE",
+        "min_pipe_m": 2,
+        "max_pipe_m": 25,
+        "prefilled_m": 15,
+        "max_height_m": 15,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 1.14,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-10S4AVPG-E",
+        "series": "DAISEIKAI 10",
+        "min_pipe_m": 2,
+        "max_pipe_m": 25,
+        "prefilled_m": 15,
+        "max_height_m": 15,
+        "gas_pipe_mm_inch": "9,5 (3/8)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.96,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-13S4AVPG-E",
+        "series": "DAISEIKAI 10",
+        "min_pipe_m": 2,
+        "max_pipe_m": 25,
+        "prefilled_m": 15,
+        "max_height_m": 15,
+        "gas_pipe_mm_inch": "9,5 (3/8)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.96,
+        "topup_g_per_m": 20
+      },
+      {
+        "model": "RAS-18S4AVPG-E",
+        "series": "DAISEIKAI 10",
+        "min_pipe_m": 2,
+        "max_pipe_m": 25,
+        "prefilled_m": 15,
+        "max_height_m": 15,
+        "gas_pipe_mm_inch": "12,7 (½)",
+        "liquid_pipe_mm_inch": "6,3 (¼)",
+        "refrigerant_charge_kg": 0.96,
+        "topup_g_per_m": 20
+      }
+    ]
+  },
+  "electrical_specs": {
+    "description": "Spotreba elektrickej energie + zabezpečenie poistkami pre Single-Split vonkajšie jednotky.",
+    "outdoor_units": [
+      {
+        "model": "RAS-10B2AVG-E2",
+        "max_current_A": 3.8,
+        "nom_current_A": 3.8,
+        "cooling_input_kW": "0,26/0,75/0,95",
+        "heating_input_kW": "0,21/0,84/1,11",
+        "fuse_A": 6,
+        "supply": "220-240/1+N/50",
+        "power_cable": "H07RN-F 3G1,5",
+        "comm_cable": "H07RN-F 4G1,5"
+      },
+      {
+        "model": "RAS-13B2AVG-E2",
+        "max_current_A": 4.55,
+        "nom_current_A": 4.55,
+        "cooling_input_kW": "0,25/1,20/1,25",
+        "heating_input_kW": "0,18/1,02/1,34",
+        "fuse_A": 6,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-16B2AVG-E2",
+        "max_current_A": 6.13,
+        "nom_current_A": 6.13,
+        "cooling_input_kW": "0,28/1,40/1,70",
+        "heating_input_kW": "0,22/1,45/1,90",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-18B2AVG-E2",
+        "max_current_A": 7.15,
+        "nom_current_A": 7.15,
+        "cooling_input_kW": "0,30/1,78/1,90",
+        "heating_input_kW": "0,27/1,67/1,88",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-24B2AVG-E2",
+        "max_current_A": 8.53,
+        "nom_current_A": 8.53,
+        "cooling_input_kW": "0,30/2,45/2,50",
+        "heating_input_kW": "0,23/2,00/2,30",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-10E2AVG-E",
+        "max_current_A": 7.2,
+        "nom_current_A": 4.3,
+        "cooling_input_kW": "0,20/0,70/1,00",
+        "heating_input_kW": "0,18/0,86/1,11",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-13E2AVG-E",
+        "max_current_A": 7.4,
+        "nom_current_A": 5.38,
+        "cooling_input_kW": "0,25/1,10/1,25",
+        "heating_input_kW": "0,18/0,92/1,25",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-16E2AVG-E",
+        "max_current_A": 9.0,
+        "nom_current_A": 6.34,
+        "cooling_input_kW": "0,34/1,27/1,60",
+        "heating_input_kW": "0,24/1,34/1,70",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-18E2AVG-E",
+        "max_current_A": 9.25,
+        "nom_current_A": 6.13,
+        "cooling_input_kW": "0,34/1,50/1,80",
+        "heating_input_kW": "0,26/1,50/1,80",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-24E2AVG-E",
+        "max_current_A": 12.0,
+        "nom_current_A": 8.81,
+        "cooling_input_kW": "0,41/2,25/2,60",
+        "heating_input_kW": "0,29/2,10/2,55",
+        "fuse_A": "13/16",
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-10P2AVSG-E",
+        "cooling_input_kW": "0,21/0,59/0,90",
+        "heating_input_kW": "0,18/0,82/1,25",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-13P2AVSG-E",
+        "cooling_input_kW": "0,27/0,87/1,20",
+        "heating_input_kW": "0,22/1,27/1,55",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-16P2AVSG-E",
+        "max_current_A": 9.5,
+        "cooling_input_kW": "0,34/1,35/1,72",
+        "heating_input_kW": "1,30/1,52/1,90",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-18P2AVSG-E",
+        "cooling_input_kW": "0,35/1,42/2,00",
+        "heating_input_kW": "0,25/1,59/1,75",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-22P2AVSG-E",
+        "max_current_A": 12.0,
+        "cooling_input_kW": "0,36/1,99/2,20",
+        "heating_input_kW": "0,26/2,00/2,10",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-24P2AVSG-E",
+        "max_current_A": 12.0,
+        "cooling_input_kW": "0,38/2,35/2,55",
+        "heating_input_kW": "0,29/2,35/2,75",
+        "fuse_A": "13/16",
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-10S4AVPG-E",
+        "max_current_A": 8.5,
+        "nom_current_A": 2.37,
+        "cooling_input_kW": "0,16/0,47/0,82",
+        "heating_input_kW": "0,16/0,60/1,50",
+        "fuse_A": 6,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-13S4AVPG-E",
+        "max_current_A": 9.95,
+        "nom_current_A": 4.01,
+        "cooling_input_kW": "0,20/0,80/1,10",
+        "heating_input_kW": "0,18/0,80/1,60",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50"
+      },
+      {
+        "model": "RAS-18S4AVPG-E",
+        "max_current_A": 12.0,
+        "nom_current_A": 6.91,
+        "cooling_input_kW": "0,20/1,40/2,20",
+        "heating_input_kW": "0,19/1,45/1,90",
+        "fuse_A": 10,
+        "supply": "220-240/1+N/50",
+        "power_cable": "H07RN-F 3G2,5"
+      }
+    ]
+  },
+  "acoustics": {
+    "description": "Hladina akustického výkonu/tlaku Single-Split vonkajších jednotiek (chladenie / vykurovanie). dB(A).",
+    "outdoor_units": [
+      {
+        "model": "RAS-10B2AVG-E2",
+        "sound_power_cool": 62,
+        "sound_power_heat": 64,
+        "sound_pressure_cool": "45/--/49",
+        "sound_pressure_heat": "45/--/58"
+      },
+      {
+        "model": "RAS-13B2AVG-E2",
+        "sound_power_cool": 63,
+        "sound_power_heat": 65,
+        "sound_pressure_cool": "45/--/50",
+        "sound_pressure_heat": "45/--/58"
+      },
+      {
+        "model": "RAS-16B2AVG-E2",
+        "sound_power_cool": 65,
+        "sound_power_heat": 66,
+        "sound_pressure_cool": "45/--/52",
+        "sound_pressure_heat": "47/--/58"
+      },
+      {
+        "model": "RAS-18B2AVG-E2",
+        "sound_power_cool": 65,
+        "sound_power_heat": 66,
+        "sound_pressure_cool": "46/--/52",
+        "sound_pressure_heat": "48/--/59"
+      },
+      {
+        "model": "RAS-24B2AVG-E2",
+        "sound_power_cool": 69,
+        "sound_power_heat": 70,
+        "sound_pressure_cool": "51/--/59",
+        "sound_pressure_heat": "51/--/64"
+      },
+      {
+        "model": "RAS-10E2AVG-E",
+        "sound_power_cool": 60,
+        "sound_power_heat": 62,
+        "sound_pressure_cool": "--/--/47",
+        "sound_pressure_heat": "--/--/49"
+      },
+      {
+        "model": "RAS-13E2AVG-E",
+        "sound_power_cool": 61,
+        "sound_power_heat": 62,
+        "sound_pressure_cool": "--/--/48",
+        "sound_pressure_heat": "--/--/49"
+      },
+      {
+        "model": "RAS-16E2AVG-E",
+        "sound_power_cool": 63,
+        "sound_power_heat": 64,
+        "sound_pressure_cool": "--/--/50",
+        "sound_pressure_heat": "--/--/51"
+      },
+      {
+        "model": "RAS-18E2AVG-E",
+        "sound_power_cool": 63,
+        "sound_power_heat": 64,
+        "sound_pressure_cool": "--/--/50",
+        "sound_pressure_heat": "--/--/51"
+      },
+      {
+        "model": "RAS-24E2AVG-E",
+        "sound_power_cool": 67,
+        "sound_power_heat": 67,
+        "sound_pressure_cool": "--/--/54",
+        "sound_pressure_heat": "--/--/54"
+      },
+      {
+        "model": "RAS-10P2AVSG-E",
+        "sound_power_cool": 57,
+        "sound_power_heat": 59,
+        "sound_pressure_cool": "--/--/44",
+        "sound_pressure_heat": "--/--/46"
+      },
+      {
+        "model": "RAS-13P2AVSG-E",
+        "sound_power_cool": 60,
+        "sound_power_heat": 62,
+        "sound_pressure_cool": "--/--/47",
+        "sound_pressure_heat": "--/--/49"
+      },
+      {
+        "model": "RAS-16P2AVSG-E",
+        "sound_power_cool": 62,
+        "sound_power_heat": 63,
+        "sound_pressure_cool": "--/--/49",
+        "sound_pressure_heat": "--/--/50"
+      },
+      {
+        "model": "RAS-18P2AVSG-E",
+        "sound_power_cool": 62,
+        "sound_power_heat": 63,
+        "sound_pressure_cool": "--/--/49",
+        "sound_pressure_heat": "--/--/50"
+      },
+      {
+        "model": "RAS-22P2AVSG-E",
+        "sound_power_cool": 63,
+        "sound_power_heat": 64,
+        "sound_pressure_cool": "--/--/50",
+        "sound_pressure_heat": "--/--/51"
+      },
+      {
+        "model": "RAS-24P2AVSG-E",
+        "sound_power_cool": 65,
+        "sound_power_heat": 67,
+        "sound_pressure_cool": "--/--/52",
+        "sound_pressure_heat": "--/--/54"
+      },
+      {
+        "model": "RAS-10S4AVPG-E",
+        "sound_power_cool": 57,
+        "sound_power_heat": 58,
+        "sound_pressure_cool": "40/--/44",
+        "sound_pressure_heat": "41/--/45"
+      },
+      {
+        "model": "RAS-13S4AVPG-E",
+        "sound_power_cool": 58,
+        "sound_power_heat": 59,
+        "sound_pressure_cool": "41/--/45",
+        "sound_pressure_heat": "42/--/46"
+      },
+      {
+        "model": "RAS-18S4AVPG-E",
+        "sound_power_cool": 60,
+        "sound_power_heat": 62,
+        "sound_pressure_cool": "42/--/47",
+        "sound_pressure_heat": "44/--/49"
+      }
+    ]
+  },
+  "indoor_dimensions_summary": {
+    "wallmount": {
+      "SEIYA_Classic_2_SEIYA_size_10_13": "288 x 770 x 225 mm, 9 kg",
+      "SEIYA_Classic_2_SEIYA_size_16_18": "293 x 798 x 230 mm, 9 kg",
+      "SEIYA_Classic_2_size_24": "320 x 1050 x 250 mm, 13 kg",
+      "SEIYA_size_24": "320 x 1050 x 250 mm, 15 kg",
+      "SHORAI_CURVE_size_10_13_16_(Single)": "293 x 800 x 226 mm, 10 kg",
+      "SHORAI_CURVE_size_18_22_24_(Single)": "320 x 1053 x 245 mm, 14 kg",
+      "HAORI_size_10_13_16": "300 x 987 x 210 mm, 11-12 kg",
+      "DAISEIKAI_10_White_size_10_13_18": "293 x 930 x 255 mm, 14 kg",
+      "DAISEIKAI_10_Wood_size_10_13_18": "293 x 940 x 257 mm, 16 kg"
+    },
+    "console": {
+      "Parapetna_J2FVG_size_10_13_18": "600 x 700 x 220 mm, 16 kg"
+    }
+  }
+}

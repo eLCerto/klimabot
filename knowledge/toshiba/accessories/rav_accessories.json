@@ -1,0 +1,208 @@
+{
+  "metadata": {
+    "category": "RAV Príslušenstvo",
+    "category_full": "Príslušenstvo a možnosti ovládania pre Light Business / RAV",
+    "source": "Toshiba Productcatalog_2026-2027_SK_FINAL.pdf (str. 122-127)",
+    "validity": "1.4.2026 – 31.3.2027",
+    "currency": "EUR (TOSHIBA / AIR-COND International, bez DPH)",
+    "compatibility_legend": {
+      "RAV": "Všetky vnútorné jednotky s A/B zbernicou diaľkového ovládania",
+      "VRF": "Pre VRF systémy",
+      "RAS": "Pre RAS jednotky"
+    }
+  },
+
+  "wired_remote_controls": {
+    "description": "Lokálne káblové diaľkové ovládania pre RAV jednotky.",
+    "items": [
+      {"code": "RBC-AS41E", "type": "Jednoduché káblové ovládanie", "features": ["Hlavné funkcie vnútornej jednotky", "Skupina až 8 vnútorných jednotiek", "DN kódy NIE nastaviteľné"], "compatibility": "Všetky vnútorné s A/B zbernicou", "price_EUR": 150},
+      {"code": "RBC-ASCU32Y-E", "type": "Kompaktné káblové ovládanie", "features": ["Variant štandardného ovládania s úzkym dizajnom", "5 senzorových tlačidiel", "Skupina až 16 vnútorných jednotiek", "Časovač Off, Rodičovský zámok", "Ovládacia obrazovka pre HRV", "DN kódy nastaviteľné"], "compatibility": "Všetky vnútorné A/B + 1-cestná FLAT a 60x60 SLIM (bez skupín)", "price_EUR": 100, "note": "STANDARDNE V SETOCH s podstropnými, smart kazetami, kazetami, kanálovými, stojanovými"},
+      {"code": "RBC-AMSU52-E", "type": "Komfortné káblové ovládanie PLUS", "features": ["Aktualizácia dizajnu a funkcií", "Skupina až 16 vnútorných jednotiek", "DN kódy nastaviteľné", "Funkcie pre miestnosti so servermi", "Ovládacia obrazovka pre HRV"], "compatibility": "Všetky vnútorné A/B + 1-cestná FLAT a 60x60 SLIM (bez skupín)", "price_EUR": 205, "note": "STANDARDNE V SETOCH so stojanovými jednotkami; UNIVERZÁLNE pre nástenné"},
+      {"code": "RBC-AWSU52-E", "type": "Komfortné káblové PLUS BT", "features": ["Aktualizácia dizajnu a funkcií", "Bluetooth pre smartfóny", "Skupina až 16 vnútorných jednotiek", "DN kódy nastaviteľné", "Funkcie pre miestnosti so servermi", "Ovládacia obrazovka pre HRV"], "compatibility": "Všetky vnútorné A/B + 1-cestná FLAT a 60x60 SLIM (bez skupín)", "price_EUR": 225},
+      {"code": "RBC-MTSC1", "type": "Local Touch Lite (4,5\" farebný dotyk)", "features": ["Skupina až 8 vnútorných jednotiek", "Personalizovateľné logo (480x272)", "DN kódy nastaviteľné", "Nejde o skladový tovar – dodacia lehota na zákazku"], "compatibility": "Všetky vnútorné A/B", "price_EUR": 485}
+    ]
+  },
+
+  "ir_remote_controls": {
+    "description": "Lokálne infračervené diaľkové ovládania s prijímačmi pre rôzne typy vnútorných jednotiek.",
+    "items": [
+      {"code": "RBC-AXU31-E", "type": "IR ovládač + EXTERNÁ súprava prijímača", "for": "Všetky vnútorné jednotky (univerzálne)", "features": ["Skupina až 16 vnútorných jednotiek", "Funkčný rozsah ako RBC-AMTU31-E, bezdrôtový", "DN kódy NIE nastaviteľné"], "price_EUR": 460},
+      {"code": "RBC-AXU31C-E", "type": "IR ovládač + prijímač pre podstropnú", "for": "Podstropná jednotka", "features": ["Skupina až 16", "DN kódy NIE nastaviteľné"], "price_EUR": 355},
+      {"code": "RBC-AXU31UW-E", "type": "IR ovládač + prijímač pre 2-cestnú kazetu", "for": "2-cestná kazeta (VRF)", "features": ["Skupina až 16", "DN kódy NIE nastaviteľné"], "price_EUR": 375},
+      {"code": "RBC-AX33UYP-E", "type": "IR ovládač + prijímač pre 1-cestnú FLAT kazetu", "for": "1-cestná kazetová jednotka FLAT", "features": ["Skupina až 16", "DN kódy nastaviteľné"], "price_EUR": 80},
+      {"code": "RBC-AXU31UMP-E", "type": "IR ovládač + prijímač WHITE pre 60x60 Slim", "for": "60x60 Slim kazeta", "features": ["Skupina až 16", "DN kódy NIE nastaviteľné"], "price_EUR": 170},
+      {"code": "RBC-AXU31UMPB-E", "type": "IR ovládač + prijímač BLACK pre 60x60 Slim", "for": "60x60 Slim kazeta", "price_EUR": 190},
+      {"code": "RBC-AXU41U-E", "type": "IR ovládač + prijímač pre Smart kazetu (VRF TU2C)", "for": "Smart kazeta", "price_EUR": 315},
+      {"code": "RBC-AXU33UP-E", "type": "IR ovládač + prijímač pre 4-cestnú kazetu FLAT panel WHITE", "for": "4-cestná štandardná kazeta s panelom FLAT", "price_EUR": 215},
+      {"code": "RBC-AXU33UPB-E", "type": "IR ovládač + prijímač pre 4-cestnú kazetu FLAT panel BLACK", "for": "4-cestná štandardná kazeta s panelom FLAT BLACK", "price_EUR": 235},
+      {"code": "RBC-AXU31U-E", "type": "IR ovládač + prijímač pre 4-cestnú štandardnú kazetu", "for": "4-cestná štandardná kazeta", "features": ["Skupina až 16", "DN kódy NIE nastaviteľné"], "price_EUR": 325}
+    ]
+  },
+
+  "panels_for_cassettes": {
+    "description": "Dekoračné panely pre kazetové vnútorné jednotky – NUTNÉ pre prevádzku.",
+    "items": [
+      {"code": "RBC-UY32P-E", "for": "1-cestná FLAT kazeta - small chassis (990 mm)", "price_EUR": 555},
+      {"code": "RBC-UY42P-E", "for": "1-cestná FLAT kazeta - big chassis (1180 mm)", "price_EUR": 580},
+      {"code": "RBC-UM21P-E", "for": "60x60 Slim kazeta WHITE", "price_EUR": 410},
+      {"code": "RBC-UM21PB-E", "for": "60x60 Slim kazeta BLACK", "price_EUR": 430},
+      {"code": "RBC-U41PG(W)-E", "for": "Smart kazeta", "price_EUR": 430},
+      {"code": "RBC-U32PGP-E", "for": "4-cestná štandardná kazeta - široký prúd vzduchu", "price_EUR": 360},
+      {"code": "RBC-U33P-E", "for": "4-cestná štandardná kazeta - panel FLAT čisto biely", "price_EUR": 360},
+      {"code": "RBC-U33PB-E", "for": "4-cestná štandardná kazeta - panel FLAT čierny", "price_EUR": 380}
+    ]
+  },
+
+  "motion_sensors": {
+    "description": "Senzory prítomnosti / pohybu pre kazetové jednotky – úspora energie pri neprítomnosti osôb (60 min → VYP/Standby). Vyžaduje RBC-AMSU52-E.",
+    "items": [
+      {"code": "TCB-SIR41UMP-E", "type": "Senzor prítomnosti WHITE", "for": "60x60 Slim kazeta", "requires": "RBC-AMSU52-E", "price_EUR": 120},
+      {"code": "TCB-SIR41U-E", "type": "Senzor pohybu", "for": "Smart kazeta", "requires": "RBC-AMSU52-E", "price_EUR": 130},
+      {"code": "TCB-SIR33UP-E", "type": "Senzor prítomnosti", "for": "4-cestná štandardná kazeta s panelom FLAT", "requires": "RBC-AMSU52-E", "price_EUR": 125},
+      {"code": "TCB-SIR41UYP-E", "type": "Snímač pohybu", "for": "1-cestná kazeta FLAT", "price_EUR": 120}
+    ]
+  },
+
+  "wifi_app_knx": {
+    "description": "Možnosti ovládania cez mobilný telefón / aplikáciu / KNX®.",
+    "items": [
+      {"code": "TO-RC-KNX-1i", "type": "KNX® modul", "features": ["Ovládanie všetkých funkcií vnútornej cez KNX zbernicu", "Vyžaduje zbernicový systém KNX®"], "compatibility": "Všetky vnútorné A/B", "price_EUR": 610},
+      {"code": "BMS-IWF0010UCP-E", "type": "WiFi rozhranie pre smartfón/tablet", "features": ["Diaľkové ovládanie cez aplikáciu", "Skupina až 16 zariadení (RAV+VRF)", "Energy Monitoring pre RAV DI-Classic, DI, DI-BIG, SDI 1-Ph/230V (a RAS 4-/1-way kazety)", "Čítanie chybových kódov", "Vyžaduje internet/intranet", "Bezplatná app pre iOS 9.0+ alebo Android 5.0+"], "compatibility": "Všetky vnútorné A/B + 1-cestná FLAT a 60x60 SLIM S4MUVG-E (bez skupín)", "price_EUR": 180}
+    ]
+  },
+
+  "external_control": {
+    "description": "Externé riadenie, alarmy, hlásenia, okenné kontakty.",
+    "items": [
+      {"code": "TCB-IFCB5-PE", "type": "Doska plošných spojov - externé ON/OFF + okenný kontakt", "features": ["Bezpotenciálový kontakt ON/OFF + okenný kontakt", "Vzdialené ON/OFF"], "price_EUR": 80},
+      {"code": "TCB-PX100-PE", "type": "Teleso pre okenný kontakt", "for": "Nástenné jednotky", "price_EUR": 95},
+      {"code": "TCB-PX30MUE", "type": "Teleso pre externú montáž", "for": "4-cestná štandardná kazeta", "price_EUR": 135},
+      {"code": "TCB-PX40MUME", "type": "Montážne teleso", "for": "Doska externého riadenia, TCC-Link, okenný kontakt - 60x60 Slim, 4-cestná štandardná, Smart kazeta", "price_EUR": 135},
+      {"code": "TCB-PCUC2E", "type": "Riadiaca doska externého ovládania, alarmov, hlásení", "features": ["Prípojka na CN521", "3 analógové vstupy", "3 bezpotenciálové digitálne vstupy/výstupy", "Konfigurovateľné otočným spínačom"], "price_EUR": 200},
+      {"code": "TCB-IFCB-4E2", "type": "Modul prevádzkových/poruchových hlásení + diaľkové ON/OFF", "features": ["Výstup prevádzkových a poruchových hlásení", "Hlavné zariadenie skupiny - vstupné/výstupné ovládanie + chybové hlásenie až 16 vnút.", "Pripojenie CN61, bezpotenciálové kontakty"], "price_EUR": 475},
+      {"code": "RBC-FDP3-PE", "type": "Analógové rozhranie", "features": ["Ovládanie cez 0-10 V signály alebo rezistory s pevným odporom", "Výstup prevádzkových a poruchových hlásení", "Možné pripojenie Modbus"], "compatibility": "Všetky vnútorné A/B", "price_EUR": 700}
+    ]
+  },
+
+  "bms_modbus_bacnet": {
+    "description": "Rozhrania pre integráciu RAV do BMS systémov (Modbus, BACnet, TCC/TU2C-Link).",
+    "items": [
+      {"code": "TO-RC-MBS-1", "type": "Rozhranie Modbus", "features": ["Ovládanie všetkých hlavných funkcií", "Adresovanie až 63 rozhraní v jednom RS485 obvode", "Načítanie všetkých chybových kódov"], "compatibility": "Všetky vnútorné A/B", "price_EUR": 620},
+      {"code": "TO-RC-BAC-1", "type": "Rozhranie BACnet® 1:1", "features": ["Ovládanie všetkých hlavných funkcií", "Skupina až 16 vnútorných jednotiek", "Nejde o skladový tovar – dodacia lehota na zákazku"], "compatibility": "Všetky vnútorné A/B", "price_EUR": 830},
+      {"code": "TCB-PCNT30TLE2", "type": "Sieťový adaptér TCC / TU2C-Link", "features": ["Integrácia RAV v ovládacích systémoch VRF", "Napojenie centrálneho riadenia alebo BMS na RAV", "Pre vnútorné jednotky", "Štandardne integrované v nástenných jednotkách"], "price_EUR": 165}
+    ]
+  },
+
+  "noise_reduction": {
+    "description": "Moduly a sady káblov na akustickú redukciu (nočná prevádzka) a obmedzenie max. výkonu.",
+    "items": [
+      {"code": "TCB-PCOS1E2", "type": "Modul akustickej redukcie", "compatibility": "R32 outdoor: DI CLASSIC (561, 801, 1601 1f), DI (od 562, 1f a 3f), DI BIG, SDI 1f", "features": ["Vstup pre nočnú prevádzku", "Vstup ovládania max. výkonu 0/50/75 %", "Výstup prevádzkového hlásenia kompresora"], "price_EUR": 330},
+      {"code": "TCB-KBOS4E", "type": "Súprava káblov na akustickú redukciu", "compatibility": "SDI R32 3-fázové", "features": ["Vstup pre nočnú prevádzku", "Vstup ovládania max. výkonu 0/50/75 %", "Výstup prevádzkového hlásenia kompresora"], "price_EUR": 50}
+    ]
+  },
+
+  "redundancy_and_terminals": {
+    "description": "Redundantný box a klemové sady CN* pre terminálne pripojenia.",
+    "items": [
+      {"code": "TCB-ACREDU2-E", "type": "Redundantný box", "features": ["Redundantné prepínanie pre 2 vnútorné jednotky/skupiny pri poruche", "Prepínanie závislé od prevádzkových hodín", "Napojenie druhého systému závislé od teploty", "Napojenie na CN61", "Plug & Play, snímač teploty súčasťou", "LAN port, monitoring cez webový prehliadač"], "price_EUR": 2150},
+      {"code": "TCB-KBCN32VEE", "type": "CN32 – DO: Ovládanie externého ventilátora", "price_EUR": 6},
+      {"code": "TCB-KBCN60OPE", "type": "CN60 – DO: Prevádzkové hlásenie (chladenie/vykurovanie/ventilátor/odmrazovanie/tepelné ZAP)", "price_EUR": 11},
+      {"code": "TCB-KBCN61HAE", "type": "CN61 – DI/DO HA-terminál: ZAP/VYP, povolenie/blokovanie, prevádzkový výkon, alarm", "price_EUR": 11},
+      {"code": "TCB-KBCN70OAE", "type": "CN70 – DI: externý vstup alarmu", "price_EUR": 6},
+      {"code": "TCB-KBCN73DEE", "type": "CN73 – DI: externý vstup tepelného vypínania", "price_EUR": 6},
+      {"code": "TCB-KBCN80EXE", "type": "CN80 – DI: externý vstup alarmu", "price_EUR": 6}
+    ]
+  },
+
+  "condensate_pumps_brackets": {
+    "description": "Čerpadlá kondenzátu a uholníky podľa veľkosti vnútornej jednotky.",
+    "items": [
+      {"code": "TCB-DP31CE", "type": "Čerpadlo kondenzátu - dopravná výška 600 mm", "for": "Podstropné jednotky", "price_EUR": 440},
+      {"code": "TCB-DP40DPE", "type": "Čerpadlo kondenzátu", "for": "RAV: 22 a 28 / VRF: 72 a 96 (DI BIG vysokotlaková)", "price_EUR": 440},
+      {"code": "TCB-KP14CPE", "type": "Uholník certifikovaný ISO14093", "for": "RAV: veľkosti 4 a 5 / VRF: 15 a 18 (pri kondenzátovom čerpadle)", "price_EUR": 120},
+      {"code": "TCB-KP24CPE", "type": "Uholník certifikovaný ISO14093", "for": "RAV: veľkosti 8 až 16 / VRF: 24 až 56 (pri kondenzátovom čerpadle)", "price_EUR": 150}
+    ]
+  },
+
+  "duct_flanges_filters": {
+    "description": "Spojovacie príruby pre kanálové jednotky a vzduchové filtre.",
+    "items": [
+      {"code": "TCB-SF56C6BPE", "type": "Spojovacia príruba (2× Ø 200 mm)", "for": "RAV: veľkosť 5 / VRF: veľkosti 5-18", "price_EUR": 160},
+      {"code": "TCB-SF80C6BPE", "type": "Spojovacia príruba (3× Ø 200 mm)", "for": "RAV: veľkosť 8 / VRF: veľkosti 24-30", "price_EUR": 190},
+      {"code": "TCB-SF160C6BPE", "type": "Spojovacia príruba (4× Ø 200 mm)", "for": "RAV: veľkosti 11-16 / VRF: veľkosti 36-56", "price_EUR": 230},
+      {"code": "TCB-FF101URE2", "type": "Príruba s hrdlom pre prípojku čerstvého vzduchu Ø 100 mm", "for": "Univerzálna pre kazety + kanálové", "price_EUR": 80},
+      {"code": "TCB-LK2801DP-E", "type": "Súprava vzduchového filtra s dlhou životnosťou", "for": "RAV: 22 a 28 / VRF: 72 a 96", "price_EUR": 155}
+    ]
+  },
+
+  "smart_cassette_specials": {
+    "description": "Špeciálne príslušenstvo pre Smart kazetu.",
+    "items": [
+      {"code": "TCB-GFC1603UE", "type": "Filter čerstvého vzduchu", "for": "Smart kazeta", "price_EUR": 290},
+      {"code": "TCB-SP1603UE", "type": "Dištančný rám na spustenie rámu o 70 mm", "for": "Smart kazeta", "price_EUR": 230},
+      {"code": "TCB-BC1603UE", "type": "Air Discharge Direction Kit – uzatvorenie až 3 strán vyfukovania", "for": "Smart kazeta", "price_EUR": 75}
+    ]
+  },
+
+  "4way_cassette_specials": {
+    "description": "Špeciálne príslušenstvo pre 4-cestnú štandardnú kazetu.",
+    "items": [
+      {"code": "TCB-PLFC1UPE", "type": "Súprava filtra triedy PM 2,5 (pred prachovým filtrom)", "for": "4-cestná štandardná kazeta - panely RBC-U32PGP-E, RBC-U33PB-E", "price_EUR": 20},
+      {"code": "TCB-EAPC1UHP-E", "type": "Plazmový filter PURE", "for": "4-cestná štandardná kazeta - panel FLAT", "price_EUR": 1490},
+      {"code": "TCB-EABC1UHP-E", "type": "Plazmový filter PURE SIMPLIFIED", "for": "4-cestná štandardná kazeta - panel FLAT", "price_EUR": 800},
+      {"code": "TCB-ADCN510UP-E", "type": "Adaptér panela", "for": "Pre RBC-U33P-E + RBC-U33PB-E", "price_EUR": 60}
+    ]
+  },
+
+  "1way_cassette_specials": {
+    "description": "Špeciálne príslušenstvo pre 1-cestnú FLAT kazetu.",
+    "items": [
+      {"code": "TCB-EAPC1UYHP-E", "type": "Plazma Pure Filter - sada filtrov", "for": "1-cestná FLAT kazeta", "price_EUR": 300}
+    ]
+  },
+
+  "floor_unit_specials": {
+    "description": "Špeciálne príslušenstvo pre stojanovú jednotku.",
+    "items": [
+      {"code": "TCB-CKC1F-E", "type": "Voliteľná krycia sada", "for": "Stojanová jednotka", "price_EUR": 70}
+    ]
+  },
+
+  "ventilation_kit": {
+    "description": "Vetracia sada pre jednotky – pripojenie tepelných výmenníkov tretích strán.",
+    "items": [
+      {"code": "TCB-IFDLR01UP-E", "type": "Vetracia sada", "features": ["Priame zvlhčovanie", "Rozvádzač + snímače", "Konfigurovateľné cez teplotu odpadového vzduchu alebo signál 0-10V", "Ideálna pre vetracie zariadenia a vzduchové clony"], "specs": {"cooling_kW_range": "3,0-27,0", "heating_kW_range": "4,5-31,5", "airflow_m3h_range": "450-5040", "supply": "220-240/1+N/50", "dimensions_mm": "420 x 330 x 122", "weight_kg": 4.1}, "compatibility": ["DI", "SDI", "DI BIG Single Fan"], "price_EUR": 1180}
+    ]
+  },
+
+  "multi_kits_twin_triple_double_twin": {
+    "description": "Rozbočovacie súpravy pre RAV Split do jednej teplotnej zóny (2-4 rovnaké vnútorné jednotky na 1 vonkajšiu). NEMOŽNO použiť pre DI CLASSIC.",
+    "items": [
+      {"code": "RBC-TWP31-E", "type": "Rozbočovač Twin Kit – 11,20 kW", "for": "DI / SDI 11,2 kW", "price_EUR": 145},
+      {"code": "RBC-TWP50E2", "type": "Rozbočovač Twin Kit – 14,00 kW", "for": "DI / SDI 14,0 kW", "price_EUR": 150},
+      {"code": "RBC-TWP102-E", "type": "Rozbočovač Twin Kit – 22,40 a 28,00 kW", "for": "DI BIG (Twin)", "price_EUR": 315},
+      {"code": "RBC-TRP100E", "type": "Triple Kit", "for": "DI BIG: 22,40 a 28,00 kW / DI+SDI: 16,00 kW", "price_EUR": 430},
+      {"code": "RBC-DTWP102-E", "type": "Rozbočovač Double Twin Kit – 22,40 a 28,00 kW", "for": "DI BIG (Double-Twin)", "price_EUR": 435}
+    ]
+  },
+
+  "pricing_quick_reference": {
+    "cheapest_wired_remote": "RBC-AS41E – 150 €",
+    "compact_wired_in_set": "RBC-ASCU32Y-E – 100 € (zvyčajne v cene setu pre kazety/kanály/podstropné)",
+    "comfort_wired_PLUS": "RBC-AMSU52-E – 205 € (v cene setu pre stojanové)",
+    "comfort_wired_PLUS_BT": "RBC-AWSU52-E – 225 €",
+    "touch_4_5_inch": "RBC-MTSC1 – 485 €",
+    "wifi_app": "BMS-IWF0010UCP-E – 180 € (Energy Monitoring + Cloud)",
+    "knx": "TO-RC-KNX-1i – 610 €",
+    "modbus": "TO-RC-MBS-1 – 620 €",
+    "bacnet": "TO-RC-BAC-1 – 830 €",
+    "tcc_link_adapter": "TCB-PCNT30TLE2 – 165 €",
+    "cheapest_panel": "RBC-U32PGP-E – 360 € (4-cestná štandardná, široký prúd vzduchu)",
+    "most_expensive_panel": "RBC-UY42P-E – 580 € (1-cestná FLAT big chassis)",
+    "ventilation_kit": "TCB-IFDLR01UP-E – 1180 €",
+    "redundancy_box": "TCB-ACREDU2-E – 2150 €",
+    "twin_kit_DI_SDI": "RBC-TWP31-E – 145 €",
+    "triple_kit": "RBC-TRP100E – 430 €",
+    "double_twin_kit": "RBC-DTWP102-E – 435 €"
+  }
+}

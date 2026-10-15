@@ -1,0 +1,23 @@
+{
+  "_metadata": {
+    "purpose": "Jediný zdroj prahov pre kontrolu vhodnosti ponuky (fit check) v nástroji quote. Pravidlá v knowledge/rules/ sa na tento súbor odvolávajú a čísla neopakujú.",
+    "how_it_works": "quote číta typ priestoru a tepelnú záťaž z textu, ktorý napísal zákazník (nie zo stavu, ktorý zapisuje model). 'errors' zablokujú ponuku, kým model nezmení zostavu alebo neuvedie override_reason; 'warnings' sa vrátia v ponuke.",
+    "last_updated": "2026-10-07"
+  },
+  "kw_per_m2": 0.1,
+  "undersize_ratio": 0.85,
+  "server_room": {
+    "triggers": ["serverov", "server room", "serverroom", "rack", "it miestnos", "dátov", "datov"],
+    "min_independent_systems": 2,
+    "capacity_factor_per_system": 1.2,
+    "failover_controls": {"Toshiba": ["RBC-AMSU52-E"], "Samsung": ["MIM-B14"]}
+  },
+  "explicit_commercial": {
+    "salon": ["kaderníctv", "kadernictv", "barber", "manikúr", "manikur", "nechtov", "kozmetick", "kozmetik", "pedikúr", "pedikur", "salón", "salon"],
+    "ambulancia": ["ambulanci", "ordinácia", "ordinaci", "zubár", "zubar", "klinik", "mudr"]
+  },
+  "inferred_commercial": ["obchod", "predajň", "predajn", "butik", "showroom", "reštaurác", "restaurac", "kaviar", "cukrár", "fitness", "posilňov", "posilnov", "telocvič", "open space", "open-space", "openspace", "kancelári", "kancelari", "coworking"],
+  "office_words": ["kancelári", "kancelari", "coworking"],
+  "office_residential_ok_up_to_m2": 25,
+  "wifi_triggers": ["wifi", "wi-fi", "wi fi", "aplikáci", "aplikaci", "appk", "z mobilu", "cez mobil", "smartthings"]
+}

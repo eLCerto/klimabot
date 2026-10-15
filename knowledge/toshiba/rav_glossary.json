@@ -1,0 +1,95 @@
+{
+  "metadata": {
+    "purpose": "Vyhľadávací slovník pre chatbota – pomáha pochopiť dotazy v EN/SK/hovorovej forme a mapovať ich na produkty v RAV databáze.",
+    "usage": "Bot pri vyhľadávaní v outdoor/indoor/accessories rozšíri keyword o všetky synonymá z 'aliases'. Definície v 'definitions' používa pri vysvetľovaní zákazníkovi.",
+    "language": "Hovorí po slovensky, ale rozumie EN/CZ dotazom"
+  },
+
+  "outdoor_line_aliases": {
+    "DI CLASSIC": ["di classic", "di-c", "dic", "classic", "classic line", "robustny invertor", "RAV-GV", "GV561", "GV801"],
+    "DI": ["digitalny invertor", "di", "digital inverter", "digitalny", "digitalny invertor 1f", "digitalny invertor 3f", "RAV-GM", "GM302", "GM402"],
+    "SDI": ["super digitalny invertor", "sdi", "super digital inverter", "super invertor", "premium invertor", "RAV-GP", "GP561", "GP801"],
+    "DI BIG Single Fan": ["di big", "big invertor", "big single fan", "vysokovykonny", "high power", "nad 19kW", "RAV-GM2243", "RAV-GM2803", "DI BIG"]
+  },
+
+  "indoor_type_aliases": {
+    "Nástenná jednotka": ["nástenná", "nastenna", "wall-mounted", "wall mounted", "wallmounted", "wall mount", "stenova", "klimatizacia na stenu", "RAV-HM__KRTP-E", "KRTP"],
+    "Podstropná jednotka": ["podstropná", "podstropna", "ceiling-mounted", "ceiling", "stropna", "pod strop", "RAV-HM__CTP-E", "CTP"],
+    "60x60 Slim kazeta": ["60x60 kazeta", "60x60 slim", "60x60", "slim kazeta", "euro kazeta", "euro mriezka", "slim cassette", "RAV-HM__MUTP-E", "MUTP"],
+    "Smart kazeta": ["smart kazeta", "smart cassette", "4-cestna efektivna", "4cestna kazeta nova", "RAV-HM__UT-E", "smart"],
+    "4-cestná štandardná kazeta": ["4-cestná kazeta", "4cestna kazeta", "4-way cassette", "4 way cassette", "stvorcestna kazeta", "RAV-HM__UTP-E", "UTP"],
+    "1-cestná FLAT kazeta": ["1-cestná kazeta", "1cestna kazeta", "1-way cassette", "FLAT kazeta", "plocha kazeta", "RAV-HM__U1TP-E", "U1TP"],
+    "Plochá kanálová": ["plochá kanálová", "plocha kanalova", "slim duct", "low profile duct", "nizka kanalova", "210mm vyska", "RAV-HM__SDTY-E", "SDTY"],
+    "Štandardná kanálová": ["štandardná kanálová", "standardna kanalova", "standard duct", "ducted", "kanalova jednotka", "do podhladu", "RAV-HM__BTP-E", "BTP"],
+    "Vysokotlaková kanálová": ["vysokotlaková", "vysokotlakova", "high pressure duct", "vysoko tlakova kanalova", "DI BIG kanal", "RAV-RM__DTP-E2", "DTP"],
+    "Stojanová": ["stojanová", "stojanova", "floor standing", "floor unit", "skrinova", "podlahova vysoka", "RAV-HM__FT-E", "FT"]
+  },
+
+  "kit_aliases": {
+    "Twin Kit (DI/SDI)": ["twin", "twin kit", "twin invertor", "2 vnutorne 1 vonkajsia", "RBC-TWP31-E", "RBC-TWP50E2"],
+    "Triple Kit": ["triple", "triple kit", "3 vnutorne", "trojita kombinacia", "RBC-TRP100E"],
+    "Twin DI BIG": ["twin big", "RBC-TWP102-E", "twin 22.4", "twin 28kW"],
+    "Double-Twin (DI BIG)": ["double twin", "double-twin", "4 vnutorne", "stvorita kombinacia", "RBC-DTWP102-E"]
+  },
+
+  "accessory_aliases": {
+    "Káblové ovládanie": ["kablovy", "kablove ovladanie", "wired controller", "wired remote", "stenovy ovladac"],
+    "IR ovládanie": ["ir", "infracervene", "infrared", "wireless remote", "diaľkový ovládač", "dialkove"],
+    "WiFi rozhranie": ["wifi", "wi-fi", "smartphone control", "aplikacia", "BMS-IWF0010UCP-E"],
+    "Modbus": ["modbus", "rs485", "industrial bus", "TO-RC-MBS-1"],
+    "BACnet": ["bacnet", "bms protocol", "buildings automation", "TO-RC-BAC-1"],
+    "KNX": ["knx", "smart home knx", "TO-RC-KNX-1i"],
+    "Senzor pohybu / prítomnosti": ["motion sensor", "presence sensor", "senzor pohybu", "detekcia osob", "MDS"],
+    "Vetracia sada": ["vetracia sada", "ventilation kit", "AHU", "hrv", "fresh air", "TCB-IFDLR01UP-E"],
+    "Akustická redukcia": ["nocny rezim", "tichy", "noise reduction", "TCB-PCOS1E2", "redukcia hluku"]
+  },
+
+  "technical_glossary": {
+    "DI CLASSIC (DI-C)": "Najlacnejšia komerčná línia. Trieda A++. Pracovný rozsah -15/+46°C. Potrubia do 30 m. Pre štandardné aplikácie kde stačí účinnosť A++.",
+    "DI (Digitálny invertor)": "Najpredávanejšia línia. Trieda A++/A+. Pracovný rozsah -15/+46°C. Potrubia do 50 m. Široké výkonové spektrum 2,5-14 kW. Pre väčšinu komerčných inštalácií.",
+    "SDI (Super digitálny invertor)": "Najúčinnejšia línia. Trieda až A+++/A++. Pracovný rozsah -15/+52°C chl., **-27**/+15°C vyk. Potrubia do 75 m. Pre extrémne klimatické podmienky alebo úsporné prevádzky.",
+    "DI BIG Single Fan": "Vysokovýkonná 3f línia (19,0 a 22,5 kW). Pracovný rozsah -20/+46°C chl., -27/+15°C vyk. Potrubia do 100 m. Pre veľké priestory.",
+    "Twin Kit": "Príslušenstvo pre pripojenie 2 identických vnútorných jednotiek na 1 vonkajšiu (jedna teplotná zóna).",
+    "Triple Kit": "Príslušenstvo pre pripojenie 3 identických vnútorných jednotiek na 1 vonkajšiu.",
+    "Double-Twin": "Príslušenstvo len pre DI BIG – pripojenie 4 identických vnútorných jednotiek na 1 vonkajšiu.",
+    "Plug & Play stojanová": "Stojanová jednotka má integrovaný komfortný diaľkový ovládač – stačí pripojiť napájanie a chladivo.",
+    "Externý statický tlak (ESP)": "Maximálny tlak ktorý ventilátor kanálovej jednotky vyvinie. Plochá kanálová: 50 Pa, Štandardná: 120 Pa, Vysokotlaková: 250 Pa.",
+    "Kondenzátové čerpadlo (850 mm)": "Čerpadlo na vyháňanie skondenzovanej vody zo vnútornej jednotky až do výšky 850 mm. Štandardne v kazetách a niektorých kanálových.",
+    "Funkcia voľného chladenia": "Špeciálna funkcia pre miestnosti so servermi – využíva chladný vonkajší vzduch keď je teplota dostatočne nízka.",
+    "Funkcia zálohovania/striedania (server room)": "Pri viacerých jednotkách v jednej miestnosti sa striedajú alebo zálohujú podľa potreby/poruchy. Štandardne v Nástennej, Podstropnej a Stojanovej.",
+    "TCC-Link / TU2C-Link": "Toshiba komunikačné protokoly pre integráciu RAV do VRF centrálneho riadenia. Adapter TCB-PCNT30TLE2 (165 €).",
+    "A/B zbernica": "Štandardné dvojvodičové zapojenie pre káblové ovládače. Všetky RAV vnútorné jednotky majú A/B konektor.",
+    "DN kódy": "Konfiguračné parametre vnútornej jednotky (citlivosť senzora, prevádzkové módy). Nastaviteľné len cez RBC-ASCU32Y-E, RBC-AMSU52-E, RBC-AWSU52-E, RBC-AX33UYP-E, RBC-MTSC1.",
+    "ISO14093 uholník": "Certifikovaný uholník TCB-KP14CPE/KP24CPE potrebný pri inštalácii kondenzátového čerpadla pre splnenie normy.",
+    "RBC-ASCU32Y-E": "Najuniverzálnejší káblový ovládač – ŠTANDARDNE V CENE väčšiny RAV setov (kazety, kanály, podstropné).",
+    "RBC-AMSU52-E": "Komfortný ovládač PLUS – štandardne v cene stojanových setov, voliteľný pre ostatné typy."
+  },
+
+  "use_case_to_recommendation": {
+    "obchod_30m2_jeden_priestor": ["Nástenná RAV-HM301KRTP-E + DI 30 (1 870 €)", "Plochá kanálová 30 + DI 30 (2 480 €)"],
+    "kancelaria_50-80m2": ["Štandardná kanálová 80 + DI 80 (3 960 €)", "60x60 Slim kazeta 56 + DI 56 (3 690 €)", "Podstropná 80 + DI 80 (3 930 €)"],
+    "openspace_100m2": ["4-cestná štandardná kazeta 110 + DI/SDI", "Smart kazeta 110 + SDI"],
+    "predajna_150m2": ["Stojanová 110 + DI/SDI", "Vysokotlaková kanálová DI BIG"],
+    "server_room_priestory": ["2 nezávislé systémy (N+1): Nástenná/Podstropná/Stojanová s funkciou striedania/zálohy + RBC-AMSU52-E", "NIE Twin/Triple kit (zdieľaný okruh nie je záloha)"],
+    "studeny_klimat_-25C": ["SDI 1f séria (RAV-GP*ATW-E, do -27°C)", "DI BIG (do -27°C)"],
+    "vela_dlheho_potrubia": ["DI BIG (100 m)", "SDI (75 m)"],
+    "ekonomicke_riesenie_A++": ["DI séria"],
+    "ekonomicke_riesenie_A+++": ["SDI séria (Smart kazeta a 4-cestná dosahujú A+++)"],
+    "neviditelna_klimatizacia": ["60x60 Slim kazeta", "Plochá kanálová", "Štandardná kanálová"],
+    "viac_zon_jeden_typ": ["Twin Kit (2 izby)", "Triple Kit (3 izby)", "Double-Twin (4 izby DI BIG)"],
+    "BMS_integracia": ["TO-RC-MBS-1 (Modbus)", "TO-RC-BAC-1 (BACnet)", "TO-RC-KNX-1i (KNX)", "TCB-PCNT30TLE2 (TCC-Link do VRF)"],
+    "nocny_rezim_susedia": ["Modul akustickej redukcie TCB-PCOS1E2 (330 €)"],
+    "vysoke_pozadavky_filtracia": ["TCB-EAPC1UHP-E plazmový filter pre 4-cestnú FLAT (1 490 €)", "TCB-PLFC1UPE PM 2,5 filter (20 €)"]
+  },
+
+  "common_questions_and_answers": {
+    "rozdiel_RAS_vs_RAV": "RAS = domáce klimatizácie (HOME) pre rezidenčné použitie (1 izba alebo Multi-Split). RAV = LIGHT BUSINESS pre stredné komerčné použitie (obchody, kancelárie, server roomy) s dlhšou životnosťou a profesionálnymi funkciami.",
+    "ktora_linia_outdoor_je_najlepsia": "Pre väčšinu inštalácií **DI**. Pre maximálne úspory a extrémny klimat **SDI**. Pre veľké priestory nad 14 kW **DI BIG**.",
+    "co_je_set": "Set obsahuje vonkajšiu + vnútornú jednotku + štandardný ovládač (RBC-ASCU32Y-E pri kazetách/kanáloch/podstropných, RBC-AMSU52-E pri stojanových). Pri kazetových je v cene aj panel.",
+    "ake_ovladanie_je_v_cene": "Pri Nástennej IR ovládač. Pri Kazetách + Kanáloch + Podstropných je RBC-ASCU32Y-E (kompaktný káblový, 100 € hodnota). Pri Stojanovej RBC-AMSU52-E (komfortný PLUS, 205 € hodnota).",
+    "potrebujem_panel_pre_kazetu": "ÁNO. Kazetová jednotka NEFUNGUJE bez panelu. 60x60 Slim potrebuje RBC-UM21P-E (410 €), 4-cestná štandardná RBC-U32PGP-E (360 €) alebo iné variácie.",
+    "ako_pripojit_4_jednotky_na_1_vonkajsiu": "Len cez Double-Twin Kit a iba pre DI BIG (22,4 alebo 28,0 kW vonkajšia). Kit RBC-DTWP102-E (435 €).",
+    "vykurovanie_v_zime_-20C": "DI a DI CLASSIC fungujú do -15°C. SDI a DI BIG do -27°C. Pre extrémne mrazy odporúčame SDI.",
+    "ake_protokoly_BMS": "Modbus (TO-RC-MBS-1, 620 €), BACnet (TO-RC-BAC-1, 830 €), KNX (TO-RC-KNX-1i, 610 €). Pre VRF integráciu TCC-Link adapter (TCB-PCNT30TLE2, 165 €)."
+  }
+}

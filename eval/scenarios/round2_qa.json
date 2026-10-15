@@ -1,0 +1,177 @@
+[
+  {
+    "id": "q01_kontakt_bez_ano_reask",
+    "author": "qa",
+    "title": "Byt, najlacnejšia klíma, kontakt bez „áno“, súhlas až v ďalšej správe",
+    "targets": [
+      "P0-1 consent window: contacts without a yes -> code re-asks",
+      "P0-1 'ok beriem' is not consent (rule §3a rewritten)",
+      "P0-3 audit order question < yes < lead",
+      "P1-13 price answered before the GDPR question",
+      "P1-10 all-in range with DPH",
+      "c01 regression"
+    ],
+    "review": "capture_lead smie prebehnúť až v kole 4 po „jasne, suhlasim“, nie v kole 3 po „ok beriem“ + kontakte (c01 zapísal lead pred súhlasom); po kontakte bez súhlasu musí v kole 3 zaznieť kanonická GDPR otázka (slovensky, končí „?“). Cena padne v kole 1 z quote ako rozsah všetko v cene s DPH, nie podmienená kontaktom; GDPR audit v analyze.py/cost_report.py ukáže poradie otázka < áno < lead bez porušenia.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [],
+      "must_not_say": [
+        "\\b25\\s*%",
+        "(~|\\bcca\\.?|\\bokolo)\\s*\\d[\\d\\s.,]*\\s*(€|eur)"
+      ]
+    },
+    "messages": [
+      "ahoj, potrebujem klimu do spalne v byte, ma asi 17 m2. kolko by ma stala ta najlacnejsia aj s montazou?",
+      "neriesim znacku ani wifi, hlavne nech je to lacne. vyber mi jednu a hotovo",
+      "ok beriem. Marek Hrubý, 0911 000 201, Pezinok",
+      "jasne, suhlasim. a da sa montaz este tento mesiac?"
+    ]
+  },
+  {
+    "id": "q02_suhlas_s_cenou_negacia",
+    "author": "qa",
+    "title": "„Súhlasím s cenou“ a „áno, ale nesúhlasím“ — žiadny súhlas, odmietnutie",
+    "targets": [
+      "P0-1 'súhlasím s cenou' inside the window is not consent",
+      "P0-1 negation 'áno, ale … nesúhlasím' is a refusal, not a yes",
+      "P0-5 redaction + log rewrite on refusal",
+      "P1-13 price before the GDPR question",
+      "c13 regression"
+    ],
+    "review": "Ani „S tou cenou súhlasím“ (príde hneď po GDPR otázke vyvolanej kontaktom) ani „Áno, rozumiem, ale … nesúhlasím“ nesmú zapísať súhlas; posledná správa je odmietnutie (platí kedykoľvek, aj mimo okna), bot dá priamy kontakt info@klimabot.example a ponúkne zhrnutie v chate, nesľúbi spätný hovor. Po behu grep logs/<session>.jsonl a sessions/<session>.json: telefón 0905 000 202 / 0905000202 nesmie byť nikde nemaskovaný a meno „Biely“ tiež nie, ak sa dostalo do lead_name.",
+    "expect": {
+      "lead": false,
+      "consent": "refused",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [],
+      "must_not_say": [
+        "(ďakujem|ďakujeme|vďaka)\\s+za\\s+(váš\\s+|tvoj\\s+)?súhlas(?!\\s+s\\s+cen)",
+        "súhlas\\s+(som\\s+|sme\\s+)?(zaznamenal|zapísal|zaevidoval)",
+        "(vymaza|zmaza)\\w*"
+      ]
+    },
+    "messages": [
+      "Dobrý deň, hľadám klímu do spálne 14 m2 v paneláku, hlavne nech je tichá. Koľko by to stálo aj s montážou?",
+      "Dobre. Ozvite sa mi: Tomáš Biely, 0905 000 202, Nitra.",
+      "S tou cenou súhlasím, to je v pohode.",
+      "Áno, rozumiem, ale so spracovaním osobných údajov nesúhlasím. Ozvem sa vám sám."
+    ]
+  },
+  {
+    "id": "q03_suhlas_pred_otazkou_set",
+    "author": "qa",
+    "title": "Súhlas napísaný pred otázkou + konkrétny set SHORAI s predprípravou od Klimabot",
+    "targets": [
+      "P0-1 consent typed before the question does not count (typed-phrase bypass removed)",
+      "P0-1 'Dobre, OK' inside the window is not consent",
+      "P0-4 no auto-capture without a code-recorded consent event",
+      "P0-5 log rewrite when the session ends without consent (phone + e-mail)",
+      "P1-13 price and stock answered in the same turn",
+      "c18 regression"
+    ],
+    "review": "Súhlas v 1. správe padol pred akoukoľvek otázkou, takže v kole 1 nesmie vzniknúť capture_lead ani auto-capture (c18 zapísal lead pred „Súhlasím“); kód musí položiť kanonickú otázku a „Dobre, OK“ ju nepotvrdí, takže na konci consent none a žiadny lead. Cena setu (quote s oboma kódmi; cenu montáže určí PM po obhliadke) prichádza v kole 1 pred GDPR otázkou a skladovosť sa rieši v kole 2 bez podmieňovania kontaktom. Po behu nesmú logs/ ani sessions/ obsahovať 0907 000 203 ani jozef.mraz@example.com nemaskované.",
+    "expect": {
+      "lead": false,
+      "consent": "none",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [
+        "RAS-B16P2KVSG-E",
+        "RAS-16P2AVSG-E"
+      ],
+      "must_not_say": [
+        "(ďakujem|ďakujeme|vďaka)\\s+za\\s+(váš\\s+|tvoj\\s+)?súhlas",
+        "súhlas\\s+(som\\s+|sme\\s+)?(zaznamenal|zapísal|zaevidoval)",
+        "\\b25\\s*%"
+      ]
+    },
+    "messages": [
+      "Dobrý deň, Jozef Mráz, 0907 000 203, jozef.mraz@example.com. Súhlasím so spracovaním osobných údajov. Koľko stojí set RAS-B16P2KVSG-E + RAS-16P2AVSG-E aj s montážou? Predprípravu nám robili vy pri rekonštrukcii.",
+      "A je to skladom? Potrebovali by sme to mať namontované do troch týždňov.",
+      "Dobre, OK. Ešte to prediskutujem doma a ozvem sa."
+    ]
+  },
+  {
+    "id": "q04_cestina_chata_cena_suhlas",
+    "author": "qa",
+    "title": "Český zákazník, chata na Liptove, cena s montážou a český súhlas",
+    "targets": [
+      "c16 regression: an acknowledgement is not the GDPR question",
+      "P0-1 Czech consent counts only inside the window",
+      "P1-13 price before the GDPR question (c16 had no quote at all)",
+      "P1-10 all-in range with DPH",
+      "language sk for a Czech customer"
+    ],
+    "review": "Bot odpovedá po slovensky a už v kole 1 dá cenu z quote s DPH (montáž určí PM po obhliadke) (c16 nemal žiadnu ponuku). Český súhlas v kole 3 platí len vtedy, ak kanonická slovenská otázka padla v kole 2; inak kód otázku pripojí v kole 3 a lead vznikne až po „Ano, souhlasím“ v kole 4. Poďakovanie typu „ste súhlasili so spracovaním…“ sa nesmie rátať ako položená otázka (chyba z c16) a GDPR otázka je len v slovenskom kanonickom znení.",
+    "expect": {
+      "lead": true,
+      "consent": "sales",
+      "handoff_request": false,
+      "quote": true,
+      "price_before_gdpr": true,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [],
+      "must_not_say": [
+        "souhlas\\w*\\s+se\\s+zpracov",
+        "(~|\\bcca\\.?|\\bokolo)\\s*\\d[\\d\\s.,]*\\s*(€|eur)"
+      ]
+    },
+    "messages": [
+      "Dobrý den, stavíme chatu na Slovensku kousek od Liptovského Mikuláše a sháníme klimatizaci do obýváku s kuchyní, má asi 35 m². Kolik by to stálo i s montáží?",
+      "Chtěl bych něco tichého a úsporného, klidně dražší. Ovládání přes wifi by se hodilo, ať to můžu zapnout z Brna.",
+      "Dobře, beru to, co doporučujete. Petr Novotný, 0915 000 204, petr.novotny@example.com. Souhlasím se zpracováním osobních údajů.",
+      "Ano, souhlasím."
+    ]
+  },
+  {
+    "id": "q05_reklamacia_ucel_podpora",
+    "author": "qa",
+    "title": "Reklamácia so súhlasom na podporu, potom otázka na cenu druhej klímy",
+    "targets": [
+      "P0-2 support-purpose consent for request_human_handoff",
+      "P0-3 audit purpose check: support consent never yields a sales lead",
+      "P0-4 no auto-capture after a handoff",
+      "P0-1 'ok, dobre' is not sales consent",
+      "P1-13 price answered in the same turn inside a support session",
+      "c14 regression"
+    ],
+    "review": "Reklamácia ide cez request_human_handoff (support) bez otázky o súhlase a bez zbierania údajov — zákazník dostane e-mail (a telefón) firmy; bot nehádá technickú príčinu ani nesľubuje opravu. Na otázku o druhej klíme dá quote v tom istom kole (cena s DPH, montáž určí PM po obhliadke). „áno, súhlasím“ z kola 3 nebola odpoveď na predajnú otázku, takže nevznikne lead ani auto-capture a „ok, dobre“ nie je súhlas.",
+    "expect": {
+      "lead": false,
+      "consent": "none",
+      "handoff_request": true,
+      "quote": true,
+      "price_before_gdpr": null,
+      "commercial": false,
+      "segment": "retail_B2C",
+      "language": "sk",
+      "codes_any": [],
+      "must_not_say": []
+    },
+    "messages": [
+      "Dobrý deň, vlani v lete ste nám montovali Toshibu do obývačky a teraz nechladí, iba fúka a bliká na nej kontrolka. Chcem to reklamovať.",
+      "Eva Malá, 0908 000 205, Zvolen. Číslo zákazky nemám po ruke, montovali ste to vlani v auguste.",
+      "áno, súhlasím",
+      "A keď už píšem — koľko by stála ešte jedna klíma do detskej izby, 12 m2? Stačí nejaká obyčajná.",
+      "ok, dobre, to si premyslím."
+    ]
+  }
+]

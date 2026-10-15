@@ -1,0 +1,1187 @@
+{
+  "metadata": {
+    "category": "FJM",
+    "category_full": "Free Joint Multi – Multi-Split (2-5 vnútorných jednotiek)",
+    "source": "Cenník Samsung Chladenie 2026, 1. vydanie (© Samsung Electronics Air Conditioner Europe B.V.) (str. 14-21)",
+    "validity": "od 1.1.2026",
+    "currency": "EUR (MOC bez DPH)",
+    "refrigerant": "R32",
+    "common_features": [
+      "Pripojenie až 5 vnútorných jednotiek na 1 vonkajšiu",
+      "Kombinácia nástenných, kazetových, kanálových a parapetných vnútorných jednotiek",
+      "Pripojovací pomer až 176%",
+      "Komunikačný protokol NASA"
+    ],
+    "operating_range_cooling_C": "AJ040/AJ050: -5/+46, AJ052+: -10/+46",
+    "operating_range_heating_C": "-15/+24",
+    "model_code_logic": {
+      "AJ040": "4,0 kW – 2 izby",
+      "AJ050": "5,0 kW – 2 izby",
+      "AJ052": "5,2 kW – 3 izby",
+      "AJ068": "6,8 kW – 3 izby",
+      "AJ080": "8,0 kW – 4 izby",
+      "AJ100": "10,0 kW – 5 izieb",
+      "TXJ": "Multi-Split outdoor",
+      "AJ016/020/026/035/052_TNN": "Mini 4-Way Cassette (multi-only)",
+      "AJ026/035_TN1": "1-Way Cassette (multi-only)",
+      "AJ026/035_TNL": "LSP Slim Duct (multi-only)",
+      "AJ052_BNM": "MSP Duct (multi-only)",
+      "AJ026/035/052_TNJ": "Console parapetná (multi-only)"
+    }
+  },
+  "outdoor_units": {
+    "description": "FJM vonkajšie jednotky pre Multi-Split. Cena pre samostatnú vonkajšiu jednotku.",
+    "models": [
+      {
+        "model": "AJ040TXJ2KG/EU",
+        "max_indoor_units": 2,
+        "cooling_kW": 4.0,
+        "heating_kW": 4.2,
+        "SEER_best_combo": 8.54,
+        "SCOP_best_combo": 4.64,
+        "energy_class_cool": "A+++",
+        "energy_class_heat": "A++",
+        "operating_range_cool_C": "-5/+46",
+        "operating_range_heat_C": "-15/+24",
+        "dimensions_mm": "790x548x285",
+        "weight_kg": 32.0,
+        "liquid_pipe_count": "2x6,35",
+        "gas_pipe_count": "2x9,52",
+        "max_pipe_total_m": 30,
+        "max_pipe_per_indoor_m": 20,
+        "max_height_outdoor_indoor_m": 15,
+        "max_height_indoor_indoor_m": 7.5,
+        "factory_charge_kg": 1.0,
+        "prefilled_m": 30,
+        "topup_g_per_m": 10,
+        "fuse_A": 16,
+        "max_current_A": 9.8,
+        "supply": "1f/220-240/50",
+        "sound_pressure_dB": 45,
+        "price_EUR": 1654
+      },
+      {
+        "model": "AJ050TXJ2KG/EU",
+        "max_indoor_units": 2,
+        "cooling_kW": 5.0,
+        "heating_kW": 5.6,
+        "SEER_best_combo": 8.54,
+        "SCOP_best_combo": 4.64,
+        "energy_class_cool": "A+++",
+        "energy_class_heat": "A++",
+        "operating_range_cool_C": "-5/+46",
+        "operating_range_heat_C": "-15/+24",
+        "dimensions_mm": "790x548x285",
+        "weight_kg": 33.0,
+        "liquid_pipe_count": "2x6,35",
+        "gas_pipe_count": "9,52+12,70",
+        "max_pipe_total_m": 30,
+        "max_pipe_per_indoor_m": 20,
+        "max_height_outdoor_indoor_m": 15,
+        "factory_charge_kg": 1.2,
+        "prefilled_m": 30,
+        "topup_g_per_m": 10,
+        "fuse_A": 16,
+        "max_current_A": 11.8,
+        "supply": "1f/220-240/50",
+        "sound_pressure_dB": 46,
+        "price_EUR": 1899,
+        "max_height_indoor_indoor_m": 7.5
+      },
+      {
+        "model": "AJ052TXJ3KG/EU",
+        "max_indoor_units": 3,
+        "cooling_kW": 5.2,
+        "heating_kW": 6.3,
+        "SEER_best_combo": 8.51,
+        "SCOP_best_combo": 4.6,
+        "energy_class_cool": "A+++",
+        "energy_class_heat": "A++",
+        "operating_range_cool_C": "-10/+46",
+        "operating_range_heat_C": "-15/+24",
+        "dimensions_mm": "880x638x310",
+        "weight_kg": 44.5,
+        "liquid_pipe_count": "3x6,35",
+        "gas_pipe_count": "2x9,52+12,70",
+        "max_pipe_total_m": 50,
+        "max_pipe_per_indoor_m": 25,
+        "max_height_outdoor_indoor_m": 15,
+        "factory_charge_kg": 1.55,
+        "prefilled_m": 30,
+        "topup_g_per_m": 10,
+        "fuse_A": 16,
+        "max_current_A": 11.9,
+        "supply": "1f/220-240/50",
+        "sound_pressure_dB": 46,
+        "price_EUR": 2140,
+        "max_height_indoor_indoor_m": 7.5
+      },
+      {
+        "model": "AJ068TXJ3KG/EU",
+        "max_indoor_units": 3,
+        "cooling_kW": 6.8,
+        "heating_kW": 8.0,
+        "SEER_best_combo": 7.75,
+        "SCOP_best_combo": 4.32,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+",
+        "operating_range_cool_C": "-10/+46",
+        "operating_range_heat_C": "-15/+24",
+        "dimensions_mm": "880x798x310",
+        "weight_kg": 57.5,
+        "liquid_pipe_count": "3x6,35",
+        "gas_pipe_count": "9,52+2x12,70",
+        "max_pipe_total_m": 50,
+        "max_pipe_per_indoor_m": 25,
+        "max_height_outdoor_indoor_m": 15,
+        "factory_charge_kg": 2.0,
+        "prefilled_m": 30,
+        "topup_g_per_m": 10,
+        "fuse_A": 20,
+        "max_current_A": 17.5,
+        "supply": "1f/220-240/50",
+        "sound_pressure_dB": 48,
+        "price_EUR": 2498,
+        "max_height_indoor_indoor_m": 7.5
+      },
+      {
+        "model": "AJ080TXJ4KG/EU",
+        "max_indoor_units": 4,
+        "cooling_kW": 8.0,
+        "heating_kW": 9.3,
+        "SEER_best_combo": 7.75,
+        "SCOP_best_combo": 4.1,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+",
+        "operating_range_cool_C": "-10/+46",
+        "dimensions_mm": "880x798x310",
+        "weight_kg": 57.5,
+        "liquid_pipe_count": "4x6,35",
+        "gas_pipe_count": "2x9,52+2x12,70",
+        "max_pipe_total_m": 70,
+        "max_pipe_per_indoor_m": 25,
+        "factory_charge_kg": 2.0,
+        "prefilled_m": 30,
+        "topup_g_per_m": 20,
+        "fuse_A": 20,
+        "max_current_A": 17.8,
+        "supply": "1f/220-240/50",
+        "sound_pressure_dB": 48,
+        "price_EUR": 3296,
+        "max_height_outdoor_indoor_m": 15,
+        "max_height_indoor_indoor_m": 7.5,
+        "operating_range_heat_C": "-15/+24"
+      },
+      {
+        "model": "AJ100TXJ5KG/EU",
+        "max_indoor_units": 5,
+        "cooling_kW": 10.0,
+        "heating_kW": 12.0,
+        "SEER_best_combo": 8.0,
+        "SCOP_best_combo": 4.32,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+",
+        "operating_range_cool_C": "-10/+46",
+        "dimensions_mm": "940x998x330",
+        "weight_kg": 76.5,
+        "liquid_pipe_count": "5x6,35",
+        "gas_pipe_count": "2x9,52+3x12,70",
+        "max_pipe_total_m": 75,
+        "max_pipe_per_indoor_m": 25,
+        "factory_charge_kg": 2.7,
+        "prefilled_m": 30,
+        "topup_g_per_m": 10,
+        "fuse_A": 25,
+        "max_current_A": 24.5,
+        "supply": "1f/220-240/50",
+        "sound_pressure_dB": 54,
+        "price_EUR": 3654,
+        "max_height_outdoor_indoor_m": 15,
+        "max_height_indoor_indoor_m": 7.5,
+        "operating_range_heat_C": "-15/+24"
+      }
+    ],
+    "compatible_outdoor_accessories": [
+      {
+        "code": "MIM-H04EN",
+        "desc": "WiFi Kit (centrálny)",
+        "price_EUR": 231
+      },
+      {
+        "code": "MIM-B19N",
+        "desc": "Modbus interface modul",
+        "price_EUR": 115
+      }
+    ]
+  },
+  "indoor_units_wallmount": {
+    "description": "Vnútorné nástenné jednotky pre FJM (samostatné, bez vonkajšej). Vlastnosti zhodné s RAC verziami, líši sa cena (lacnejšie, lebo bez vonkajšej).",
+    "WindFree_Premiere_Plus_White": [
+      {
+        "size": "07",
+        "indoor": "AR70H07CAAWNEU",
+        "cooling_kW": 2.0,
+        "heating_kW": 2.2,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 11.3,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "price_EUR": 780,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "09",
+        "indoor": "AR70H09CAAWNEU",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 11.3,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "price_EUR": 914,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "12",
+        "indoor": "AR70H12CAAWNEU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 11.3,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "price_EUR": 1014,
+        "supply": "1f/220-240/50"
+      }
+    ],
+    "WindFree_Premiere_Plus_Black": [
+      {
+        "size": "07",
+        "indoor": "AR70H07CAABNEU",
+        "cooling_kW": 2.0,
+        "heating_kW": 2.2,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 11.3,
+        "price_EUR": 812,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "09",
+        "indoor": "AR70H09CAABNEU",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 11.3,
+        "price_EUR": 951,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "12",
+        "indoor": "AR70H12CAABNEU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 11.3,
+        "price_EUR": 1055,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      }
+    ],
+    "WindFree_Premiere_White": [
+      {
+        "size": "07",
+        "indoor": "AR70H07C1AWNEU",
+        "cooling_kW": 2.0,
+        "heating_kW": 2.2,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 10.5,
+        "gas_mm": 9.52,
+        "price_EUR": 740,
+        "liquid_mm": 6.35,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "09",
+        "indoor": "AR70H09C1AWNEU",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 10.5,
+        "gas_mm": 9.52,
+        "price_EUR": 806,
+        "liquid_mm": 6.35,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "12",
+        "indoor": "AR70H12C1AWNEU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 10.5,
+        "gas_mm": 9.52,
+        "price_EUR": 895,
+        "liquid_mm": 6.35,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "18",
+        "indoor": "AR70H18C1AWNEU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "dimensions_mm": "1055x299x230",
+        "weight_kg": 13.3,
+        "gas_mm": 12.7,
+        "price_EUR": 1377,
+        "liquid_mm": 6.35,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "24",
+        "indoor": "AR70H24C1AWNEU",
+        "cooling_kW": 6.5,
+        "heating_kW": 6.9,
+        "dimensions_mm": "1055x299x230",
+        "weight_kg": 13.3,
+        "gas_mm": 15.88,
+        "price_EUR": 1819,
+        "liquid_mm": 6.35,
+        "supply": "1f/220-240/50"
+      }
+    ],
+    "WindFree_Premiere_Black": [
+      {
+        "size": "07",
+        "indoor": "AR70H07C1ABNEU",
+        "cooling_kW": 2.0,
+        "heating_kW": 2.2,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 10.5,
+        "price_EUR": 763,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "09",
+        "indoor": "AR70H09C1ABNEU",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 10.5,
+        "price_EUR": 838,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "12",
+        "indoor": "AR70H12C1ABNEU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "dimensions_mm": "889x299x230",
+        "weight_kg": 10.5,
+        "price_EUR": 931,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      }
+    ],
+    "WindFree_Avant_S2_Black": [
+      {
+        "size": "07",
+        "indoor": "AR70F07C1ABNEU",
+        "cooling_kW": 2.0,
+        "heating_kW": 2.2,
+        "dimensions_mm": "889x299x215",
+        "weight_kg": 9.9,
+        "price_EUR": 641,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "09",
+        "indoor": "AR70F09C1ABNEU",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "dimensions_mm": "889x299x215",
+        "weight_kg": 9.9,
+        "price_EUR": 704,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "12",
+        "indoor": "AR70F12C1ABNEU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "dimensions_mm": "889x299x215",
+        "weight_kg": 9.9,
+        "price_EUR": 782,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      }
+    ],
+    "WindFree_Avant_S2_White": [
+      {
+        "size": "07",
+        "indoor": "AR70F07C1AWNEU",
+        "cooling_kW": 2.0,
+        "heating_kW": 2.2,
+        "dimensions_mm": "889x299x215",
+        "weight_kg": 9.9,
+        "price_EUR": 616,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "09",
+        "indoor": "AR70F09C1AWNEU",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "dimensions_mm": "889x299x215",
+        "weight_kg": 9.9,
+        "price_EUR": 677,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "12",
+        "indoor": "AR70F12C1AWNEU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "dimensions_mm": "889x299x215",
+        "weight_kg": 9.9,
+        "price_EUR": 752,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "18",
+        "indoor": "AR70F18C1AWNEU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "dimensions_mm": "1055x299x215",
+        "weight_kg": 12.3,
+        "price_EUR": 1157,
+        "liquid_mm": 6.35,
+        "gas_mm": 12.7,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "24",
+        "indoor": "AR70F24C1AWNEU",
+        "cooling_kW": 6.5,
+        "heating_kW": 7.4,
+        "dimensions_mm": "1055x299x215",
+        "weight_kg": 12.3,
+        "price_EUR": 1528,
+        "liquid_mm": 6.35,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50"
+      }
+    ],
+    "WindFree_Comfort_S2": [
+      {
+        "size": "07",
+        "indoor": "AR60F07C1AWNEU",
+        "cooling_kW": 2.0,
+        "heating_kW": 2.2,
+        "dimensions_mm": "820x299x215",
+        "weight_kg": 9.9,
+        "price_EUR": 445,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "09",
+        "indoor": "AR60F09C1AWNEU",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "dimensions_mm": "889x299x215",
+        "weight_kg": 9.9,
+        "price_EUR": 488,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "12",
+        "indoor": "AR60F12C1AWNEU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "dimensions_mm": "889x299x215",
+        "weight_kg": 9.9,
+        "price_EUR": 543,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "18",
+        "indoor": "AR60F18C1AWNEU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "dimensions_mm": "1055x299x215",
+        "weight_kg": 12.3,
+        "price_EUR": 835,
+        "liquid_mm": 6.35,
+        "gas_mm": 12.7,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "24",
+        "indoor": "AR60F24C1AWNEU",
+        "cooling_kW": 6.5,
+        "heating_kW": 7.4,
+        "dimensions_mm": "1055x299x215",
+        "weight_kg": 12.3,
+        "price_EUR": 1103,
+        "liquid_mm": 6.35,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50"
+      }
+    ],
+    "Cebu_S2": [
+      {
+        "size": "07",
+        "indoor": "AR50F07C1AHNEU",
+        "cooling_kW": 2.0,
+        "heating_kW": 2.2,
+        "dimensions_mm": "820x299x215",
+        "weight_kg": 9.1,
+        "price_EUR": 374,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "09",
+        "indoor": "AR50F09C1AHNEU",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "dimensions_mm": "820x299x215",
+        "weight_kg": 9.1,
+        "price_EUR": 411,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "12",
+        "indoor": "AR50F12C1AHNEU",
+        "cooling_kW": 3.5,
+        "heating_kW": 3.5,
+        "dimensions_mm": "820x299x215",
+        "weight_kg": 9.1,
+        "price_EUR": 457,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "18",
+        "indoor": "AR50F18C1AHNEU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "dimensions_mm": "1055x299x215",
+        "weight_kg": 12.5,
+        "price_EUR": 704,
+        "liquid_mm": 6.35,
+        "gas_mm": 12.7,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "24",
+        "indoor": "AR50F24C1AHNEU",
+        "cooling_kW": 6.5,
+        "heating_kW": 7.4,
+        "dimensions_mm": "1055x299x215",
+        "weight_kg": 12.5,
+        "price_EUR": 938,
+        "liquid_mm": 6.35,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50"
+      }
+    ],
+    "Luzon_S2": [
+      {
+        "size": "07",
+        "indoor": "AR50F07C1BHNEU",
+        "cooling_kW": 2.0,
+        "heating_kW": 2.2,
+        "dimensions_mm": "820x299x215",
+        "weight_kg": 9.1,
+        "price_EUR": 360,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "09",
+        "indoor": "AR50F09C1BHNEU",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.2,
+        "dimensions_mm": "820x299x215",
+        "weight_kg": 9.1,
+        "price_EUR": 396,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "12",
+        "indoor": "AR50F12C1BHNEU",
+        "cooling_kW": 3.5,
+        "heating_kW": 3.5,
+        "dimensions_mm": "820x299x215",
+        "weight_kg": 9.1,
+        "price_EUR": 440,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "18",
+        "indoor": "AR50F18C1BHNEU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "dimensions_mm": "1055x299x215",
+        "weight_kg": 12.5,
+        "price_EUR": 677,
+        "liquid_mm": 6.35,
+        "gas_mm": 12.7,
+        "supply": "1f/220-240/50"
+      },
+      {
+        "size": "24",
+        "indoor": "AR50F24C1BHNEU",
+        "cooling_kW": 6.5,
+        "heating_kW": 7.4,
+        "dimensions_mm": "1055x299x215",
+        "weight_kg": 12.5,
+        "price_EUR": 894,
+        "liquid_mm": 6.35,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50"
+      }
+    ]
+  },
+  "indoor_units_cassette": {
+    "WindFree_Mini_4_Way_Cassette": {
+      "category": "Mini 4-cestná kazeta (60x60)",
+      "key_features": [
+        "Dvojstupňové chladenie - WindFree™ + rýchle chladenie",
+        "Nezávislé nastavenie jednotlivých lamiel",
+        "Vstavané čerpadlo kondenzátu - výtlačná výška 550 mm",
+        "Vstavaný senzor teploty a vlhkosti",
+        "Pre prevádzku NUTNÝ dekoračný panel + min. 1 ovládač"
+      ],
+      "required_panel": {
+        "code": "PC4SUFMAN",
+        "desc": "Dekoračný panel 4-Way Cassette (620x620x57)",
+        "price_EUR": 252
+      },
+      "models": [
+        {
+          "size": "016",
+          "indoor": "AJ016TNNDKG/EU",
+          "cooling_kW": 1.6,
+          "heating_kW": 2.0,
+          "dimensions_mm": "575x250x575",
+          "weight_kg": 11.5,
+          "liquid_mm": 6.35,
+          "gas_mm": 9.52,
+          "price_EUR": 628
+        },
+        {
+          "size": "020",
+          "indoor": "AJ020TNNDKG/EU",
+          "cooling_kW": 2.0,
+          "heating_kW": 2.2,
+          "dimensions_mm": "575x250x575",
+          "weight_kg": 11.5,
+          "liquid_mm": 6.35,
+          "gas_mm": 9.52,
+          "price_EUR": 656
+        },
+        {
+          "size": "026",
+          "indoor": "AJ026TNNDKG/EU",
+          "cooling_kW": 2.6,
+          "heating_kW": 2.9,
+          "dimensions_mm": "575x250x575",
+          "weight_kg": 11.5,
+          "liquid_mm": 6.35,
+          "gas_mm": 9.52,
+          "price_EUR": 723
+        },
+        {
+          "size": "035",
+          "indoor": "AJ035TNNDKG/EU",
+          "cooling_kW": 3.5,
+          "heating_kW": 3.8,
+          "dimensions_mm": "575x250x575",
+          "weight_kg": 11.5,
+          "liquid_mm": 6.35,
+          "gas_mm": 9.52,
+          "price_EUR": 824
+        },
+        {
+          "size": "052",
+          "indoor": "AJ052TNNDKG/EU",
+          "cooling_kW": 5.2,
+          "heating_kW": 5.6,
+          "dimensions_mm": "575x250x575",
+          "weight_kg": 11.8,
+          "liquid_mm": 6.35,
+          "gas_mm": 12.7,
+          "price_EUR": 961
+        }
+      ],
+      "compatible_accessories": [
+        "AR-EH03E",
+        "MWR-WG01KN",
+        "MWR-SH11N",
+        "MCR-SMD"
+      ]
+    },
+    "WindFree_1_Way_Cassette": {
+      "category": "1-cestná kazeta",
+      "key_features": [
+        "Dvojstupňové chladenie - WindFree™ + rýchle chladenie",
+        "100 mm široká lamela s nastavením 37° až 87°",
+        "Vstavané čerpadlo kondenzátu - výtlačná výška 550 mm",
+        "Vstavaný senzor teploty a vlhkosti",
+        "Pre prevádzku NUTNÝ dekoračný panel + min. 1 ovládač"
+      ],
+      "required_panel": {
+        "code": "PC1NWFMAN",
+        "desc": "Dekoračný panel 1-Way Cassette (1198x500x35)",
+        "price_EUR": 273
+      },
+      "models": [
+        {
+          "size": "026",
+          "indoor": "AJ026TN1DKG/EU",
+          "cooling_kW": 2.6,
+          "heating_kW": 2.9,
+          "dimensions_mm": "970x135x410",
+          "weight_kg": 9.5,
+          "liquid_mm": 6.35,
+          "gas_mm": 9.52,
+          "price_EUR": 656
+        },
+        {
+          "size": "035",
+          "indoor": "AJ035TN1DKG/EU",
+          "cooling_kW": 3.5,
+          "heating_kW": 3.8,
+          "dimensions_mm": "970x135x410",
+          "weight_kg": 9.5,
+          "liquid_mm": 6.35,
+          "gas_mm": 9.52,
+          "price_EUR": 801
+        }
+      ]
+    }
+  },
+  "indoor_units_duct": {
+    "LSP_Slim_Duct": {
+      "category": "Kanálová jednotka Slim s vstavaným čerpadlom",
+      "key_features": [
+        "Long-Life filter",
+        "Vstavané čerpadlo kondenzátu - výtlačná výška 1200 mm",
+        "Externý statický tlak motora ventilátora do 39 Pa",
+        "Pre prevádzku potrebný min. 1 ovládač"
+      ],
+      "models": [
+        {
+          "size": "026",
+          "indoor": "AJ026TNLPEG/EU",
+          "cooling_kW": 2.6,
+          "heating_kW": 2.9,
+          "dimensions_mm": "700x199x440",
+          "weight_kg": 15.0,
+          "liquid_mm": 6.35,
+          "gas_mm": 9.52,
+          "price_EUR": 890
+        },
+        {
+          "size": "035",
+          "indoor": "AJ035TNLPEG/EU",
+          "cooling_kW": 3.5,
+          "heating_kW": 3.8,
+          "dimensions_mm": "700x199x440",
+          "weight_kg": 15.0,
+          "liquid_mm": 6.35,
+          "gas_mm": 9.52,
+          "price_EUR": 922
+        }
+      ]
+    },
+    "MSP_Duct": {
+      "category": "Kanálová jednotka stredotlaková",
+      "key_features": [
+        "Long-life filter",
+        "Externý statický tlak do 50 Pa",
+        "Pre prevádzku potrebný min. 1 ovládač"
+      ],
+      "compatible_accessories": [
+        "AR-EH03E",
+        "MRK-A10N",
+        "MWR-WG01KN",
+        "MWR-SH11N",
+        "MDP-Z075SZED"
+      ],
+      "models": [
+        {
+          "size": "052",
+          "indoor": "AJ052BNMDEG/EU",
+          "cooling_kW": 5.2,
+          "heating_kW": 5.6,
+          "dimensions_mm": "900x199x440",
+          "weight_kg": 18.9,
+          "liquid_mm": 6.35,
+          "gas_mm": 12.7,
+          "price_EUR": 1001
+        }
+      ]
+    }
+  },
+  "indoor_units_console": {
+    "Console_Parapetna": {
+      "category": "Parapetná jednotka",
+      "key_features": [
+        "Ionizér (SPi)",
+        "Hĺbka iba 199 mm",
+        "Infračervený ovládač v balení"
+      ],
+      "models": [
+        {
+          "size": "026",
+          "indoor": "AJ026TNJDKG/EU",
+          "cooling_kW": 2.6,
+          "heating_kW": 2.9,
+          "dimensions_mm": "720x620x199",
+          "weight_kg": 15.7,
+          "liquid_mm": 6.35,
+          "gas_mm": 9.52,
+          "price_EUR": 729
+        },
+        {
+          "size": "035",
+          "indoor": "AJ035TNJDKG/EU",
+          "cooling_kW": 3.5,
+          "heating_kW": 3.8,
+          "dimensions_mm": "720x620x199",
+          "weight_kg": 15.7,
+          "liquid_mm": 6.35,
+          "gas_mm": 9.52,
+          "price_EUR": 811
+        },
+        {
+          "size": "052",
+          "indoor": "AJ052TNJDKG/EU",
+          "cooling_kW": 5.2,
+          "heating_kW": 5.6,
+          "dimensions_mm": "720x620x199",
+          "weight_kg": 15.7,
+          "liquid_mm": 6.35,
+          "gas_mm": 12.7,
+          "price_EUR": 965
+        }
+      ]
+    }
+  },
+  "fjm_combination_table": {
+    "description": "Povolené kombinácie vnútorná-vonkajšia jednotka. \"•\" = povolené, \"-\" = nepovolené.",
+    "AJ040TXJ2KG_4_0kW": {
+      "max_units": 2,
+      "allowed_indoor_kW": {
+        "WindFree_Premiere_Plus_Premiere": [
+          2.0,
+          2.5,
+          3.5
+        ],
+        "WindFree_Avant_S2_W_B": [
+          2.0,
+          2.5,
+          3.5
+        ],
+        "WindFree_Comfort_S2": [
+          2.0,
+          2.5,
+          3.5
+        ],
+        "Cebu_S2_Luzon_S2": [
+          2.0,
+          2.5,
+          3.5
+        ],
+        "WindFree_1_Way_Cassette": [
+          2.6,
+          3.5
+        ],
+        "Console": [
+          2.5,
+          3.5
+        ]
+      }
+    },
+    "AJ050TXJ2KG_5_0kW": {
+      "max_units": 2,
+      "allowed_indoor_kW": {
+        "WindFree_Premiere_Plus_Premiere": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "WindFree_Avant_S2_W_B": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "WindFree_Comfort_S2": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "Cebu_S2_Luzon_S2": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "WindFree_Mini_4_Way": [
+          1.6,
+          2.0,
+          2.6,
+          3.5
+        ],
+        "WindFree_1_Way_Cassette": [
+          2.6,
+          3.5
+        ],
+        "Duct": [
+          2.6,
+          3.5
+        ],
+        "Console": [
+          2.5,
+          3.5,
+          5.2
+        ]
+      }
+    },
+    "AJ052TXJ3KG_5_2kW": {
+      "max_units": 3,
+      "allowed_indoor_kW": {
+        "WindFree_Premiere_Plus_Premiere": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "WindFree_Avant_S2_W_B": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "WindFree_Comfort_S2": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "Cebu_S2_Luzon_S2": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "WindFree_Mini_4_Way": [
+          1.6,
+          2.0,
+          2.6,
+          3.5
+        ],
+        "WindFree_1_Way_Cassette": [
+          2.6,
+          3.5
+        ],
+        "Duct": [
+          2.6,
+          3.5
+        ],
+        "Console": [
+          2.5,
+          3.5,
+          5.2
+        ]
+      }
+    },
+    "AJ068TXJ3KG_6_8kW": {
+      "max_units": 3,
+      "allowed_indoor_kW": {
+        "WindFree_Premiere_Plus_Premiere": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "WindFree_Avant_S2_W_B": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "WindFree_Comfort_S2": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "Cebu_S2_Luzon_S2": [
+          2.0,
+          2.5,
+          3.5,
+          5.0
+        ],
+        "WindFree_Mini_4_Way": [
+          1.6,
+          2.0,
+          2.6,
+          3.5,
+          5.2
+        ],
+        "WindFree_1_Way_Cassette": [
+          2.6,
+          3.5
+        ],
+        "Duct": [
+          2.6,
+          3.5,
+          5.2
+        ],
+        "Console": "NEPOVOLENÉ"
+      }
+    },
+    "AJ080TXJ4KG_8_0kW": {
+      "max_units": 4,
+      "allowed_indoor_kW": {
+        "WindFree_Premiere_Plus_Premiere": [
+          2.0,
+          2.5,
+          3.5,
+          5.0,
+          6.5
+        ],
+        "WindFree_Avant_S2_W_B": [
+          2.0,
+          2.5,
+          3.5,
+          5.0,
+          6.5
+        ],
+        "WindFree_Comfort_S2": [
+          2.0,
+          2.5,
+          3.5,
+          5.0,
+          6.5
+        ],
+        "Cebu_S2_Luzon_S2": [
+          2.0,
+          2.5,
+          3.5,
+          5.0,
+          6.5
+        ],
+        "WindFree_Mini_4_Way": [
+          1.6,
+          2.0,
+          2.6,
+          3.5,
+          5.2
+        ],
+        "WindFree_1_Way_Cassette": [
+          2.6,
+          3.5
+        ],
+        "Duct": [
+          2.6,
+          3.5,
+          5.2
+        ],
+        "Console": "NEPOVOLENÉ"
+      }
+    },
+    "AJ100TXJ5KG_10_0kW": {
+      "max_units": 5,
+      "allowed_indoor_kW": {
+        "WindFree_Premiere_Plus_Premiere": [
+          2.0,
+          2.5,
+          3.5,
+          5.0,
+          6.5
+        ],
+        "WindFree_Avant_S2_W_B": [
+          2.0,
+          2.5,
+          3.5,
+          5.0,
+          6.5
+        ],
+        "WindFree_Comfort_S2": [
+          2.0,
+          2.5,
+          3.5,
+          5.0,
+          6.5
+        ],
+        "Cebu_S2_Luzon_S2": [
+          2.0,
+          2.5,
+          3.5,
+          5.0,
+          6.5
+        ],
+        "WindFree_Mini_4_Way": [
+          1.6,
+          2.0,
+          2.6,
+          3.5,
+          5.2
+        ],
+        "WindFree_1_Way_Cassette": [
+          2.6,
+          3.5
+        ],
+        "Duct": [
+          2.6,
+          3.5,
+          5.2
+        ],
+        "Console": "NEPOVOLENÉ"
+      }
+    }
+  }
+}

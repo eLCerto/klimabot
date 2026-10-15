@@ -1,0 +1,464 @@
+{
+  "metadata": {
+    "category": "Toshiba RAS Príslušenstvo",
+    "category_full": "Príslušenstvo a možnosti ovládania pre Single-Split a Multi-Split RAS",
+    "source": "Toshiba Productcatalog_2026-2027_SK_FINAL.pdf (str. 32-33)",
+    "validity": "1.4.2026 – 31.3.2027",
+    "currency": "EUR (TOSHIBA / AIR-COND International, bez DPH)",
+    "compatibility_legend": {
+      "Single": "Single-Split (1 vnút. + 1 vonk.)",
+      "Multi": "Multi-Split (2-5 vnút. + 1 vonk.)"
+    }
+  },
+  "remote_controls": {
+    "description": "Diaľkové ovládače pre nástenné a parapetné jednotky.",
+    "items": [
+      {
+        "code": "RB-RXS33-E",
+        "type": "Infračervené diaľkové ovládanie",
+        "feature": "Týždenný časovač + 8°C ochrana proti mrazu",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "for": "SEIYA Classic 2, SEIYA, SHORAI, HAORI, DAISEIKAI 10, Parapetná",
+        "complimentary_functions": "týždenný časovač, One Touch, Eco Mode, Comfort Sleep, Hi Power, Power Select, 8°C ochrana proti mrazu",
+        "price_EUR": 105,
+        "note": "Najuniverzálnejší IR ovládač; v balení Single-Split súpravy je IR ovládač zadarmo, RXS33 je rozšírený model"
+      },
+      {
+        "code": "RB-RXS34-E",
+        "type": "Dizajnové infračervené ovládanie",
+        "feature": "Čierne, magnetický držiak",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "price_EUR": 120
+      },
+      {
+        "code": "RB-RWS21-E",
+        "type": "Káblové diaľkové ovládanie",
+        "feature": "Veľký podsvietený displej, týždenný časovač, Quiet Mode, Eco Mode, HI POWER",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "for": "Kanálové jednotky RAS",
+        "price_EUR": 330
+      }
+    ]
+  },
+  "cassette_remote_controls": {
+    "description": "Diaľkové ovládače pre kazetové jednotky (Multi-Split FLAT, 60x60 Slim).",
+    "items": [
+      {
+        "code": "RBC-ASCU32Y-E",
+        "type": "Kompaktné káblové diaľkové ovládanie",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "kazety",
+        "price_EUR": 100
+      },
+      {
+        "code": "RBC-AMSU52-E",
+        "type": "Komfortné káblové diaľkové ovládanie PLUS",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "kazety",
+        "price_EUR": 205
+      },
+      {
+        "code": "RBC-AWSU52-E",
+        "type": "Komfortné káblové diaľkové ovládanie PLUS BT",
+        "feature": "Bluetooth",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "kazety",
+        "price_EUR": 225
+      },
+      {
+        "code": "RBC-AX33UYP-E",
+        "type": "IR diaľkové + súprava prijímača",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "1-cestná kazetová jednotka FLAT",
+        "price_EUR": 80
+      },
+      {
+        "code": "RBC-AXU31UMP-E",
+        "type": "IR diaľkové + prijímač WHITE",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "60x60 Slim kazeta",
+        "price_EUR": 170
+      },
+      {
+        "code": "RBC-AXU31UMPB-E",
+        "type": "IR diaľkové + prijímač BLACK",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "60x60 Slim kazeta",
+        "price_EUR": 190
+      }
+    ]
+  },
+  "wifi_modules": {
+    "description": "WiFi moduly pre vzdialené ovládanie cez aplikáciu Toshiba Home AC Control.",
+    "items": [
+      {
+        "code": "RB-N105S-G",
+        "type": "TOSHIBA Home AC Control – bezkáblové WiFi",
+        "feature": "Cloud TOSHIBA, app iOS/Android, hlasové ovládanie cez Google Assistant/Amazon Alexa",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "for": "Seiya Classic 2, Seiya (kde nie je WiFi v štandarde)",
+        "price_EUR": 115
+      },
+      {
+        "code": "RB-N106S-G",
+        "type": "TOSHIBA Home AC Control – káblové WiFi",
+        "feature": "Cloud TOSHIBA, app iOS/Android, hlasové ovládanie",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "for": "Parapetná jednotka",
+        "price_EUR": 120
+      },
+      {
+        "code": "BMS-IWF0010UCP-E",
+        "type": "WiFi rozhranie pre smartfón/tablet",
+        "feature": "Energy Monitoring pre RAS 4-/1-way kazety, RAV DI-Classic/DI/DI-BIG/SDI 1-Ph; až 16 zariadení (skupina); čítanie chybových kódov; vyžaduje internet/intranet",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "1-cestná kazeta FLAT a 60x60 Slim S4MUVG-E (bez skupín). Kompatibilný so všetkými vnútornými jednotkami s konektorom A/B.",
+        "price_EUR": 180
+      }
+    ]
+  },
+  "filters": {
+    "description": "Filtračné pásiky a špeciálne filtre pre vnútorné jednotky.",
+    "items": [
+      {
+        "code": "818F0036",
+        "type": "Filtračný pásik IAQ",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "for": "Nástenné, Parapetná",
+        "price_EUR": 50
+      },
+      {
+        "code": "818F0023",
+        "type": "Pásik s aktívnym karbón-katechínovým filtrom",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "for": "Nástenné, Parapetná",
+        "price_EUR": 30
+      },
+      {
+        "code": "818F0050",
+        "type": "Filtračné pásiky Ultra Pure 2.5",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "for": "SHORAI CURVE, HAORI, DAISEIKAI 10",
+        "price_EUR": 10
+      },
+      {
+        "code": "818F0072",
+        "type": "Filtračné pásiky Ultra Fresh",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "for": "Nástenné, Parapetná",
+        "price_EUR": 35
+      },
+      {
+        "code": "TCB-EAPC1UYHP-E",
+        "type": "Plazma Pure Filter - sada",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "1-cestná kazeta FLAT",
+        "price_EUR": 300
+      },
+      {
+        "code": "43H80030",
+        "type": "Vzduchový filter (servisná výmena)",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "Kanálová veľkosti 10+13",
+        "price_EUR": 120
+      },
+      {
+        "code": "43H80038",
+        "type": "Lišta (prvotná montáž)",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "Kanálová veľkosti 10+13",
+        "price_EUR": 75
+      },
+      {
+        "code": "43H80036",
+        "type": "Vzduchový filter (servisná výmena)",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "Kanálová veľkosť 16",
+        "price_EUR": 135
+      },
+      {
+        "code": "43H80039",
+        "type": "Lišta (prvá montáž)",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "Kanálová veľkosť 16",
+        "price_EUR": 75
+      },
+      {
+        "code": "43H80037",
+        "type": "Vzduchový filter (servisná výmena)",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "Kanálová veľkosti 22+24",
+        "price_EUR": 145
+      },
+      {
+        "code": "43H80040",
+        "type": "Lišta (prvá montáž)",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "Kanálová veľkosti 22+24",
+        "price_EUR": 90
+      }
+    ]
+  },
+  "panels": {
+    "description": "Dekoračné panely pre kazetové jednotky – NUTNÉ pre prevádzku.",
+    "items": [
+      {
+        "code": "RBC-UM21P-E",
+        "type": "Panel WHITE",
+        "for": "60x60 Slim kazeta",
+        "compatibility": [
+          "Multi"
+        ],
+        "price_EUR": 410
+      },
+      {
+        "code": "RBC-UM21PB-E",
+        "type": "Panel BLACK",
+        "for": "60x60 Slim kazeta",
+        "compatibility": [
+          "Multi"
+        ],
+        "price_EUR": 430
+      },
+      {
+        "code": "RBC-UY32P-E",
+        "type": "Panel small chassis (990 mm)",
+        "for": "1-cestná kazeta FLAT veľkosti 5/10/13",
+        "compatibility": [
+          "Multi"
+        ],
+        "price_EUR": 555
+      },
+      {
+        "code": "RBC-UY42P-E",
+        "type": "Panel big chassis (1180 mm)",
+        "for": "1-cestná kazeta FLAT veľkosti 16/24",
+        "compatibility": [
+          "Multi"
+        ],
+        "price_EUR": 580
+      }
+    ]
+  },
+  "haori_textile_covers": {
+    "description": "Textilné kryty pre HAORI Single-Split a Multi-Split. Dark Gray a Light Gray sú v dodávke; ostatné voliteľné.",
+    "items": [
+      {
+        "code": "RB-I4101-E",
+        "color": "Dark Gray",
+        "included_in_set": true,
+        "price_EUR": 0
+      },
+      {
+        "code": "RB-I4102-E",
+        "color": "Light Gray",
+        "included_in_set": true,
+        "price_EUR": 0
+      },
+      {
+        "code": "RB-I4103-E",
+        "color": "Bluish Gray",
+        "price_EUR": 125
+      },
+      {
+        "code": "RB-I4104-E",
+        "color": "Gray Beige",
+        "price_EUR": 125
+      },
+      {
+        "code": "RB-I4105-E",
+        "color": "Dark Brown",
+        "price_EUR": 125
+      },
+      {
+        "code": "RB-I4106-E",
+        "color": "Emerald Blue",
+        "price_EUR": 125
+      }
+    ]
+  },
+  "sensors_and_external_modules": {
+    "description": "Senzory pohybu, prítomnosti, detekcia netesností, externé ovládacie moduly.",
+    "items": [
+      {
+        "code": "TCB-SIR41UMP-E",
+        "type": "Sada snímačov prítomnosti WHITE",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "60x60 Slim kazeta",
+        "price_EUR": 120
+      },
+      {
+        "code": "TCB-SIR41UYP-E",
+        "type": "Súprava snímača pohybu",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "1-cestná kazeta FLAT",
+        "price_EUR": 120
+      },
+      {
+        "code": "RB-I301-E",
+        "type": "Senzor detekcie netesností",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "for": "Parapetná jednotka J2FVG-E (modely RAS-B10/13/18J2FVG-E1)",
+        "price_EUR": 255
+      },
+      {
+        "code": "TCB-IFCB5-PE",
+        "type": "Doska plošných spojov",
+        "feature": "Externé zapnutie/vypnutie + okenný kontaktný modul, bezpotenciálový kontakt, vzdialený ON/OFF",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "price_EUR": 80
+      },
+      {
+        "code": "TCB-PX100-PE",
+        "type": "Teleso na externú montáž",
+        "feature": "Pre okenný kontaktný modul nástenných jednotiek",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "price_EUR": 95
+      },
+      {
+        "code": "TCB-PX40MUME",
+        "type": "Montážne teleso",
+        "feature": "Pre dosku externého riadenia, rozhranie TCC-Link, doska okenného kontaktu",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "60x60 Slim kazeta, 4-cestná štandardná kazeta, smart kazeta",
+        "price_EUR": 135
+      },
+      {
+        "code": "TCB-FF101URE2",
+        "type": "Príruba s hrdlom",
+        "feature": "Prípojka čerstvého vzduchu Ø 100 mm",
+        "compatibility": [
+          "Multi"
+        ],
+        "price_EUR": 80
+      },
+      {
+        "code": "TCB-DUCEX10M",
+        "type": "Predlžovací kábel",
+        "feature": "Pre IR prijímač, 10 m",
+        "compatibility": [
+          "Multi"
+        ],
+        "for": "Kanálová jednotka",
+        "price_EUR": 120
+      }
+    ]
+  },
+  "bms_central_management": {
+    "description": "Rozhranie pre integráciu RAS jednotiek do centrálneho riadenia / BMS.",
+    "items": [
+      {
+        "code": "TCB-SSRL011UUP-E",
+        "type": "Rozhranie RAS → centrálne riadenie / BMS",
+        "feature": "Integrácia do systému centrálneho riadenia VRF, kompatibilné s protokolmi TCC-link a TU2C-link (Uh alebo U3/U4); správa všetkých funkcií vnútornej jednotky pomocou centrálnych ovládačov alebo CNS",
+        "compatibility": [
+          "Single",
+          "Multi"
+        ],
+        "for": "Aktuálne vnútorné jednotky SEIYA, HAORI, SHORAI, DAISEIKAI, CONSOLE (UART)",
+        "price_EUR": 230
+      },
+      {
+        "code": "BMS-IFKX0UEW-E",
+        "type": "KNX brána (R32)",
+        "feature": "Skupinové riadenie až 8 jednotiek",
+        "compatibility": [
+          "RAS R32",
+          "RAV"
+        ],
+        "price_EUR": 770
+      },
+      {
+        "code": "BMS-IFMB0UEW-E",
+        "type": "Modbus brána (R32)",
+        "feature": "Skupinové riadenie až 8 jednotiek",
+        "compatibility": [
+          "RAS R32",
+          "RAV"
+        ],
+        "price_EUR": 640
+      }
+    ]
+  },
+  "pricing_quick_reference": {
+    "cheapest_remote_optional": "RB-RXS33-E – 105 € (univerzálny IR + týždenný časovač + 8°C ochrana)",
+    "cheapest_wifi": "RB-N105S-G – 115 € (Seiya Classic 2 / Seiya)",
+    "wired_remote_for_duct": "RB-RWS21-E – 330 €",
+    "cheapest_cassette_remote": "RBC-ASCU32Y-E – 100 € (kompaktné káblové)",
+    "cheapest_panel": "RBC-UM21P-E – 410 € (60x60 Slim WHITE)",
+    "most_expensive_panel": "RBC-UY42P-E – 580 € (1-cestná FLAT big chassis)",
+    "leak_detection": "RB-I301-E – 255 € (parapetná J2FVG-E)",
+    "BMS_integration": "TCB-SSRL011UUP-E – 230 €",
+    "external_OnOff": "TCB-IFCB5-PE – 80 €"
+  }
+}

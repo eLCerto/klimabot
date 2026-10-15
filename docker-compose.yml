@@ -1,0 +1,53 @@
+# docker compose up -d --build   → http://127.0.0.1:7860   (README → Docker)
+# On a server, COMPOSE_PROFILES=https and KLIMABOT_DOMAIN in .env also start Caddy with HTTPS.
+services:
+  klimabot:
+    build: .
+    image: klimabot
+    # ANTHROPIC_API_KEY, SMTP_*, LEAD_MAIL_TO, COMPANY_*, KLIMABOT_* limits.
+    env_file: .env
+    environment:
+      # Fixed for the container, whatever .env says for local runs.
+      HOST: 0.0.0.0
+      PORT: "7860"
+      KLIMABOT_DATA_DIR: /data
+      # One proxy in front (Caddy below, or another one on this host); without it every visitor
+      # would share the proxy's address and its per-network limits. Safe without a proxy too:
+      # the port is published on this host only. 2 if a CDN proxies in front of Caddy.
+      KLIMABOT_TRUSTED_PROXIES: ${KLIMABOT_TRUSTED_PROXIES:-1}
+    ports:
+      - "127.0.0.1:7860:7860"   # this host only: the internet comes in through Caddy
+    volumes:
+      - klimabot-data:/data      # logs, leads, sessions, the spend and mail ledgers
+    # Shutdown e-mails the leads of open conversations; give it time before SIGKILL.
+    stop_grace_period: 60s
+    restart: unless-stopped
+
+  # HTTPS for a server (README → Docker → On a server). Started only with the "https" profile.
+  caddy:
+    image: caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+    profiles: [https]
+    depends_on: [klimabot]
+    environment:
+      KLIMABOT_DOMAIN: ${KLIMABOT_DOMAIN:-}
+    # Without a domain, stop with a clear message instead of a Caddyfile parse error.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        test -n "$$KLIMABOT_DOMAIN" || { echo "Set KLIMABOT_DOMAIN in .env" >&2; exit 1; };
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    ports:
+      - "80:80"         # Let's Encrypt challenge and the redirect to HTTPS
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data         # certificates: keep them, or Let's Encrypt rate-limits re-issuing
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  klimabot-data:
+  caddy-data:
+  caddy-config:

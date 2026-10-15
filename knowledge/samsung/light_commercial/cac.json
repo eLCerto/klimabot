@@ -1,0 +1,1990 @@
+{
+  "metadata": {
+    "category": "CAC",
+    "category_full": "Commercial Air Conditioner – Komerčný Split",
+    "source": "Cenník Samsung Chladenie 2026, 1. vydanie (© Samsung Electronics Air Conditioner Europe B.V.) (str. 23-44)",
+    "validity": "od 1.1.2026",
+    "currency": "EUR (MOC bez DPH)",
+    "refrigerant": "R32 (väčšina) / R410a (HSP Duct, Floor Standing AC100/140 BNPDKH)",
+    "operating_range_R32": {
+      "cooling_C": "-15/+50 (AC026/035: -15/+46)",
+      "heating_C": "-20/+24"
+    },
+    "operating_range_R32_HighEE": {
+      "cooling_C": "-20/+52",
+      "heating_C": "-25/+24"
+    },
+    "operating_range_R410a": {
+      "cooling_C": "-15/+50 (AC100-140), -20/+50 (AC200-250)",
+      "heating_C": "-20/+24"
+    },
+    "model_code_logic": {
+      "AC___RN1": "1-Way Cassette",
+      "AC___RNN/BNN": "Mini 4-Way Cassette (BNN = HighEE)",
+      "AC___RN4/BN4": "4-Way Cassette / 360 Cassette (BN4/BN6 = HighEE)",
+      "AC___TNX": "WindFree QMD Wallmounted",
+      "AC___RNT/BNT": "Wallmounted Max",
+      "AC___BNA": "WindFree QMD Wallmounted HighEE",
+      "AC___RNJ": "Console (parapetná)",
+      "AC___RNL/BNL": "LSP Slim Duct",
+      "AC___RNM/BNM": "MSP Duct",
+      "AC___KNH": "HSP Duct (R410a, AC200/250)",
+      "AC___RNC/BNC": "Ceiling (podstropná)",
+      "AC___BNP": "Floor Standing (skriňová)",
+      "AC___RXAD": "Vonkajšia jednotka R32 (KG=1f, NG=3f)",
+      "AC___BXAP": "Vonkajšia jednotka R32 HighEE",
+      "AC___BXPDKH": "Vonkajšia jednotka R410a (Floor Standing, AHU)",
+      "AC___KXAPNH": "Vonkajšia jednotka R410a 3f (AC200/250)"
+    }
+  },
+  "outdoor_units_R32": {
+    "description": "Komerčné vonkajšie jednotky R32. Používajú sa pre väčšinu CAC vnútorných jednotiek.",
+    "models": [
+      {
+        "model": "AC026RXADKG/EU",
+        "cooling_kW": 2.6,
+        "heating_kW": 3.3,
+        "dimensions_mm": "790x548x285",
+        "weight_kg": 32.5,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 20,
+        "max_height_m": 15,
+        "factory_charge_kg": 0.9,
+        "fuse": "16A",
+        "max_current_A": 11.0,
+        "sound_dB": 46,
+        "AHU_volume_dm3": "0,500-0,800",
+        "price_EUR": 1156
+      },
+      {
+        "model": "AC035RXADKG/EU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "dimensions_mm": "790x548x285",
+        "weight_kg": 32.5,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 20,
+        "max_height_m": 15,
+        "factory_charge_kg": 0.9,
+        "fuse": "16A",
+        "max_current_A": 11.0,
+        "sound_dB": 48,
+        "AHU_volume_dm3": "0,670-1,140",
+        "price_EUR": 1285
+      },
+      {
+        "model": "AC052RXADKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "dimensions_mm": "880x638x310",
+        "weight_kg": 43.0,
+        "liquid_mm": 6.35,
+        "gas_mm": 12.7,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 30,
+        "max_height_m": 20,
+        "factory_charge_kg": 1.2,
+        "fuse": "20A",
+        "max_current_A": 17.5,
+        "sound_dB": 48,
+        "AHU_volume_dm3": "0,750-1,230",
+        "price_EUR": 1513
+      },
+      {
+        "model": "AC071RXADKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "dimensions_mm": "880x798x310",
+        "weight_kg": 51.0,
+        "liquid_mm": 6.35,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 50,
+        "max_height_m": 30,
+        "factory_charge_kg": 1.7,
+        "fuse": "20A",
+        "max_current_A": 17.5,
+        "sound_dB": 49,
+        "AHU_volume_dm3": "0,990-1,230",
+        "price_EUR": 1960
+      },
+      {
+        "model": "AC100RXADKG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "dimensions_mm": "940x998x330",
+        "weight_kg": 72.0,
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 50,
+        "max_height_m": 30,
+        "factory_charge_kg": 2.7,
+        "fuse": "25A",
+        "max_current_A": 25.0,
+        "sound_dB": 52,
+        "AHU_volume_dm3": "1,640-2,830",
+        "price_EUR": 2652
+      },
+      {
+        "model": "AC100RXADNG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "dimensions_mm": "940x998x330",
+        "weight_kg": 72.0,
+        "supply": "3f/380-415/50",
+        "fuse": "16A",
+        "max_current_A": 17.1,
+        "sound_dB": 52,
+        "price_EUR": 2784,
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "max_pipe_m": 50,
+        "max_height_m": 30,
+        "factory_charge_kg": 2.7,
+        "AHU_volume_dm3": "1,640-2,830"
+      },
+      {
+        "model": "AC120RXADKG/EU",
+        "cooling_kW": 12.0,
+        "heating_kW": 13.2,
+        "dimensions_mm": "940x998x330",
+        "weight_kg": 77.0,
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 50,
+        "max_height_m": 30,
+        "factory_charge_kg": 2.7,
+        "fuse": "25A",
+        "max_current_A": 25.0,
+        "sound_dB": 54,
+        "AHU_volume_dm3": "1,640-2,830",
+        "price_EUR": 2922
+      },
+      {
+        "model": "AC120RXADNG/EU",
+        "cooling_kW": 12.0,
+        "heating_kW": 13.2,
+        "weight_kg": 77.0,
+        "supply": "3f/380-415/50",
+        "fuse": "16A",
+        "sound_dB": 54,
+        "price_EUR": 3067,
+        "dimensions_mm": "940x998x330",
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "max_pipe_m": 50,
+        "max_height_m": 30,
+        "factory_charge_kg": 2.7,
+        "AHU_volume_dm3": "1,640-2,830",
+        "max_current_A": 17.1
+      },
+      {
+        "model": "AC140RXADKG/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.5,
+        "dimensions_mm": "940x1210x330",
+        "weight_kg": 87.0,
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 75,
+        "max_height_m": 30,
+        "factory_charge_kg": 2.9,
+        "fuse": "32A",
+        "max_current_A": 33.0,
+        "sound_dB": 53,
+        "AHU_volume_dm3": "2,170-2,830",
+        "price_EUR": 2998
+      },
+      {
+        "model": "AC140RXADNG/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.5,
+        "weight_kg": 87.0,
+        "supply": "3f/380-415/50",
+        "fuse": "16A",
+        "sound_dB": 53,
+        "price_EUR": 3148,
+        "dimensions_mm": "940x1210x330",
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "max_pipe_m": 75,
+        "max_height_m": 30,
+        "factory_charge_kg": 2.9,
+        "AHU_volume_dm3": "2,170-2,830",
+        "max_current_A": 17.1
+      }
+    ]
+  },
+  "outdoor_units_R32_HighEE": {
+    "description": "Vysoko-účinné R32 vonkajšie jednotky (HighEE). Pracovný rozsah chladenia -20/+52°C, vykurovania -25/+24°C, vnútorná teplota vyk. od 8°C.",
+    "models": [
+      {
+        "model": "AC026BXAPKG/EU",
+        "cooling_kW": 2.6,
+        "heating_kW": 3.4,
+        "dimensions_mm": "880x638x310",
+        "weight_kg": 43.0,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 30,
+        "max_height_m": 20,
+        "factory_charge_kg": 1.2,
+        "fuse": "16A",
+        "max_current_A": 12.5,
+        "sound_dB": 45,
+        "AHU_volume_dm3": "0,740-1,000",
+        "price_EUR": 1587
+      },
+      {
+        "model": "AC035BXAPKG/EU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "dimensions_mm": "880x638x310",
+        "weight_kg": 43.0,
+        "liquid_mm": 6.35,
+        "gas_mm": 9.52,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 30,
+        "max_height_m": 20,
+        "factory_charge_kg": 1.2,
+        "fuse": "16A",
+        "max_current_A": 12.5,
+        "sound_dB": 46,
+        "AHU_volume_dm3": "0,740-1,140",
+        "price_EUR": 1764
+      },
+      {
+        "model": "AC052BXAPKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "dimensions_mm": "880x798x310",
+        "weight_kg": 50.0,
+        "liquid_mm": 6.35,
+        "gas_mm": 12.7,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 50,
+        "max_height_m": 30,
+        "factory_charge_kg": 1.7,
+        "fuse": "20A",
+        "max_current_A": 17.5,
+        "sound_dB": 47,
+        "AHU_volume_dm3": "1,000-1,650",
+        "price_EUR": 2071
+      },
+      {
+        "model": "AC071BXAPKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "dimensions_mm": "940x998x330",
+        "weight_kg": 75.0,
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 55,
+        "max_height_m": 30,
+        "factory_charge_kg": 2.7,
+        "fuse": "25A",
+        "max_current_A": 21.5,
+        "sound_dB": 47,
+        "AHU_volume_dm3": "1,750-2,400",
+        "price_EUR": 2654
+      },
+      {
+        "model": "AC071BXAPNG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "weight_kg": 74.0,
+        "supply": "3f/380-415/50",
+        "fuse": "20A",
+        "max_current_A": 17.6,
+        "sound_dB": 47,
+        "price_EUR": 2787,
+        "dimensions_mm": "940x998x330",
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "max_pipe_m": 55,
+        "max_height_m": 30,
+        "factory_charge_kg": 2.7,
+        "AHU_volume_dm3": "1,750-2,400"
+      },
+      {
+        "model": "AC100BXAPKG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "dimensions_mm": "940x1420x330",
+        "weight_kg": 100.0,
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 85,
+        "max_height_m": 30,
+        "factory_charge_kg": 3.5,
+        "fuse": "32A",
+        "max_current_A": 29.05,
+        "sound_dB": 47,
+        "AHU_volume_dm3": "2,060-2,830",
+        "price_EUR": 3561
+      },
+      {
+        "model": "AC100BXAPNG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "weight_kg": 100.0,
+        "supply": "3f/380-415/50",
+        "fuse": "20A",
+        "max_current_A": 17.6,
+        "sound_dB": 47,
+        "price_EUR": 3722,
+        "dimensions_mm": "940x1420x330",
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "max_pipe_m": 85,
+        "max_height_m": 30,
+        "factory_charge_kg": 3.5,
+        "AHU_volume_dm3": "2,060-2,830"
+      },
+      {
+        "model": "AC120BXAPNG/EU",
+        "cooling_kW": 12.1,
+        "heating_kW": 13.2,
+        "weight_kg": 100.0,
+        "supply": "3f/380-415/50",
+        "fuse": "20A",
+        "max_current_A": 17.6,
+        "sound_dB": 49,
+        "AHU_volume_dm3": "2,060-2,830",
+        "price_EUR": 4099,
+        "dimensions_mm": "940x1420x330",
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "max_pipe_m": 85,
+        "max_height_m": 30,
+        "factory_charge_kg": 3.5
+      },
+      {
+        "model": "AC140BXAPNG/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.5,
+        "weight_kg": 100.0,
+        "supply": "3f/380-415/50",
+        "fuse": "20A",
+        "max_current_A": 17.6,
+        "sound_dB": 50,
+        "AHU_volume_dm3": "2,060-2,830",
+        "price_EUR": 4213,
+        "dimensions_mm": "940x1420x330",
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "max_pipe_m": 85,
+        "max_height_m": 30,
+        "factory_charge_kg": 3.5
+      }
+    ]
+  },
+  "outdoor_units_R410a": {
+    "description": "R410a vonkajšie jednotky (Floor Standing, AHU, HSP Duct).",
+    "models": [
+      {
+        "model": "AC100BXPDKH/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "dimensions_mm": "940x998x330",
+        "weight_kg": 72.5,
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "supply": "1f/220-240/50",
+        "max_pipe_m": 50,
+        "max_height_m": 30,
+        "factory_charge_kg": 3.0,
+        "fuse": "30A",
+        "max_current_A": 26.5,
+        "sound_dB": 53,
+        "AHU_volume_dm3": "1,690-2,430",
+        "price_EUR": 2652,
+        "operating_range_cool_C": "-15/+50",
+        "operating_range_heat_C": "-20/+24"
+      },
+      {
+        "model": "AC140BXPDNH/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.5,
+        "dimensions_mm": "940x1210x330",
+        "weight_kg": 86.5,
+        "liquid_mm": 9.52,
+        "gas_mm": 15.88,
+        "supply": "3f/380-415/50",
+        "max_pipe_m": 75,
+        "max_height_m": 30,
+        "factory_charge_kg": 3.5,
+        "fuse": "16A",
+        "max_current_A": 18.6,
+        "sound_dB": 53,
+        "AHU_volume_dm3": "2,250-3,240",
+        "price_EUR": 3148,
+        "operating_range_cool_C": "-15/+50",
+        "operating_range_heat_C": "-20/+24"
+      },
+      {
+        "model": "AC200KXAPNH/EU",
+        "cooling_kW": 20.0,
+        "heating_kW": 23.0,
+        "dimensions_mm": "940x1630x460",
+        "weight_kg": 154.0,
+        "liquid_mm": 9.52,
+        "gas_mm": 19.0,
+        "supply": "3f/380-415/50",
+        "max_pipe_m": 75,
+        "max_height_m": 30,
+        "factory_charge_kg": 6.6,
+        "fuse": "32A",
+        "max_current_A": 25.0,
+        "sound_dB": 58,
+        "AHU_volume_dm3": "3,200-4,600",
+        "operating_range_cool_C": "-20/+50",
+        "price_EUR": 5595,
+        "operating_range_heat_C": "-20/+24"
+      },
+      {
+        "model": "AC250KXAPNH/EU",
+        "cooling_kW": 25.0,
+        "heating_kW": 27.0,
+        "dimensions_mm": "940x1630x460",
+        "weight_kg": 154.0,
+        "liquid_mm": 9.52,
+        "gas_mm": 22.22,
+        "supply": "3f/380-415/50",
+        "max_pipe_m": 75,
+        "max_height_m": 30,
+        "factory_charge_kg": 6.6,
+        "fuse": "32A",
+        "max_current_A": 25.0,
+        "sound_dB": 59,
+        "AHU_volume_dm3": "4,000-5,400",
+        "operating_range_cool_C": "-20/+50",
+        "price_EUR": 6429,
+        "operating_range_heat_C": "-20/+24"
+      }
+    ]
+  },
+  "360_Cassette": {
+    "category": "Kruhová kazeta 360°",
+    "key_features": [
+      "360° distribúcia vzduchu",
+      "Bezlamelový výfuk pomocou 3 booster ventilátorov",
+      "Vstavané čerpadlo kondenzátu - výtlačná výška 750 mm",
+      "Pre prevádzku potrebný dekoračný panel + min. 1 ovládač"
+    ],
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A+",
+    "compatible_panels": [
+      {
+        "code": "PC4NUDMAN",
+        "desc": "Štvorec biely (1000x1000x66)",
+        "price_EUR": 256
+      },
+      {
+        "code": "PC4NUNMAN",
+        "desc": "Kruh biely (Ø1050x94)",
+        "price_EUR": 256
+      },
+      {
+        "code": "PC4NBDMAN",
+        "desc": "Štvorec čierny",
+        "price_EUR": 256
+      },
+      {
+        "code": "PC4NBNMAN",
+        "desc": "Kruh čierny",
+        "price_EUR": 256
+      },
+      {
+        "code": "PC6EUCMAN",
+        "desc": "Air Purification (Ø1050x102)",
+        "price_EUR": 751
+      },
+      {
+        "code": "PC6EUXMAN",
+        "desc": "Auto Elevation (Ø1050x102)",
+        "price_EUR": 704
+      }
+    ],
+    "models": [
+      {
+        "size": "071_1f",
+        "indoor": "AC071RN4PKG/EU",
+        "outdoor": "AC071RXADKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 6.7,
+        "SCOP": 4.2,
+        "indoor_dim_mm": "947x281x947",
+        "indoor_weight_kg": 20.2,
+        "supply": "1f",
+        "indoor_price_EUR": 1299,
+        "outdoor_price_EUR": 1960
+      },
+      {
+        "size": "100_1f",
+        "indoor": "AC100RN4PKG/EU",
+        "outdoor": "AC100RXADKG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 6.8,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "947x365x947",
+        "indoor_weight_kg": 23.5,
+        "supply": "1f",
+        "indoor_price_EUR": 1392,
+        "outdoor_price_EUR": 2652
+      },
+      {
+        "size": "100_3f",
+        "indoor": "AC100RN4PKG/EU",
+        "outdoor": "AC100RXADNG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 6.8,
+        "SCOP": 4.3,
+        "supply": "3f",
+        "indoor_price_EUR": 1392,
+        "outdoor_price_EUR": 2784
+      },
+      {
+        "size": "120_1f",
+        "indoor": "AC120RN4PKG/EU",
+        "outdoor": "AC120RXADKG/EU",
+        "cooling_kW": 12.0,
+        "heating_kW": 13.0,
+        "SEER": 6.0,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "947x365x947",
+        "indoor_weight_kg": 23.5,
+        "supply": "1f",
+        "indoor_price_EUR": 1538,
+        "outdoor_price_EUR": 2922
+      },
+      {
+        "size": "120_3f",
+        "indoor": "AC120RN4PKG/EU",
+        "outdoor": "AC120RXADNG/EU",
+        "cooling_kW": 12.0,
+        "heating_kW": 13.0,
+        "SEER": 6.0,
+        "SCOP": 4.0,
+        "supply": "3f",
+        "indoor_price_EUR": 1538,
+        "outdoor_price_EUR": 3067
+      },
+      {
+        "size": "140_1f",
+        "indoor": "AC140RN4PKG/EU",
+        "outdoor": "AC140RXADKG/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.5,
+        "EER": 6.4,
+        "COP": 4.1,
+        "indoor_dim_mm": "947x365x947",
+        "indoor_weight_kg": 25.5,
+        "supply": "1f",
+        "note": "EER/COP namiesto SEER/SCOP",
+        "indoor_price_EUR": 1626,
+        "outdoor_price_EUR": 2998
+      },
+      {
+        "size": "140_3f",
+        "indoor": "AC140RN4PKG/EU",
+        "outdoor": "AC140RXADNG/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.5,
+        "EER": 6.4,
+        "COP": 4.1,
+        "supply": "3f",
+        "indoor_price_EUR": 1626,
+        "outdoor_price_EUR": 3148
+      }
+    ]
+  },
+  "360_Cassette_HighEE": {
+    "category": "Kruhová kazeta 360° s vysokou účinnosťou",
+    "key_features": [
+      "360° distribúcia vzduchu",
+      "Bezlamelový výfuk - 3 booster ventilátory",
+      "Vstavané čerpadlo kondenzátu - výtlačná výška 750 mm",
+      "Prevádzkový rozsah chladenie -20/+52°C, vykurovanie -25/+24°C",
+      "Vnútorná teplota vykurovania od 8°C"
+    ],
+    "energy_class_cooling": "A++",
+    "compatible_panels": "viď 360_Cassette + WiFi varianty (PC6NUSMANW, PC6EUSMANW...)",
+    "models": [
+      {
+        "size": "052",
+        "indoor": "AC052BN6PKG/EU",
+        "outdoor": "AC052BXAPKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "SEER": 8.3,
+        "SCOP": 4.6,
+        "indoor_dim_mm": "947x281x947",
+        "indoor_weight_kg": 20.2,
+        "supply": "1f",
+        "indoor_price_EUR": 1260,
+        "outdoor_price_EUR": 2071
+      },
+      {
+        "size": "071_1f",
+        "indoor": "AC071BN6PKG/EU",
+        "outdoor": "AC071BXAPKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 7.8,
+        "SCOP": 4.6,
+        "indoor_dim_mm": "947x365x947",
+        "indoor_weight_kg": 25.5,
+        "supply": "1f",
+        "indoor_price_EUR": 1299,
+        "outdoor_price_EUR": 2654
+      },
+      {
+        "size": "071_3f",
+        "indoor": "AC071BN6PKG/EU",
+        "outdoor": "AC071BXAPNG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 7.8,
+        "SCOP": 4.6,
+        "supply": "3f",
+        "indoor_price_EUR": 1299,
+        "outdoor_price_EUR": 2787
+      }
+    ],
+    "energy_class_heating": "A++ (AC052), A+ (AC071)"
+  },
+  "WindFree_1_Way_Cassette_CAC": {
+    "category": "1-cestná kazeta",
+    "key_features": [
+      "Dvojstupňové chladenie - WindFree™ + rýchle chladenie",
+      "Vstavané čerpadlo kondenzátu - výtlačná výška 750 mm",
+      "Vstavaný senzor teploty a vlhkosti",
+      "Pre prevádzku potrebný dekoračný panel + min. 1 ovládač"
+    ],
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A+",
+    "required_panel": {
+      "code": "PC1NWFMAN",
+      "desc": "Dekoračný panel (1198x500x35)",
+      "price_EUR": 273
+    },
+    "models": [
+      {
+        "size": "026",
+        "indoor": "AC026RN1DKG/EU",
+        "outdoor": "AC026RXADKG/EU",
+        "cooling_kW": 2.6,
+        "heating_kW": 3.4,
+        "SEER": 6.4,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "970x135x410",
+        "indoor_weight_kg": 9.2,
+        "indoor_price_EUR": 745,
+        "outdoor_price_EUR": 1156
+      },
+      {
+        "size": "035",
+        "indoor": "AC035RN1DKG/EU",
+        "outdoor": "AC035RXADKG/EU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "SEER": 6.2,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "970x135x410",
+        "indoor_weight_kg": 9.2,
+        "indoor_price_EUR": 782,
+        "outdoor_price_EUR": 1285
+      }
+    ]
+  },
+  "WindFree_Mini_4_Way_Cassette_CAC": {
+    "category": "Mini 4-cestná kazeta (60x60)",
+    "key_features": [
+      "Dvojstupňové chladenie - WindFree™ + rýchle chladenie",
+      "Nezávislé nastavenie jednotlivých lamiel",
+      "Vstavané čerpadlo kondenzátu - výtlačná výška 750 mm",
+      "Vstavaný senzor teploty a vlhkosti"
+    ],
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A+ alebo A",
+    "required_panel": {
+      "code": "PC4SUFMAN",
+      "desc": "Dekoračný panel (620x620x57)",
+      "price_EUR": 252
+    },
+    "models": [
+      {
+        "size": "026",
+        "indoor": "AC026RNNDKG/EU",
+        "outdoor": "AC026RXADKG/EU",
+        "cooling_kW": 2.6,
+        "heating_kW": 3.4,
+        "SEER": 7.1,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "575x250x575",
+        "indoor_weight_kg": 11.5,
+        "indoor_price_EUR": 481,
+        "outdoor_price_EUR": 1156
+      },
+      {
+        "size": "035",
+        "indoor": "AC035RNNDKG/EU",
+        "outdoor": "AC035RXADKG/EU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "SEER": 7.0,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "575x250x575",
+        "indoor_weight_kg": 11.5,
+        "indoor_price_EUR": 561,
+        "outdoor_price_EUR": 1285
+      },
+      {
+        "size": "052",
+        "indoor": "AC052RNNDKG/EU",
+        "outdoor": "AC052RXADKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.5,
+        "SEER": 6.7,
+        "SCOP": 4.2,
+        "indoor_dim_mm": "575x250x575",
+        "indoor_weight_kg": 12.0,
+        "indoor_price_EUR": 664,
+        "outdoor_price_EUR": 1513
+      },
+      {
+        "size": "071",
+        "indoor": "AC071RNNDKG/EU",
+        "outdoor": "AC071RXADKG/EU",
+        "cooling_kW": 6.8,
+        "heating_kW": 7.5,
+        "SEER": 6.1,
+        "SCOP": 3.8,
+        "indoor_dim_mm": "575x250x575",
+        "indoor_weight_kg": 12.0,
+        "indoor_price_EUR": 828,
+        "outdoor_price_EUR": 1960
+      }
+    ]
+  },
+  "WindFree_Mini_4_Way_Cassette_HighEE": {
+    "category": "Mini 4-cestná kazeta (60x60) HighEE",
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A+",
+    "required_panel": {
+      "code": "PC4SUFMANW",
+      "desc": "Dekoračný panel s WiFi (620x620x57)",
+      "price_EUR": 252
+    },
+    "models": [
+      {
+        "size": "026",
+        "indoor": "AC026BNNPKG/EU",
+        "outdoor": "AC026BXAPKG/EU",
+        "cooling_kW": 2.6,
+        "heating_kW": 3.4,
+        "SEER": 7.1,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "575x250x575",
+        "indoor_weight_kg": 11.6,
+        "indoor_price_EUR": 481,
+        "outdoor_price_EUR": 1587
+      },
+      {
+        "size": "035",
+        "indoor": "AC035BNNPKG/EU",
+        "outdoor": "AC035BXAPKG/EU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "SEER": 7.2,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "575x250x575",
+        "indoor_weight_kg": 11.6,
+        "indoor_price_EUR": 561,
+        "outdoor_price_EUR": 1764
+      },
+      {
+        "size": "052",
+        "indoor": "AC052BNNPKG/EU",
+        "outdoor": "AC052BXAPKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.5,
+        "SEER": 7.0,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "575x250x575",
+        "indoor_weight_kg": 11.6,
+        "indoor_price_EUR": 664,
+        "outdoor_price_EUR": 2071
+      }
+    ]
+  },
+  "WindFree_4_Way_Cassette": {
+    "category": "4-cestná kazeta (95x95)",
+    "key_features": [
+      "Dvojstupňové chladenie - WindFree™ + rýchle chladenie",
+      "Nezávislé nastavenie jednotlivých lamiel",
+      "Vstavané čerpadlo kondenzátu - výtlačná výška 750 mm",
+      "Vstavaný senzor teploty a vlhkosti"
+    ],
+    "energy_class_cooling": "A++ (071-100), A+ (120)",
+    "compatible_panels": [
+      {
+        "code": "PC4NUFMAN",
+        "desc": "Dekoračný panel 4-Way Cassette (950x950x64)",
+        "price_EUR": 270
+      },
+      {
+        "code": "PC4NUCEAN",
+        "desc": "Air Purification (950x950x48)",
+        "price_EUR": 845
+      },
+      {
+        "code": "PC4NUXMAN",
+        "desc": "Auto Elevation (950x950x48)",
+        "price_EUR": 587
+      }
+    ],
+    "models": [
+      {
+        "size": "052",
+        "indoor": "AC052RN4DKG/EU",
+        "outdoor": "AC052RXADKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "SEER": 7.6,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "840x204x840",
+        "indoor_weight_kg": 14.5,
+        "indoor_price_EUR": 917,
+        "outdoor_price_EUR": 1513
+      },
+      {
+        "size": "071",
+        "indoor": "AC071RN4DKG/EU",
+        "outdoor": "AC071RXADKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 6.7,
+        "SCOP": 4.2,
+        "indoor_dim_mm": "840x204x840",
+        "indoor_weight_kg": 14.5,
+        "indoor_price_EUR": 942,
+        "outdoor_price_EUR": 1960
+      },
+      {
+        "size": "100_1f",
+        "indoor": "AC100RN4DKG/EU",
+        "outdoor": "AC100RXADKG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 7.0,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "840x288x840",
+        "indoor_weight_kg": 18.0,
+        "supply": "1f",
+        "indoor_price_EUR": 1009,
+        "outdoor_price_EUR": 2652
+      },
+      {
+        "size": "100_3f",
+        "indoor": "AC100RN4DKG/EU",
+        "outdoor": "AC100RXADNG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 7.0,
+        "SCOP": 4.3,
+        "supply": "3f",
+        "indoor_price_EUR": 1009,
+        "outdoor_price_EUR": 2784
+      },
+      {
+        "size": "120_1f",
+        "indoor": "AC120RN4DKG/EU",
+        "outdoor": "AC120RXADKG/EU",
+        "cooling_kW": 12.0,
+        "heating_kW": 13.0,
+        "SEER": 6.0,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "840x288x840",
+        "indoor_weight_kg": 18.0,
+        "supply": "1f",
+        "indoor_price_EUR": 1116,
+        "outdoor_price_EUR": 2922
+      },
+      {
+        "size": "120_3f",
+        "indoor": "AC120RN4DKG/EU",
+        "outdoor": "AC120RXADNG/EU",
+        "cooling_kW": 12.0,
+        "heating_kW": 13.0,
+        "SEER": 6.0,
+        "SCOP": 4.0,
+        "supply": "3f",
+        "indoor_price_EUR": 1116,
+        "outdoor_price_EUR": 3067
+      },
+      {
+        "size": "140_1f",
+        "indoor": "AC140RN4DKG/EU",
+        "outdoor": "AC140RXADKG/EU",
+        "cooling_kW": 14.0,
+        "heating_kW": 15.3,
+        "EER": 6.6,
+        "COP": 4.3,
+        "indoor_dim_mm": "840x288x840",
+        "indoor_weight_kg": 20.0,
+        "supply": "1f",
+        "indoor_price_EUR": 1181,
+        "outdoor_price_EUR": 2998
+      },
+      {
+        "size": "140_3f",
+        "indoor": "AC140RN4DKG/EU",
+        "outdoor": "AC140RXADNG/EU",
+        "cooling_kW": 14.0,
+        "heating_kW": 15.3,
+        "EER": 6.6,
+        "COP": 4.3,
+        "supply": "3f",
+        "indoor_price_EUR": 1181,
+        "outdoor_price_EUR": 3148
+      }
+    ]
+  },
+  "WindFree_4_Way_Cassette_HighEE": {
+    "category": "4-cestná kazeta HighEE",
+    "energy_class_cooling": "A+++ (071), A++ (100-140)",
+    "energy_class_heating": "A++",
+    "compatible_panels": [
+      {
+        "code": "PC4NUFMANW",
+        "desc": "Panel s WiFi",
+        "price_EUR": 270
+      },
+      {
+        "code": "PC4NBFMANW",
+        "desc": "Panel čierny s WiFi",
+        "price_EUR": 270
+      },
+      {
+        "code": "PC4NUCMANW",
+        "desc": "Air Purification s WiFi",
+        "price_EUR": 845
+      },
+      {
+        "code": "PC4NUXMANW",
+        "desc": "Auto Elevation s WiFi",
+        "price_EUR": 587
+      }
+    ],
+    "models": [
+      {
+        "size": "071_1f",
+        "indoor": "AC071BN4PKG/EU",
+        "outdoor": "AC071BXAPKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 8.5,
+        "SCOP": 4.8,
+        "indoor_dim_mm": "840x288x840",
+        "indoor_weight_kg": 21.5,
+        "supply": "1f",
+        "indoor_price_EUR": 942,
+        "outdoor_price_EUR": 2654
+      },
+      {
+        "size": "071_3f",
+        "indoor": "AC071BN4PKG/EU",
+        "outdoor": "AC071BXAPNG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 8.5,
+        "SCOP": 4.8,
+        "supply": "3f",
+        "indoor_price_EUR": 942,
+        "outdoor_price_EUR": 2787
+      },
+      {
+        "size": "100_1f",
+        "indoor": "AC100BN4PKG/EU",
+        "outdoor": "AC100BXAPKG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 8.0,
+        "SCOP": 4.8,
+        "indoor_dim_mm": "840x288x840",
+        "indoor_weight_kg": 21.5,
+        "supply": "1f",
+        "indoor_price_EUR": 1009,
+        "outdoor_price_EUR": 3561
+      },
+      {
+        "size": "100_3f",
+        "indoor": "AC100BN4PKG/EU",
+        "outdoor": "AC100BXAPNG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 8.0,
+        "SCOP": 4.8,
+        "supply": "3f",
+        "indoor_price_EUR": 1009,
+        "outdoor_price_EUR": 3722
+      },
+      {
+        "size": "140_3f",
+        "indoor": "AC140BN4PKG/EU",
+        "outdoor": "AC140BXAPNG/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.5,
+        "SEER": 8.0,
+        "SCOP": 4.7,
+        "indoor_dim_mm": "840x288x840",
+        "indoor_weight_kg": 21.5,
+        "supply": "3f",
+        "indoor_price_EUR": 1181,
+        "outdoor_price_EUR": 4213
+      }
+    ]
+  },
+  "WindFree_QMD_Wallmounted": {
+    "category": "Komerčná nástenná WindFree QMD",
+    "key_features": [
+      "Dvojstupňové chladenie - WindFree™ + rýchle chladenie",
+      "Vstavaný senzor teploty a vlhkosti",
+      "Infračervený ovládač v balení"
+    ],
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A+ alebo A",
+    "models": [
+      {
+        "size": "026",
+        "indoor": "AC026TNXDKG/EU",
+        "outdoor": "AC026RXADKG/EU",
+        "cooling_kW": 2.6,
+        "heating_kW": 3.3,
+        "SEER": 7.0,
+        "SCOP": 4.1,
+        "indoor_dim_mm": "820x299x215",
+        "indoor_weight_kg": 9.1,
+        "indoor_price_EUR": 503,
+        "outdoor_price_EUR": 1156
+      },
+      {
+        "size": "035",
+        "indoor": "AC035TNXDKG/EU",
+        "outdoor": "AC035RXADKG/EU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "SEER": 6.9,
+        "SCOP": 4.1,
+        "indoor_dim_mm": "820x299x215",
+        "indoor_weight_kg": 9.1,
+        "indoor_price_EUR": 556,
+        "outdoor_price_EUR": 1285
+      },
+      {
+        "size": "052",
+        "indoor": "AC052TNXDKG/EU",
+        "outdoor": "AC052RXADKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "SEER": 6.9,
+        "SCOP": 3.9,
+        "indoor_dim_mm": "1050x299x215",
+        "indoor_weight_kg": 11.7,
+        "indoor_price_EUR": 698,
+        "outdoor_price_EUR": 1513
+      },
+      {
+        "size": "071",
+        "indoor": "AC071TNXDKG/EU",
+        "outdoor": "AC071RXADKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 6.8,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "1050x299x215",
+        "indoor_weight_kg": 12.7,
+        "indoor_price_EUR": 810,
+        "outdoor_price_EUR": 1960
+      }
+    ]
+  },
+  "WindFree_QMD_Wallmounted_HighEE": {
+    "category": "Komerčná nástenná WindFree QMD HighEE",
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A++ (026-052), A+ (071)",
+    "models": [
+      {
+        "size": "026",
+        "indoor": "AC026BNAPKG/EU",
+        "outdoor": "AC026BXAPKG/EU",
+        "cooling_kW": 2.6,
+        "heating_kW": 3.3,
+        "SEER": 7.2,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "889x299x215",
+        "indoor_weight_kg": 10.6,
+        "indoor_price_EUR": 503,
+        "outdoor_price_EUR": 1587
+      },
+      {
+        "size": "035",
+        "indoor": "AC035BNAPKG/EU",
+        "outdoor": "AC035BXAPKG/EU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "SEER": 7.7,
+        "SCOP": 4.6,
+        "indoor_dim_mm": "889x299x215",
+        "indoor_weight_kg": 10.6,
+        "indoor_price_EUR": 556,
+        "outdoor_price_EUR": 1764
+      },
+      {
+        "size": "052",
+        "indoor": "AC052BNAPKG/EU",
+        "outdoor": "AC052BXAPKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "SEER": 7.5,
+        "SCOP": 4.6,
+        "indoor_dim_mm": "1055x299x215",
+        "indoor_weight_kg": 12.7,
+        "indoor_price_EUR": 698,
+        "outdoor_price_EUR": 2071
+      },
+      {
+        "size": "071_1f",
+        "indoor": "AC071BNAPKG/EU",
+        "outdoor": "AC071BXAPKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 7.0,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "1055x299x215",
+        "indoor_weight_kg": 12.7,
+        "supply": "1f",
+        "indoor_price_EUR": 810,
+        "outdoor_price_EUR": 2654
+      },
+      {
+        "size": "071_3f",
+        "indoor": "AC071BNAPKG/EU",
+        "outdoor": "AC071BXAPNG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 7.0,
+        "SCOP": 4.3,
+        "supply": "3f",
+        "indoor_price_EUR": 810,
+        "outdoor_price_EUR": 2787
+      }
+    ]
+  },
+  "Wallmounted_Max": {
+    "category": "Komerčná nástenná Max (vysoký výkon)",
+    "key_features": [
+      "Infračervený ovládač v balení"
+    ],
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A+",
+    "models": [
+      {
+        "size": "100_1f",
+        "indoor": "AC100RNTDKG/EU",
+        "outdoor": "AC100RXADKG/EU",
+        "cooling_kW": 9.5,
+        "heating_kW": 10.8,
+        "SEER": 5.9,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "1280x345x253",
+        "indoor_weight_kg": 18.5,
+        "supply": "1f",
+        "indoor_price_EUR": 1173,
+        "outdoor_price_EUR": 2652
+      },
+      {
+        "size": "100_3f",
+        "indoor": "AC100RNTDKG/EU",
+        "outdoor": "AC100RXADNG/EU",
+        "cooling_kW": 9.5,
+        "heating_kW": 10.8,
+        "SEER": 5.9,
+        "SCOP": 4.0,
+        "supply": "3f",
+        "indoor_price_EUR": 1173,
+        "outdoor_price_EUR": 2784
+      }
+    ]
+  },
+  "Wallmounted_Max_HighEE": {
+    "category": "Komerčná nástenná Max HighEE",
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A+",
+    "models": [
+      {
+        "size": "100_1f",
+        "indoor": "AC100BNTPKG/EU",
+        "outdoor": "AC100BXAPKG/EU",
+        "cooling_kW": 9.5,
+        "heating_kW": 10.8,
+        "SEER": 6.9,
+        "SCOP": 4.1,
+        "indoor_dim_mm": "1280x345x253",
+        "indoor_weight_kg": 18.5,
+        "supply": "1f",
+        "indoor_price_EUR": 1173,
+        "outdoor_price_EUR": 3561
+      },
+      {
+        "size": "100_3f",
+        "indoor": "AC100BNTPKG/EU",
+        "outdoor": "AC100BXAPNG/EU",
+        "cooling_kW": 9.5,
+        "heating_kW": 10.8,
+        "SEER": 6.9,
+        "SCOP": 4.1,
+        "supply": "3f",
+        "indoor_price_EUR": 1173,
+        "outdoor_price_EUR": 3722
+      }
+    ]
+  },
+  "Console_CAC": {
+    "category": "Komerčná parapetná",
+    "key_features": [
+      "Ionizér (SPi)",
+      "Hĺbka len 199 mm",
+      "Infračervený ovládač v balení"
+    ],
+    "energy_class_cooling": "A++ (026/035), A+ (052)",
+    "energy_class_heating": "A+",
+    "models": [
+      {
+        "size": "026",
+        "indoor": "AC026RNJDKG/EU",
+        "outdoor": "AC026RXADKG/EU",
+        "cooling_kW": 2.6,
+        "heating_kW": 3.5,
+        "SEER": 6.4,
+        "SCOP": 4.2,
+        "indoor_dim_mm": "720x620x199",
+        "indoor_weight_kg": 16.0,
+        "indoor_price_EUR": 634,
+        "outdoor_price_EUR": 1156
+      },
+      {
+        "size": "035",
+        "indoor": "AC035RNJDKG/EU",
+        "outdoor": "AC035RXADKG/EU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "SEER": 6.1,
+        "SCOP": 4.1,
+        "indoor_dim_mm": "720x620x199",
+        "indoor_weight_kg": 16.0,
+        "indoor_price_EUR": 785,
+        "outdoor_price_EUR": 1285
+      },
+      {
+        "size": "052",
+        "indoor": "AC052RNJDKG/EU",
+        "outdoor": "AC052RXADKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.6,
+        "SEER": 5.9,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "720x620x199",
+        "indoor_weight_kg": 16.0,
+        "indoor_price_EUR": 911,
+        "outdoor_price_EUR": 1513
+      }
+    ]
+  },
+  "LSP_Slim_Duct_CAC": {
+    "category": "Kanálová Slim",
+    "key_features": [
+      "Umývateľný filter",
+      "Nízka konštrukčná výška len 199 mm",
+      "Externý statický tlak motora ventilátora do 40 Pa",
+      "Pre prevádzku potrebný min. 1 ovládač"
+    ],
+    "energy_class_cooling": "A++ alebo A+",
+    "models": [
+      {
+        "size": "026",
+        "indoor": "AC026BNLDKG/EU",
+        "outdoor": "AC026RXADKG/EU",
+        "cooling_kW": 2.6,
+        "heating_kW": 3.3,
+        "SEER": 6.2,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "900x199x440",
+        "indoor_weight_kg": 18.2,
+        "indoor_price_EUR": 725,
+        "outdoor_price_EUR": 1156
+      },
+      {
+        "size": "035",
+        "indoor": "AC035BNLDKG/EU",
+        "outdoor": "AC035RXADKG/EU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "SEER": 6.1,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "900x199x440",
+        "indoor_weight_kg": 18.2,
+        "indoor_price_EUR": 750,
+        "outdoor_price_EUR": 1285
+      },
+      {
+        "size": "052",
+        "indoor": "AC052BNLDKG/EU",
+        "outdoor": "AC052RXADKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "SEER": 6.1,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "1100x199x440",
+        "indoor_weight_kg": 22.1,
+        "indoor_price_EUR": 785,
+        "outdoor_price_EUR": 1513
+      },
+      {
+        "size": "071",
+        "indoor": "AC071BNLDKG/EU",
+        "outdoor": "AC071RXADKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 6.0,
+        "SCOP": 3.9,
+        "indoor_dim_mm": "1100x199x440",
+        "indoor_weight_kg": 22.1,
+        "indoor_price_EUR": 829,
+        "outdoor_price_EUR": 1960
+      }
+    ],
+    "energy_class_heating": "A+ alebo A"
+  },
+  "MSP_Duct_CAC": {
+    "category": "Kanálová stredotlaková",
+    "key_features": [
+      "Umývateľný filter s dlhou životnosťou",
+      "Externý statický tlak motora ventilátora do 147 Pa",
+      "Pre prevádzku potrebný min. 1 ovládač"
+    ],
+    "energy_class_cooling": "A++ alebo A+",
+    "models": [
+      {
+        "size": "035",
+        "indoor": "AC035RNMDKG/EU",
+        "outdoor": "AC035RXADKG/EU",
+        "cooling_kW": 3.5,
+        "heating_kW": 4.0,
+        "SEER": 6.4,
+        "SCOP": 4.1,
+        "indoor_dim_mm": "850x250x700",
+        "indoor_weight_kg": 26.5,
+        "indoor_price_EUR": 739,
+        "outdoor_price_EUR": 1285
+      },
+      {
+        "size": "052",
+        "indoor": "AC052RNMDKG/EU",
+        "outdoor": "AC052RXADKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "SEER": 6.3,
+        "SCOP": 4.1,
+        "indoor_dim_mm": "850x250x700",
+        "indoor_weight_kg": 26.5,
+        "indoor_price_EUR": 771,
+        "outdoor_price_EUR": 1513
+      },
+      {
+        "size": "071",
+        "indoor": "AC071RNMDKG/EU",
+        "outdoor": "AC071RXADKG/EU",
+        "cooling_kW": 6.8,
+        "heating_kW": 8.0,
+        "SEER": 6.1,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "850x250x700",
+        "indoor_weight_kg": 26.5,
+        "indoor_price_EUR": 845,
+        "outdoor_price_EUR": 1960
+      },
+      {
+        "size": "100_1f",
+        "indoor": "AC100RNMDKG/EU",
+        "outdoor": "AC100RXADKG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 5.9,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "1200x250x700",
+        "indoor_weight_kg": 34.0,
+        "supply": "1f",
+        "indoor_price_EUR": 998,
+        "outdoor_price_EUR": 2652
+      },
+      {
+        "size": "100_3f",
+        "indoor": "AC100RNMDKG/EU",
+        "outdoor": "AC100RXADNG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 5.9,
+        "SCOP": 4.0,
+        "supply": "3f",
+        "indoor_price_EUR": 998,
+        "outdoor_price_EUR": 2784
+      },
+      {
+        "size": "120_1f",
+        "indoor": "AC120RNMDKG/EU",
+        "outdoor": "AC120RXADKG/EU",
+        "cooling_kW": 12.0,
+        "heating_kW": 13.0,
+        "SEER": 5.8,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "1300x300x700",
+        "indoor_weight_kg": 38.5,
+        "supply": "1f",
+        "indoor_price_EUR": 1071,
+        "outdoor_price_EUR": 2922
+      },
+      {
+        "size": "120_3f",
+        "indoor": "AC120RNMDKG/EU",
+        "outdoor": "AC120RXADNG/EU",
+        "cooling_kW": 12.0,
+        "heating_kW": 13.0,
+        "SEER": 5.8,
+        "SCOP": 4.0,
+        "supply": "3f",
+        "indoor_price_EUR": 1071,
+        "outdoor_price_EUR": 3067
+      },
+      {
+        "size": "140_1f",
+        "indoor": "AC140RNMDKG/EU",
+        "outdoor": "AC140RXADKG/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.5,
+        "EER": 6.0,
+        "COP": 4.0,
+        "indoor_dim_mm": "1300x300x700",
+        "indoor_weight_kg": 38.5,
+        "supply": "1f",
+        "indoor_price_EUR": 1128,
+        "outdoor_price_EUR": 2998
+      },
+      {
+        "size": "140_3f",
+        "indoor": "AC140RNMDKG/EU",
+        "outdoor": "AC140RXADNG/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.5,
+        "EER": 6.0,
+        "COP": 4.0,
+        "supply": "3f",
+        "indoor_price_EUR": 1128,
+        "outdoor_price_EUR": 3148
+      }
+    ],
+    "energy_class_heating": "A+"
+  },
+  "MSP_Duct_HighEE": {
+    "category": "Kanálová stredotlaková HighEE",
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A++ (052), A+ (071-100)",
+    "models": [
+      {
+        "size": "052",
+        "indoor": "AC052BNMPKG/EU",
+        "outdoor": "AC052BXAPKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "SEER": 7.0,
+        "SCOP": 4.6,
+        "indoor_dim_mm": "850x250x700",
+        "indoor_weight_kg": 26.5,
+        "supply": "1f",
+        "indoor_price_EUR": 771,
+        "outdoor_price_EUR": 2071
+      },
+      {
+        "size": "071_1f",
+        "indoor": "AC071BNMPKG/EU",
+        "outdoor": "AC071BXAPKG/EU",
+        "cooling_kW": 6.8,
+        "heating_kW": 8.0,
+        "SEER": 7.3,
+        "SCOP": 4.3,
+        "indoor_dim_mm": "1200x250x700",
+        "indoor_weight_kg": 34.5,
+        "supply": "1f",
+        "indoor_price_EUR": 845,
+        "outdoor_price_EUR": 2654
+      },
+      {
+        "size": "071_3f",
+        "indoor": "AC071BNMPKG/EU",
+        "outdoor": "AC071BXAPNG/EU",
+        "cooling_kW": 6.8,
+        "heating_kW": 8.0,
+        "SEER": 7.3,
+        "SCOP": 4.3,
+        "supply": "3f",
+        "indoor_price_EUR": 845,
+        "outdoor_price_EUR": 2787
+      },
+      {
+        "size": "100_1f",
+        "indoor": "AC100BNMPKG/EU",
+        "outdoor": "AC100BXAPKG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 7.6,
+        "SCOP": 4.4,
+        "indoor_dim_mm": "1300x300x700",
+        "indoor_weight_kg": 38.5,
+        "supply": "1f",
+        "indoor_price_EUR": 998,
+        "outdoor_price_EUR": 3561
+      },
+      {
+        "size": "100_3f",
+        "indoor": "AC100BNMPKG/EU",
+        "outdoor": "AC100BXAPNG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 7.6,
+        "SCOP": 4.4,
+        "supply": "3f",
+        "indoor_price_EUR": 998,
+        "outdoor_price_EUR": 3722
+      }
+    ]
+  },
+  "HSP_Duct": {
+    "category": "Kanálová vysokotlaková",
+    "refrigerant": "R410a",
+    "key_features": [
+      "Pracuje s chladivom R410a",
+      "Bez vzduchového filtra",
+      "Externý statický tlak do 200 Pa"
+    ],
+    "models": [
+      {
+        "size": "200",
+        "indoor": "AC200KNHPKH/EU",
+        "outdoor": "AC200KXAPNH/EU",
+        "cooling_kW": 20.0,
+        "heating_kW": 23.0,
+        "EER": 3.1,
+        "COP": 3.45,
+        "indoor_dim_mm": "1350x450x910",
+        "indoor_weight_kg": 82.5,
+        "indoor_supply": "1f/220-240",
+        "outdoor_supply": "3f/380-415",
+        "indoor_price_EUR": 2977,
+        "outdoor_price_EUR": 5595
+      },
+      {
+        "size": "250",
+        "indoor": "AC250KNHPKH/EU",
+        "outdoor": "AC250KXAPNH/EU",
+        "cooling_kW": 25.0,
+        "heating_kW": 27.0,
+        "EER": 2.61,
+        "COP": 3.24,
+        "indoor_dim_mm": "1350x450x910",
+        "indoor_weight_kg": 82.5,
+        "indoor_supply": "1f/220-240",
+        "outdoor_supply": "3f/380-415",
+        "indoor_price_EUR": 3425,
+        "outdoor_price_EUR": 6429
+      }
+    ]
+  },
+  "Ceiling": {
+    "category": "Podstropná",
+    "key_features": [
+      "Bez čerpadla kondenzátu",
+      "Pre prevádzku potrebný min. 1 ovládač"
+    ],
+    "energy_class_cooling": "A++ alebo A+",
+    "models": [
+      {
+        "size": "052",
+        "indoor": "AC052RNCDKG/EU",
+        "outdoor": "AC052RXADKG/EU",
+        "cooling_kW": 5.0,
+        "heating_kW": 6.0,
+        "SEER": 6.4,
+        "SCOP": 3.9,
+        "indoor_dim_mm": "1000x200x650",
+        "indoor_weight_kg": 20.0,
+        "indoor_price_EUR": 761,
+        "outdoor_price_EUR": 1513
+      },
+      {
+        "size": "071",
+        "indoor": "AC071RNCDKG/EU",
+        "outdoor": "AC071RXADKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 5.6,
+        "SCOP": 3.9,
+        "indoor_dim_mm": "1000x200x650",
+        "indoor_weight_kg": 20.0,
+        "indoor_price_EUR": 802,
+        "outdoor_price_EUR": 1960
+      },
+      {
+        "size": "100_1f",
+        "indoor": "AC100RNCDKG/EU",
+        "outdoor": "AC100RXADKG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 6.1,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "1650x235x675",
+        "indoor_weight_kg": 42.0,
+        "supply": "1f",
+        "indoor_price_EUR": 1794,
+        "outdoor_price_EUR": 2652
+      },
+      {
+        "size": "100_3f",
+        "indoor": "AC100RNCDKG/EU",
+        "outdoor": "AC100RXADNG/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 6.1,
+        "SCOP": 4.0,
+        "supply": "3f",
+        "indoor_price_EUR": 1794,
+        "outdoor_price_EUR": 2784
+      },
+      {
+        "size": "120_1f",
+        "indoor": "AC120RNCDKG/EU",
+        "outdoor": "AC120RXADKG/EU",
+        "cooling_kW": 12.0,
+        "heating_kW": 13.0,
+        "SEER": 5.9,
+        "SCOP": 4.0,
+        "indoor_dim_mm": "1650x235x675",
+        "indoor_weight_kg": 41.5,
+        "supply": "1f",
+        "indoor_price_EUR": 1984,
+        "outdoor_price_EUR": 2922
+      },
+      {
+        "size": "120_3f",
+        "indoor": "AC120RNCDKG/EU",
+        "outdoor": "AC120RXADNG/EU",
+        "cooling_kW": 12.0,
+        "heating_kW": 13.0,
+        "SEER": 5.9,
+        "SCOP": 4.0,
+        "supply": "3f",
+        "indoor_price_EUR": 1984,
+        "outdoor_price_EUR": 3067
+      },
+      {
+        "size": "140_1f",
+        "indoor": "AC140RNCDKG/EU",
+        "outdoor": "AC140RXADKG/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.3,
+        "EER": 6.1,
+        "COP": 4.0,
+        "indoor_dim_mm": "1650x235x675",
+        "indoor_weight_kg": 41.5,
+        "supply": "1f",
+        "indoor_price_EUR": 2167,
+        "outdoor_price_EUR": 2998
+      },
+      {
+        "size": "140_3f",
+        "indoor": "AC140RNCDKG/EU",
+        "outdoor": "AC140RXADNG/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.3,
+        "EER": 6.1,
+        "COP": 4.0,
+        "supply": "3f",
+        "indoor_price_EUR": 2167,
+        "outdoor_price_EUR": 3148
+      }
+    ],
+    "energy_class_heating": "A+ alebo A"
+  },
+  "Ceiling_HighEE": {
+    "category": "Podstropná HighEE",
+    "energy_class_cooling": "A++",
+    "energy_class_heating": "A+",
+    "models": [
+      {
+        "size": "071_1f",
+        "indoor": "AC071BNCPKG/EU",
+        "outdoor": "AC071BXAPKG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 7.1,
+        "SCOP": 4.4,
+        "indoor_dim_mm": "1350x235x675",
+        "indoor_weight_kg": 33.0,
+        "supply": "1f",
+        "indoor_price_EUR": 802,
+        "outdoor_price_EUR": 2654
+      },
+      {
+        "size": "071_3f",
+        "indoor": "AC071BNCPKG/EU",
+        "outdoor": "AC071BXAPNG/EU",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "SEER": 7.1,
+        "SCOP": 4.4,
+        "supply": "3f",
+        "indoor_price_EUR": 802,
+        "outdoor_price_EUR": 2787
+      }
+    ]
+  },
+  "Floor_Standing": {
+    "category": "Skriňová (Floor Standing)",
+    "refrigerant": "R410a",
+    "key_features": [
+      "Pracuje s chladivom R410a",
+      "Tichá prevádzka (30-32 dB(A) nízke otáčky ventilátora)",
+      "Long-life umývateľný filter",
+      "Funkcia auto restart",
+      "Infračervený ovládač v balení"
+    ],
+    "energy_class_cooling": "A+",
+    "models": [
+      {
+        "size": "100",
+        "indoor": "AC100BNPDKH/EU",
+        "outdoor": "AC100BXPDKH/EU",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "SEER": 5.8,
+        "SCOP": 4.1,
+        "indoor_dim_mm": "610x1850x400",
+        "indoor_weight_kg": 43.0,
+        "supply": "1f",
+        "indoor_price_EUR": 1096,
+        "outdoor_price_EUR": 2652
+      },
+      {
+        "size": "140",
+        "indoor": "AC140BNPDKH/EU",
+        "outdoor": "AC140BXPDNH/EU",
+        "cooling_kW": 13.4,
+        "heating_kW": 15.5,
+        "EER": 3.1,
+        "COP": 3.44,
+        "indoor_dim_mm": "610x1850x400",
+        "indoor_weight_kg": 44.5,
+        "supply": "3f",
+        "indoor_price_EUR": 1234,
+        "outdoor_price_EUR": 3148
+      }
+    ],
+    "energy_class_heating": "A+"
+  },
+  "AHU_Kit": {
+    "description": "Kondenzačné jednotky pre VZT (vzduchotechnické jednotky). Vonkajšia jednotka + AHU Kit (ovládač + senzory).",
+    "key_features_R32": [
+      "AHU Kit obsahuje 3 senzory (výparník IN/OUT, priestorový alebo na výfuku, 10 m)",
+      "Regulácia 0-10V na základe teploty",
+      "Pre AHU Kit sa odporúča objednať káblový ovládač"
+    ],
+    "AHU_kits": [
+      {
+        "code": "MXD-K100XN",
+        "for": "R410a (AC100/140/200/250 BXPDKH/N + KXAPNH)",
+        "dimensions_mm": "380x130x280",
+        "weight_kg": 3.3,
+        "supply": "1f/220-240/50",
+        "price_EUR": 814
+      },
+      {
+        "code": "MXD-K100XN1",
+        "for": "R32 (AC026-AC140 RXADKG/N + BXAPKG/N)",
+        "dimensions_mm": "380x130x280",
+        "weight_kg": 3.3,
+        "supply": "1f/220-240/50",
+        "price_EUR": 855
+      }
+    ]
+  },
+  "DPM_Twin_Triple_Quad": {
+    "description": "Pripojenie 2-3-4 vnútorných jednotiek na 1 vonkajšiu, ovládaných spoločným ovládačom. Vyžaduje refnet.",
+    "refnets": [
+      {
+        "code": "MXJ-2D2509K",
+        "for_units": 2,
+        "price_EUR": 157
+      },
+      {
+        "code": "MXJ-3D2509K",
+        "for_units": 3,
+        "price_EUR": 195
+      },
+      {
+        "code": "MXJ-4D2509K",
+        "for_units": 4,
+        "price_EUR": 287
+      }
+    ],
+    "combinations_R32": {
+      "AC071RXADKG/EU_7kW": {
+        "360_Cassette_7kW": [],
+        "Mini4Way_3.5kW": 2,
+        "1Way_3.5kW": 2,
+        "QMD_5kW": [],
+        "LSP_3.5kW": 2,
+        "MSP_3.5kW": 2
+      },
+      "AC100RXADKG/EU_10kW": {
+        "360_Cassette_7kW": [],
+        "Mini4Way_3.5kW": 3,
+        "Mini4Way_5kW": 2,
+        "4Way_5kW": 2,
+        "1Way_3.5kW": 3,
+        "QMD_5kW": 2,
+        "LSP_3.5kW": 3,
+        "LSP_5kW": 2,
+        "MSP_3.5kW": 3,
+        "MSP_5kW": 2,
+        "Ceiling_5kW": 2
+      },
+      "AC120RXADKG/EU_12kW": {
+        "Mini4Way_3.5kW": 4,
+        "Mini4Way_5kW": 3,
+        "4Way_5kW": 3,
+        "4Way_7kW": 2,
+        "1Way_3.5kW": 4,
+        "QMD_5kW": 3,
+        "QMD_7kW": 2,
+        "LSP_3.5kW": 4,
+        "LSP_5kW": 3,
+        "MSP_3.5kW": 4,
+        "MSP_5kW": 3,
+        "Ceiling_5kW": 3,
+        "Ceiling_7kW": 2
+      },
+      "AC140RXADKG/EU_14kW": {
+        "360_Cassette_7kW": 2,
+        "Mini4Way_3.5kW": 4,
+        "Mini4Way_5kW": 3,
+        "Mini4Way_7kW": 2,
+        "4Way_5kW": 3,
+        "4Way_7kW": 2,
+        "1Way_3.5kW": 4,
+        "QMD_5kW": 3,
+        "QMD_7kW": 2,
+        "LSP_3.5kW": 4,
+        "LSP_5kW": 3,
+        "LSP_7kW": 2,
+        "MSP_3.5kW": 4,
+        "MSP_5kW": 3,
+        "MSP_7kW": 2,
+        "Ceiling_5kW": 3,
+        "Ceiling_7kW": 2
+      },
+      "AC200KXAPNH/EU_20kW_R410a": {
+        "360_Cassette_7kW": 3,
+        "360_Cassette_10kW": 2,
+        "Mini4Way_5kW": 4,
+        "Mini4Way_7kW": 3,
+        "4Way_7kW": 3,
+        "4Way_10kW": 2,
+        "QMD_7kW": 3,
+        "QMD_10kW": 2,
+        "LSP_5kW": 4,
+        "LSP_7kW": 3,
+        "MSP_5kW": 4,
+        "MSP_7kW": 3,
+        "MSP_10kW": 2,
+        "Ceiling_7kW": 3,
+        "Ceiling_10kW": 2,
+        "Ceiling_5kW": 4
+      },
+      "AC250KXAPNH/EU_25kW_R410a": {
+        "360_Cassette_7kW": 4,
+        "360_Cassette_10kW": 2,
+        "360_Cassette_12kW": 2,
+        "Mini4Way_7kW": 4,
+        "4Way_7kW": 4,
+        "4Way_10kW": 2,
+        "4Way_12kW": 2,
+        "QMD_7kW": 4,
+        "QMD_10kW": 2,
+        "MSP_7kW": 4,
+        "MSP_10kW": 2,
+        "MSP_12kW": 2,
+        "Ceiling_10kW": 2,
+        "Ceiling_12kW": 2,
+        "Ceiling_7kW": 4,
+        "LSP_7kW": 4
+      }
+    },
+    "combinations_R32_HighEE": {
+      "AC071BXAPKG/EU_7kW_HEE": {
+        "Mini4Way_3.5kW": 2,
+        "4Way_3.5kW": 2
+      },
+      "AC100BXAPKG/EU_10kW_HEE": {
+        "360_Cassette_5kW": 2,
+        "Mini4Way_3.5kW": 3,
+        "Mini4Way_5kW": 2,
+        "4Way_3.5kW": 3,
+        "QMD_5kW": 2,
+        "MSP_5kW": 2
+      },
+      "AC120BXAPNG/EU_12kW_HEE": {
+        "360_Cassette_5kW": 3,
+        "Mini4Way_3.5kW": 4,
+        "Mini4Way_5kW": 3,
+        "QMD_5kW": 3,
+        "MSP_5kW": 3
+      },
+      "AC140BXAPNG/EU_14kW_HEE": {
+        "360_Cassette_5kW": 3,
+        "360_Cassette_7kW": 2,
+        "Mini4Way_3.5kW": 4,
+        "Mini4Way_5kW": 3,
+        "Mini4Way_7kW": 2,
+        "4Way_7kW": 2,
+        "QMD_5kW": 3,
+        "QMD_7kW": 2,
+        "MSP_5kW": 3,
+        "MSP_7kW": 2
+      }
+    }
+  }
+}

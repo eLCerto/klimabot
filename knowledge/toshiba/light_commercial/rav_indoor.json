@@ -1,0 +1,1788 @@
+{
+  "metadata": {
+    "category": "RAV Indoor Units",
+    "category_full": "Vnútorné jednotky pre Light Business / RAV systémy",
+    "source": "Toshiba Productcatalog_2026-2027_SK_FINAL.pdf (str. 80-110)",
+    "validity": "1.4.2026 – 31.3.2027",
+    "currency": "EUR (TOSHIBA / AIR-COND International, bez DPH)",
+    "common_features": [
+      "Spolupracujú s vonkajšími jednotkami DI-C, DI, SDI, DI BIG (podľa typu)",
+      "Cena setu zahŕňa základné príslušenstvo: nástenné sety obsahujú IR diaľkové ovládanie; sety s podstropnou/kazetovou/kanálovou jednotkou typicky obsahujú káblový ovládač RBC-ASCU32Y-E",
+      "Niektoré typy vyžadujú samostatný panel a/alebo diaľkové ovládanie"
+    ],
+    "model_code_logic": {
+      "RAV-HM__KRTP-E": "Nástenná jednotka",
+      "RAV-HM__CTP-E": "Podstropná jednotka",
+      "RAV-HM__MUTP-E": "60x60 Slim kazeta",
+      "RAV-HM__UT-E": "Smart kazeta (4-cestná efektívna)",
+      "RAV-HM__UTP-E": "4-cestná štandardná kazeta",
+      "RAV-HM__U1TP-E": "1-cestná kazeta FLAT",
+      "RAV-HM__SDTY-E": "Plochá kanálová jednotka",
+      "RAV-HM__BTP-E": "Štandardná kanálová jednotka",
+      "RAV-RM__DTP-E2": "Vysokotlaková kanálová jednotka (DI BIG)",
+      "RAV-HM__FT-E": "Stojanová jednotka",
+      "size_30_40": "2,5 / 3,6 kW",
+      "size_56": "5,0 kW",
+      "size_80": "6,7 / 7,1 kW",
+      "size_90": "8,0 kW",
+      "size_110": "9,5 / 10,0 kW",
+      "size_140": "12,0 / 12,5 kW",
+      "size_160": "14,0 kW",
+      "size_224_280": "19,0 / 22,5 kW (DI BIG)"
+    }
+  },
+  "wallmount": {
+    "category": "Nástenná jednotka",
+    "model_indoor_pattern": "RAV-HM__KRTP-E",
+    "key_features": [
+      "Kompaktný univerzálny model pre všetky oblasti použitia",
+      "Trieda účinnosti až A++, COP až 4,00",
+      "5-stupňový ventilátor s nízkou hlučnosťou",
+      "Špeciálne funkcie pre miestnosti so servermi: zálohovanie/striedanie, riadenie voľného chladenia",
+      "Infračervený ovládač v balení súpravy"
+    ],
+    "indoor_units": [
+      {
+        "size": 30,
+        "indoor": "RAV-HM301KRTP-E",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.4,
+        "airflow_m3h": "450/540/670",
+        "noise_cool_dB": "29/34/40",
+        "noise_heat_dB": "29/34/40",
+        "weight_kg": 10,
+        "dimensions_mm": "293 x 798 x 230",
+        "price_EUR": 600
+      },
+      {
+        "size": 40,
+        "indoor": "RAV-HM401KRTP-E",
+        "cooling_kW": 3.6,
+        "heating_kW": 4.0,
+        "airflow_m3h": "450/580/700",
+        "noise_cool_dB": "30/36/41",
+        "noise_heat_dB": "30/36/41",
+        "weight_kg": 10,
+        "dimensions_mm": "293 x 798 x 230",
+        "price_EUR": 640
+      },
+      {
+        "size": 56,
+        "indoor": "RAV-HM561KRTP-E",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.3,
+        "airflow_m3h": "680/--/960",
+        "noise_cool_dB": "35/39/42",
+        "noise_heat_dB": "35/39/42",
+        "weight_kg": 14,
+        "dimensions_mm": "320 x 1050 x 250",
+        "price_EUR": 700
+      },
+      {
+        "size": 80,
+        "indoor": "RAV-HM801KRTP-E",
+        "cooling_kW": 6.7,
+        "heating_kW": 7.7,
+        "airflow_m3h": "680/910/1040",
+        "noise_cool_dB": "35/41/45",
+        "noise_heat_dB": "35/41/45",
+        "weight_kg": 14,
+        "dimensions_mm": "320 x 1050 x 250",
+        "price_EUR": 720
+      },
+      {
+        "size": 90,
+        "indoor": "RAV-HM901KRTP-E",
+        "cooling_kW": 8.0,
+        "heating_kW": 8.6,
+        "airflow_m3h": "680/--/1180",
+        "noise_cool_dB": "35/41/47",
+        "noise_heat_dB": "35/41/47",
+        "weight_kg": 14,
+        "dimensions_mm": "320 x 1050 x 250",
+        "price_EUR": 760
+      },
+      {
+        "size": 110,
+        "indoor": "RAV-HM1101KRTP-E",
+        "cooling_kW": 9.5,
+        "heating_kW": 11.2,
+        "airflow_m3h": "1180/--/1610",
+        "noise_cool_dB": "41/45/49",
+        "noise_heat_dB": "41/45/49",
+        "weight_kg": 19,
+        "dimensions_mm": "350 x 1200 x 280",
+        "price_EUR": 900
+      }
+    ],
+    "outdoor_compatibility": {
+      "DI_C": [
+        "RAV-GV561ATP-E (set 56)",
+        "RAV-GV801ATP-E (set 80)",
+        "RAV-GV1101ATP-E (set 110)",
+        "RAV-GV1101AT8P-E (set 110 3f)"
+      ],
+      "DI": [
+        "RAV-GM302ATP-E (set 30)",
+        "RAV-GM402ATP-E (set 40)",
+        "RAV-GM562ATP-E (set 56)",
+        "RAV-GM802ATW-E (set 80)",
+        "RAV-GM902ATW-E (set 90)",
+        "RAV-GM1102ATW-E (set 110)",
+        "RAV-GM1102AT8W-E (set 110 3f)"
+      ],
+      "SDI": [
+        "RAV-GP561ATW-E (set 56)",
+        "RAV-GP801ATW-E (set 80)",
+        "RAV-GP1101AT-E (set 110)",
+        "RAV-GP1101AT8-E (set 110 3f)"
+      ]
+    },
+    "set_prices": {
+      "DI_C_56_1f": {
+        "models": "RAV-HM561KRTP-E + RAV-GV561ATP-E",
+        "set_price_EUR": 2090,
+        "SEER": 6.2,
+        "SCOP": 3.9,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A"
+      },
+      "DI_C_80_1f": {
+        "models": "RAV-HM801KRTP-E + RAV-GV801ATP-E",
+        "set_price_EUR": 2520,
+        "SEER": 5.75,
+        "SCOP": 3.9,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A"
+      },
+      "DI_C_110_1f": {
+        "models": "RAV-HM1101KRTP-E + RAV-GV1101ATP-E",
+        "set_price_EUR": 3200,
+        "SEER": 6.0,
+        "SCOP": 4.0,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      },
+      "DI_C_110_3f": {
+        "models": "RAV-HM1101KRTP-E + RAV-GV1101AT8P-E",
+        "set_price_EUR": 3560,
+        "SEER": 3.1,
+        "SCOP": 4.1,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "DI_30_1f": {
+        "models": "RAV-HM301KRTP-E + RAV-GM302ATP-E",
+        "set_price_EUR": 1870,
+        "SEER": 7.0,
+        "SCOP": 4.12,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "DI_40_1f": {
+        "models": "RAV-HM401KRTP-E + RAV-GM402ATP-E",
+        "set_price_EUR": 2190,
+        "SEER": 6.7,
+        "SCOP": 4.24,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "DI_56_1f": {
+        "models": "RAV-HM561KRTP-E + RAV-GM562ATP-E",
+        "set_price_EUR": 2550,
+        "SEER": 6.69,
+        "SCOP": 4.02,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "DI_80_1f": {
+        "models": "RAV-HM801KRTP-E + RAV-GM802ATW-E",
+        "set_price_EUR": 3170,
+        "SEER": 6.6,
+        "SCOP": 4.05,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "DI_90_1f": {
+        "models": "RAV-HM901KRTP-E + RAV-GM902ATW-E",
+        "set_price_EUR": 3440,
+        "SEER": 6.6,
+        "SCOP": 4.1,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "DI_110_1f": {
+        "models": "RAV-HM1101KRTP-E + RAV-GM1102ATW-E",
+        "set_price_EUR": 4200,
+        "SEER": 6.4,
+        "SCOP": 4.2,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "DI_110_3f": {
+        "models": "RAV-HM1101KRTP-E + RAV-GM1102AT8W-E",
+        "set_price_EUR": 4680,
+        "SEER": 6.1,
+        "SCOP": 4.2,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "SDI_56_1f": {
+        "models": "RAV-HM561KRTP-E + RAV-GP561ATW-E",
+        "set_price_EUR": 2900,
+        "SEER": 7.84,
+        "SCOP": 4.19,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "SDI_80_1f": {
+        "models": "RAV-HM801KRTP-E + RAV-GP801ATW-E",
+        "set_price_EUR": 3560,
+        "SEER": 7.56,
+        "SCOP": 4.16,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "SDI_110_1f": {
+        "models": "RAV-HM1101KRTP-E + RAV-GP1101AT-E",
+        "set_price_EUR": 5200,
+        "SEER": 7.36,
+        "SCOP": 4.42,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "SDI_110_3f": {
+        "models": "RAV-HM1101KRTP-E + RAV-GP1101AT8-E",
+        "set_price_EUR": 5110,
+        "SEER": 6.53,
+        "SCOP": 4.22,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      }
+    }
+  },
+  "ceiling": {
+    "category": "Podstropná jednotka",
+    "model_indoor_pattern": "RAV-HM__CTP-E",
+    "key_features": [
+      "Atraktívny dizajn s optimálnym rozvádzaním vzduchu",
+      "Trieda účinnosti až A+++",
+      "Veľké vzdialenosti dofuku",
+      "Špeciálne funkcie pre miestnosti so servermi: zálohovanie/striedanie",
+      "Cena setu vrátane RBC-ASCU32Y-E (kompaktné káblové ovládanie)"
+    ],
+    "required_remote_in_set": "RBC-ASCU32Y-E",
+    "indoor_units": [
+      {
+        "size": 40,
+        "indoor": "RAV-HM401CTP-E",
+        "cooling_kW": 3.6,
+        "heating_kW": 4.0,
+        "airflow_m3h": "540/720/900",
+        "noise_cool_dB": "28/35/37",
+        "weight_kg": 23,
+        "dimensions_mm": "235 x 950 x 690",
+        "price_EUR": 1150,
+        "noise_heat_dB": "28/35/37"
+      },
+      {
+        "size": 56,
+        "indoor": "RAV-HM561CTP-E",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.3,
+        "airflow_m3h": "540/720/900",
+        "noise_cool_dB": "28/35/37",
+        "weight_kg": 23,
+        "dimensions_mm": "235 x 950 x 690",
+        "price_EUR": 1220,
+        "noise_heat_dB": "28/35/37"
+      },
+      {
+        "size": 80,
+        "indoor": "RAV-HM801CTP-E",
+        "cooling_kW": 6.9,
+        "heating_kW": 7.7,
+        "airflow_m3h": "750/1000/1410",
+        "noise_cool_dB": "29/36/41",
+        "weight_kg": 29,
+        "dimensions_mm": "235 x 1270 x 690",
+        "price_EUR": 1380,
+        "noise_heat_dB": "29/36/41"
+      },
+      {
+        "size": 90,
+        "indoor": "RAV-HM901CTP-E",
+        "cooling_kW": 8.0,
+        "heating_kW": 8.6,
+        "airflow_m3h": "900/--/1600",
+        "noise_cool_dB": "30/38/42",
+        "weight_kg": 37,
+        "dimensions_mm": "235 x 1586 x 690",
+        "price_EUR": 1470,
+        "noise_heat_dB": "30/38/42"
+      },
+      {
+        "size": 110,
+        "indoor": "RAV-HM1101CTP-E",
+        "cooling_kW": 9.5,
+        "heating_kW": 11.2,
+        "airflow_m3h": "1020/1350/1860",
+        "noise_cool_dB": "32/38/44",
+        "weight_kg": 37,
+        "dimensions_mm": "235 x 1586 x 690",
+        "price_EUR": 1560,
+        "noise_heat_dB": "32/38/44"
+      },
+      {
+        "size": 140,
+        "indoor": "RAV-HM1401CTP-E",
+        "cooling_kW": 12.1,
+        "heating_kW": 13.0,
+        "airflow_m3h": "1200/1530/2040",
+        "noise_cool_dB": "35/41/46",
+        "weight_kg": 37,
+        "dimensions_mm": "235 x 1586 x 690",
+        "price_EUR": 1740,
+        "noise_heat_dB": "35/41/46"
+      },
+      {
+        "size": 160,
+        "indoor": "RAV-HM1601CTP-E",
+        "cooling_kW": 14.0,
+        "heating_kW": 16.0,
+        "airflow_m3h": "1200/1650/2040",
+        "noise_cool_dB": "36/42/46",
+        "weight_kg": 37,
+        "dimensions_mm": "235 x 1586 x 690",
+        "price_EUR": 1840,
+        "noise_heat_dB": "36/42/46"
+      }
+    ],
+    "outdoor_compatibility": [
+      "DI",
+      "SDI",
+      "DI BIG (160)"
+    ],
+    "set_prices_DI_1f": {
+      "size_40": {
+        "models": "RAV-HM401CTP-E + RAV-GM402ATP-E",
+        "set_price_EUR": 2800,
+        "SEER": 7.2,
+        "SCOP": 5.13,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+++"
+      },
+      "size_56": {
+        "models": "RAV-HM561CTP-E + RAV-GM562ATP-E",
+        "set_price_EUR": 3170,
+        "SEER": 6.0,
+        "SCOP": 4.34,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      },
+      "size_80": {
+        "models": "RAV-HM801CTP-E + RAV-GM802ATW-E",
+        "set_price_EUR": 3930,
+        "SEER": 7.03,
+        "SCOP": 4.48,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_90": {
+        "models": "RAV-HM901CTP-E + RAV-GM902ATW-E",
+        "set_price_EUR": 4250,
+        "SEER": 7.0,
+        "SCOP": 4.6,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_110": {
+        "models": "RAV-HM1101CTP-E + RAV-GM1102ATW-E",
+        "set_price_EUR": 4960,
+        "SEER": 7.0,
+        "SCOP": 4.3,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "models": "RAV-HM1401CTP-E + RAV-GM1402ATW-E",
+        "set_price_EUR": 5400
+      },
+      "size_160": {
+        "models": "RAV-HM1601CTP-E + RAV-GM1602ATW-E",
+        "set_price_EUR": 6190
+      }
+    },
+    "set_prices_DI_3f": {
+      "size_110": {
+        "models": "RAV-HM1101CTP-E + RAV-GM1102AT8W-E",
+        "set_price_EUR": 5440,
+        "SEER": 6.46,
+        "SCOP": 4.29,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "models": "RAV-HM1401CTP-E + RAV-GM1402AT8W-E",
+        "set_price_EUR": 5940
+      },
+      "size_160": {
+        "models": "RAV-HM1601CTP-E + RAV-GM1602AT8W-E",
+        "set_price_EUR": 6720
+      }
+    },
+    "set_prices_SDI_1f": {
+      "size_56": {
+        "models": "RAV-HM561CTP-E + RAV-GP561ATW-E",
+        "set_price_EUR": 3520,
+        "SEER": 6.93,
+        "SCOP": 4.73,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_80": {
+        "models": "RAV-HM801CTP-E + RAV-GP801ATW-E",
+        "set_price_EUR": 4320,
+        "SEER": 8.35,
+        "SCOP": 5.1,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_110": {
+        "models": "RAV-HM1101CTP-E + RAV-GP1101AT-E",
+        "set_price_EUR": 5960,
+        "SEER": 8.58,
+        "SCOP": 4.75,
+        "energy_class_cool": "A+++",
+        "energy_class_heat": "A++"
+      },
+      "size_140": {
+        "models": "RAV-HM1401CTP-E + RAV-GP1401AT-E1",
+        "set_price_EUR": 6590
+      }
+    },
+    "set_prices_SDI_3f": {
+      "size_110": {
+        "models": "RAV-HM1101CTP-E + RAV-GP1101AT8-E",
+        "set_price_EUR": 5870,
+        "SEER": 6.8,
+        "SCOP": 4.23,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "models": "RAV-HM1401CTP-E + RAV-GP1401AT8-E1",
+        "set_price_EUR": 6240
+      },
+      "size_160": {
+        "models": "RAV-HM1601CTP-E + RAV-GP1601AT8-E",
+        "set_price_EUR": 6920
+      }
+    },
+    "compatible_accessories": [
+      "RBC-ASCU32Y-E",
+      "RBC-AXU31C-E",
+      "RBC-AMSU52-E",
+      "TCB-DP31CE",
+      "TCB-KP14CPE",
+      "TCB-KP24CPE",
+      "TCB-PCUC2E",
+      "TCB-FF101URE2"
+    ]
+  },
+  "60x60_slim_cassette": {
+    "category": "60x60 Slim kazeta",
+    "model_indoor_pattern": "RAV-HM__MUTP-E",
+    "key_features": [
+      "Rozvádzanie vzduchu v rozsahu 360° v euro mriežke",
+      "Konštrukčná výška od 256 mm",
+      "Trieda účinnosti až A++",
+      "Voliteľný senzor prítomnosti osôb (TCB-SIR41UMP-E)",
+      "Integrované kondenzátové čerpadlo (850 mm)",
+      "Pripravené na externý prívod čerstvého vzduchu",
+      "POVINNÉ: diaľkové ovládanie + dekoračný panel"
+    ],
+    "required_panels": [
+      {
+        "code": "RBC-UM21P-E",
+        "desc": "Panel WHITE 60x60 Slim",
+        "price_EUR": 410
+      },
+      {
+        "code": "RBC-UM21PB-E",
+        "desc": "Panel BLACK 60x60 Slim",
+        "price_EUR": 430
+      }
+    ],
+    "indoor_units": [
+      {
+        "size": 30,
+        "indoor": "RAV-HM301MUTP-E",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.4,
+        "airflow_m3h": "440/520/640",
+        "noise_cool_dB": "30/36/38",
+        "weight_kg": 15,
+        "dimensions_mm": "256 x 575 x 575",
+        "price_EUR": 1265
+      },
+      {
+        "size": 40,
+        "indoor": "RAV-HM401MUTP-E",
+        "cooling_kW": 3.6,
+        "heating_kW": 4.0,
+        "airflow_m3h": "468/552/660",
+        "noise_cool_dB": "32/36/41",
+        "weight_kg": 15,
+        "dimensions_mm": "256 x 575 x 575",
+        "price_EUR": 1310
+      },
+      {
+        "size": 56,
+        "indoor": "RAV-HM561MUTP-E",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.3,
+        "airflow_m3h": "780/870/1050",
+        "noise_cool_dB": "28/29/32",
+        "weight_kg": 20,
+        "dimensions_mm": "256 x 840 x 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 4.2,
+        "price_EUR": 1330
+      }
+    ],
+    "outdoor_compatibility": [
+      "DI (30, 40, 56)",
+      "SDI (56)"
+    ],
+    "set_prices_DI_1f": {
+      "size_30": {
+        "models": "RAV-HM301MUTP-E + RAV-GM302ATP-E + RBC-ASCU32Y-E + RBC-UM21P-E",
+        "set_price_EUR": 3045,
+        "SEER": 6.86,
+        "SCOP": 4.73,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_40": {
+        "models": "RAV-HM401MUTP-E + RAV-GM402ATP-E + RBC-ASCU32Y-E + RBC-UM21P-E",
+        "set_price_EUR": 3370,
+        "SEER": 6.7,
+        "SCOP": 4.46,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_56": {
+        "models": "RAV-HM561MUTP-E + RAV-GM562ATP-E + RBC-ASCU32Y-E + RBC-UM21P-E",
+        "set_price_EUR": 3690,
+        "SEER": 6.84,
+        "SCOP": 4.62,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      }
+    },
+    "set_prices_SDI_1f": {
+      "size_56": {
+        "models": "RAV-HM561MUTP-E + RAV-GP561ATW-E + RBC-ASCU32Y-E + RBC-UM21P-E",
+        "set_price_EUR": 4040,
+        "SEER": 7.73,
+        "SCOP": 4.98,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      }
+    }
+  },
+  "smart_cassette": {
+    "category": "Smart kazeta",
+    "model_indoor_pattern": "RAV-HM__UT-E",
+    "key_features": [
+      "4-cestná jednotka s vysoko efektívnym dizajnom pre vysoké výkony",
+      "Trieda účinnosti až A++",
+      "Voliteľný senzor prítomnosti osôb (TCB-SIR41U-E)",
+      "Integrované kondenzátové čerpadlo (850 mm)",
+      "Pripravené na externý prívod čerstvého vzduchu",
+      "Nejde o skladový tovar – dodacia lehota na dopyt",
+      "POVINNÉ: diaľkové ovládanie + dekoračný panel"
+    ],
+    "required_panel": {
+      "code": "RBC-U41PG(W)-E",
+      "desc": "Panel pre Smart kazetu",
+      "price_EUR": 430
+    },
+    "indoor_units": [
+      {
+        "size": 56,
+        "indoor": "RAV-HM561UT-E",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.6,
+        "airflow_m3h": "750/900/1050",
+        "noise_cool_dB": "26/29/32",
+        "weight_kg": 20,
+        "dimensions_mm": "256 x 840 x 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 5,
+        "price_EUR": 1270
+      },
+      {
+        "size": 80,
+        "indoor": "RAV-HM801UT-E",
+        "cooling_kW": 7.1,
+        "heating_kW": 8.0,
+        "airflow_m3h": "810/1290/1920",
+        "noise_cool_dB": "27/35/42",
+        "weight_kg": 25,
+        "dimensions_mm": "319 x 840 x 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 5,
+        "price_EUR": 1580
+      },
+      {
+        "size": 110,
+        "indoor": "RAV-HM1101UT-E",
+        "cooling_kW": 10.0,
+        "heating_kW": 11.2,
+        "airflow_m3h": "1050/1650/2250",
+        "noise_cool_dB": "31/40/48",
+        "weight_kg": 25,
+        "dimensions_mm": "319 × 840 × 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 5,
+        "price_EUR": 1795
+      },
+      {
+        "size": 140,
+        "indoor": "RAV-HM1401UT-E",
+        "cooling_kW": 12.5,
+        "heating_kW": 14.0,
+        "airflow_m3h": "1170/1710/2250",
+        "noise_cool_dB": "33/41/48",
+        "weight_kg": 25,
+        "dimensions_mm": "319 × 840 × 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 5,
+        "price_EUR": 2015
+      }
+    ],
+    "outdoor_compatibility": [
+      "SDI"
+    ],
+    "set_prices_SDI_1f": {
+      "size_56": {
+        "models": "RAV-HM561UT-E + RAV-GP561ATW-E + RBC-ASCU32Y-E + RBC-U41PG(W)-E",
+        "set_price_EUR": 4000,
+        "SEER": 8.17,
+        "SCOP": 5.02,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_80": {
+        "models": "RAV-HM801UT-E + RAV-GP801ATW-E + RBC-ASCU32Y-E + RBC-U41PG(W)-E",
+        "set_price_EUR": 4950,
+        "SEER": 9.72,
+        "SCOP": 5.54,
+        "energy_class_cool": "A+++",
+        "energy_class_heat": "A+++"
+      },
+      "size_110": {
+        "models": "RAV-HM1101UT-E + RAV-GP1101AT-E + RBC-ASCU32Y-E + RBC-U41PG(W)-E",
+        "set_price_EUR": 6625,
+        "SEER": 9.25,
+        "SCOP": 5.03
+      },
+      "size_140": {
+        "models": "RAV-HM1401UT-E + RAV-GP1401AT-E1 + RBC-ASCU32Y-E + RBC-U41PG(W)-E",
+        "set_price_EUR": 7295,
+        "SEER": 8.87,
+        "SCOP": 5.0
+      }
+    },
+    "compatible_accessories": [
+      "RBC-ASCU32Y-E",
+      "RBC-AXU41U-E",
+      "TCB-SIR41U-E",
+      "TCB-GFC1603UE",
+      "TCB-SP1603UE",
+      "TCB-BC1603UE",
+      "TCB-FF101URE2",
+      "TCB-PCUC2E"
+    ]
+  },
+  "4_way_standard_cassette": {
+    "category": "4-cestná štandardná kazetová jednotka",
+    "model_indoor_pattern": "RAV-HM__UTP-E",
+    "key_features": [
+      "Rozvádzanie vzduchu v rozsahu 360° alebo priamy prúd vzduchu",
+      "Trieda účinnosti až A++",
+      "Integrované kondenzátové čerpadlo (850 mm)",
+      "Pripravené na externý prívod čerstvého vzduchu",
+      "POVINNÉ: diaľkové ovládanie + dekoračný panel"
+    ],
+    "required_panels": [
+      {
+        "code": "RBC-U32PGP-E",
+        "desc": "Panel na široký prúd vzduchu",
+        "price_EUR": 360
+      },
+      {
+        "code": "RBC-U33P-E",
+        "desc": "Panel FLAT WHITE",
+        "price_EUR": 360
+      },
+      {
+        "code": "RBC-U33PB-E",
+        "desc": "Panel FLAT BLACK",
+        "price_EUR": 380
+      }
+    ],
+    "indoor_units": [
+      {
+        "size": 56,
+        "indoor": "RAV-HM561UTP-E",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.3,
+        "airflow_m3h": "780/870/1050",
+        "noise_cool_dB": "28/29/32",
+        "weight_kg": 20,
+        "dimensions_mm": "256 x 840 x 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 4.2,
+        "price_EUR": 1100
+      },
+      {
+        "size": 80,
+        "indoor": "RAV-HM801UTP-E",
+        "cooling_kW": 6.7,
+        "heating_kW": 7.7,
+        "airflow_m3h": "810/960/1230",
+        "noise_cool_dB": "28/31/35",
+        "weight_kg": 20,
+        "dimensions_mm": "256 × 840 × 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 4.2,
+        "price_EUR": 1260
+      },
+      {
+        "size": 90,
+        "indoor": "RAV-HM901UTP-E",
+        "cooling_kW": 8.0,
+        "heating_kW": 8.6,
+        "airflow_m3h": "900/--/1600",
+        "noise_cool_dB": "33/36/40",
+        "weight_kg": 24,
+        "dimensions_mm": "319 x 840 x 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 4.2,
+        "price_EUR": 1350
+      },
+      {
+        "size": 110,
+        "indoor": "RAV-HM1101UTP-E",
+        "cooling_kW": 9.5,
+        "heating_kW": 11.2,
+        "airflow_m3h": "1170/1440/2010",
+        "noise_cool_dB": "33/38/43",
+        "weight_kg": 24,
+        "dimensions_mm": "319 x 840 x 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 4.2,
+        "price_EUR": 1550
+      },
+      {
+        "size": 140,
+        "indoor": "RAV-HM1401UTP-E",
+        "cooling_kW": 12.1,
+        "heating_kW": 13.0,
+        "airflow_m3h": "1230/1440/2100",
+        "noise_cool_dB": "34/38/44",
+        "weight_kg": 24,
+        "dimensions_mm": "319 × 840 × 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 4.2,
+        "price_EUR": 1730
+      },
+      {
+        "size": 160,
+        "indoor": "RAV-HM1601UTP-E",
+        "cooling_kW": 14.0,
+        "heating_kW": 16.0,
+        "airflow_m3h": "1260/1500/2130",
+        "noise_cool_dB": "36/40/45",
+        "weight_kg": 24,
+        "dimensions_mm": "319 x 840 x 840",
+        "panel_dim_mm": "30 x 950 x 950",
+        "panel_weight_kg": 4.2,
+        "price_EUR": 1950
+      }
+    ],
+    "outdoor_compatibility": [
+      "DI-C",
+      "DI",
+      "SDI",
+      "DI BIG (160)"
+    ],
+    "set_prices_DI_C_1f": {
+      "size_56": {
+        "models": "RAV-HM561UTP-E + RAV-GV561ATP-E + RBC-ASCU32Y-E + RBC-U32PGP-E",
+        "set_price_EUR": 2950,
+        "SEER": 6.2,
+        "SCOP": 4.2,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_80": {
+        "models": "RAV-HM801UTP-E + RAV-GV801ATP-E + RBC-ASCU32Y-E + RBC-U32PGP-E",
+        "set_price_EUR": 3520,
+        "SEER": 5.81,
+        "SCOP": 4.42,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      },
+      "size_110": {
+        "models": "RAV-HM1101UTP-E + RAV-GV1101ATP-E + RBC-ASCU32Y-E + RBC-U32PGP-E",
+        "set_price_EUR": 4310,
+        "SEER": 6.0,
+        "SCOP": 4.0,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "models": "RAV-HM1401UTP-E + RAV-GV1401ATP-E + RBC-ASCU32Y-E + RBC-U32PGP-E",
+        "set_price_EUR": 4800,
+        "SEER": 5.1,
+        "SCOP": 3.9
+      },
+      "size_160": {
+        "models": "RAV-HM1601UTP-E + RAV-GV1601ATP-E1 + RBC-ASCU32Y-E + RBC-U32PGP-E",
+        "set_price_EUR": 5800,
+        "SEER": 5.9,
+        "SCOP": 4.2
+      }
+    },
+    "set_prices_DI_C_3f": {
+      "size_110": {
+        "models": "RAV-HM1101UTP-E + RAV-GV1101AT8P-E + RBC-ASCU32Y-E + RBC-U32PGP-E",
+        "set_price_EUR": 4670,
+        "SEER": 6.2,
+        "SCOP": 4.1,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "models": "RAV-HM1401UTP-E + RAV-GV1401AT8P-E + RBC-ASCU32Y-E + RBC-U32PGP-E",
+        "set_price_EUR": 5060
+      },
+      "size_160": {
+        "models": "RAV-HM1601UTP-E + RAV-GV1601AT8P-E1 + RBC-ASCU32Y-E + RBC-U32PGP-E",
+        "set_price_EUR": 6360,
+        "SEER": 6.3,
+        "SCOP": 4.35
+      }
+    },
+    "set_prices_DI_1f": {
+      "size_56": {
+        "set_price_EUR": 3410,
+        "SEER": 6.84,
+        "SCOP": 4.62,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_80": {
+        "set_price_EUR": 4170,
+        "SEER": 7.5,
+        "SCOP": 4.6,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_90": {
+        "set_price_EUR": 4490,
+        "SEER": 7.5,
+        "SCOP": 4.6,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_110": {
+        "set_price_EUR": 5310,
+        "SEER": 7.5,
+        "SCOP": 4.4,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_140": {
+        "set_price_EUR": 5750
+      },
+      "size_160": {
+        "set_price_EUR": 6660
+      }
+    },
+    "set_prices_DI_3f": {
+      "size_110": {
+        "set_price_EUR": 5790,
+        "SEER": 7.15,
+        "SCOP": 4.29,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "set_price_EUR": 6290
+      },
+      "size_160": {
+        "set_price_EUR": 7190
+      }
+    },
+    "set_prices_SDI_1f": {
+      "size_56": {
+        "set_price_EUR": 3760,
+        "SEER": 7.73,
+        "SCOP": 4.98,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_80": {
+        "set_price_EUR": 4560,
+        "SEER": 8.96,
+        "SCOP": 5.24,
+        "energy_class_cool": "A+++",
+        "energy_class_heat": "A+++"
+      },
+      "size_110": {
+        "set_price_EUR": 6310,
+        "SEER": 9.0,
+        "SCOP": 4.76,
+        "energy_class_cool": "A+++",
+        "energy_class_heat": "A++"
+      },
+      "size_140": {
+        "set_price_EUR": 6940
+      }
+    },
+    "set_prices_SDI_3f": {
+      "size_110": {
+        "set_price_EUR": 6220,
+        "SEER": 7.32,
+        "SCOP": 4.38,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "set_price_EUR": 6590
+      },
+      "size_160": {
+        "set_price_EUR": 7390
+      }
+    },
+    "compatible_accessories": [
+      "RBC-ASCU32Y-E",
+      "RBC-AXU31U-E",
+      "RBC-AXU33UP-E",
+      "RBC-AXU33UPB-E",
+      "TCB-FF101URE2",
+      "TCB-PLFC1UPE",
+      "TCB-SIR33UP-E",
+      "TCB-EAPC1UHP-E",
+      "TCB-EABC1UHP-E",
+      "TCB-ADCN510UP-E"
+    ]
+  },
+  "1_way_cassette_FLAT": {
+    "category": "1-cestná kazetová jednotka FLAT",
+    "model_indoor_pattern": "RAV-HM__U1TP-E",
+    "key_features": [
+      "Rozvádzanie vzduchu v 1 smere bez prievanu",
+      "Ultra-plochý 30 mm dizajnový panel",
+      "Voliteľný senzor prítomnosti (TCB-SIR41UYP-E)",
+      "Voliteľný plazmový filter s ionizátorom (TCB-EAPC1UYHP-E)",
+      "Najmenšia konštrukčná výška od 150 mm",
+      "Integrované kondenzátové čerpadlo",
+      "POVINNÉ: diaľkové ovládanie + dekoračný panel"
+    ],
+    "required_panel": {
+      "code": "RBC-UY32P-E",
+      "desc": "Panel pre small chassis (990 mm)",
+      "price_EUR": 555
+    },
+    "indoor_units": [
+      {
+        "size": 30,
+        "indoor": "RAV-HM301U1TP-E",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.4,
+        "airflow_m3h": "310/--/520",
+        "noise_cool_dB": "30/35/39",
+        "weight_kg": 13,
+        "dimensions_mm": "150 x 990 x 450",
+        "panel_dim_mm": "30 x 1220 x 530",
+        "panel_weight_kg": 4,
+        "price_EUR": 1400
+      },
+      {
+        "size": 40,
+        "indoor": "RAV-HM401U1TP-E",
+        "cooling_kW": 3.6,
+        "heating_kW": 4.0,
+        "airflow_m3h": "290/--/540",
+        "noise_cool_dB": "30/36/40",
+        "weight_kg": 13,
+        "dimensions_mm": "150 x 990 x 450",
+        "panel_dim_mm": "30 x 1220 x 530",
+        "panel_weight_kg": 4,
+        "price_EUR": 1440
+      }
+    ],
+    "outdoor_compatibility": [
+      "DI"
+    ],
+    "set_prices_DI_1f": {
+      "size_30": {
+        "models": "RAV-HM301U1TP-E + RAV-GM302ATP-E + RBC-ASCU32Y + RBC-UY32P-E",
+        "set_price_EUR": 3325,
+        "SEER": 6.2,
+        "SCOP": 4.1,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_40": {
+        "models": "RAV-HM401U1TP-E + RAV-GM402ATP-E + RBC-ASCU32Y + RBC-UY32P-E",
+        "set_price_EUR": 3645,
+        "SEER": 6.0,
+        "SCOP": 4.0,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      }
+    },
+    "compatible_accessories": [
+      "RBC-UY32P-E",
+      "RBC-AX33UYP-E",
+      "TCB-EAPC1UYHP-E",
+      "TCB-SIR41UYP-E"
+    ]
+  },
+  "flat_duct": {
+    "category": "Plochá kanálová jednotka",
+    "model_indoor_pattern": "RAV-HM__SDTY-E",
+    "key_features": [
+      "Najmenšia konštrukčná výška od 210 mm",
+      "Trieda účinnosti až A++, integrovaný vzduchový filter",
+      "Externý statický tlak 10/50 Pa",
+      "Integrované kondenzátové čerpadlo (850 mm)",
+      "Pripravené na externý prívod čerstvého vzduchu"
+    ],
+    "indoor_units": [
+      {
+        "size": 30,
+        "indoor": "RAV-HM301SDTY-E",
+        "cooling_kW": 2.5,
+        "heating_kW": 3.4,
+        "airflow_m3h": "420/--/570",
+        "ESP_Pa": "10/50",
+        "noise_cool_dB": "26/29/32",
+        "weight_kg": 15,
+        "dimensions_mm": "210 x 700 x 450",
+        "price_EUR": 1110
+      },
+      {
+        "size": 40,
+        "indoor": "RAV-HM401SDTY-E",
+        "cooling_kW": 3.6,
+        "heating_kW": 4.0,
+        "airflow_m3h": "440/--/600",
+        "ESP_Pa": "10/50",
+        "noise_cool_dB": "27/30/33",
+        "weight_kg": 15,
+        "dimensions_mm": "210 x 700 x 450",
+        "price_EUR": 1140
+      },
+      {
+        "size": 56,
+        "indoor": "RAV-HM561SDTY-E",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.3,
+        "airflow_m3h": "650/--/780",
+        "ESP_Pa": "10/50",
+        "noise_cool_dB": "29/32/34",
+        "weight_kg": 19,
+        "dimensions_mm": "210 x 900 x 450",
+        "price_EUR": 1200
+      },
+      {
+        "size": 80,
+        "indoor": "RAV-HM801SDTY-E",
+        "cooling_kW": 6.7,
+        "heating_kW": 7.7,
+        "airflow_m3h": "910/--/1140",
+        "ESP_Pa": "10/50",
+        "noise_cool_dB": "32/34/37",
+        "weight_kg": 22,
+        "dimensions_mm": "210 x 1100 x 450",
+        "price_EUR": 1250
+      }
+    ],
+    "outdoor_compatibility": [
+      "DI"
+    ],
+    "set_prices_DI_1f": {
+      "size_30": {
+        "models": "RAV-HM301SDTY-E + RAV-GM302ATP-E + RBC-ASCU32Y-E",
+        "set_price_EUR": 2480,
+        "SEER": 6.41,
+        "SCOP": 4.35,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_40": {
+        "models": "RAV-HM401SDTY-E + RAV-GM402ATP-E + RBC-ASCU32Y-E",
+        "set_price_EUR": 2790,
+        "SEER": 6.03,
+        "SCOP": 4.0,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      },
+      "size_56": {
+        "models": "RAV-HM561SDTY-E + RAV-GM562ATP-E + RBC-ASCU32Y-E",
+        "set_price_EUR": 3150,
+        "SEER": 5.8,
+        "SCOP": 4.0,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      },
+      "size_80": {
+        "models": "RAV-HM801SDTY-E + RAV-GM802ATW-E + RBC-ASCU32Y-E",
+        "set_price_EUR": 3800,
+        "SEER": 5.63,
+        "SCOP": 4.0,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      }
+    },
+    "compatible_accessories": [
+      "RBC-ASCU32Y-E",
+      "RBC-AXU31-E",
+      "TCB-FF101URE2"
+    ]
+  },
+  "standard_duct": {
+    "category": "Štandardná kanálová jednotka",
+    "model_indoor_pattern": "RAV-HM__BTP-E",
+    "key_features": [
+      "Malá konštrukčná výška od 275 mm",
+      "Externý statický tlak do 120 Pa",
+      "Integrovaný vzduchový filter",
+      "Integrované kondenzátové čerpadlo (850 mm)",
+      "Pripravené na externý prívod čerstvého vzduchu"
+    ],
+    "indoor_units": [
+      {
+        "size": 56,
+        "indoor": "RAV-HM561BTP-E",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.3,
+        "airflow_m3h": "480/630/800",
+        "ESP_Pa": "30/120",
+        "noise_cool_dB": "25/29/33",
+        "weight_kg": 23,
+        "dimensions_mm": "275 x 700 x 750",
+        "price_EUR": 1240
+      },
+      {
+        "size": 80,
+        "indoor": "RAV-HM801BTP-E",
+        "cooling_kW": 6.7,
+        "heating_kW": 7.7,
+        "airflow_m3h": "750/930/1200",
+        "ESP_Pa": "30/120",
+        "noise_cool_dB": "26/30/34",
+        "weight_kg": 31,
+        "dimensions_mm": "275 x 1000 x 750",
+        "price_EUR": 1410
+      },
+      {
+        "size": 90,
+        "indoor": "RAV-HM901BTP-E",
+        "cooling_kW": 8.0,
+        "heating_kW": 8.6,
+        "airflow_m3h": "1000/--/1700",
+        "ESP_Pa": "30/120",
+        "noise_cool_dB": "30/33/37",
+        "weight_kg": 41,
+        "dimensions_mm": "275 x 1400 x 750",
+        "price_EUR": 1550
+      },
+      {
+        "size": 110,
+        "indoor": "RAV-HM1101BTP-E",
+        "cooling_kW": 9.5,
+        "heating_kW": 11.2,
+        "airflow_m3h": "1260/1650/2100",
+        "ESP_Pa": "50/120",
+        "noise_cool_dB": "33/36/40",
+        "weight_kg": 41,
+        "dimensions_mm": "275 x 1400 x 750",
+        "price_EUR": 1730
+      },
+      {
+        "size": 140,
+        "indoor": "RAV-HM1401BTP-E",
+        "cooling_kW": 12.1,
+        "heating_kW": 13.0,
+        "airflow_m3h": "1260/1650/2100",
+        "ESP_Pa": "50/120",
+        "noise_cool_dB": "33/36/40",
+        "weight_kg": 41,
+        "dimensions_mm": "275 x 1400 x 750",
+        "price_EUR": 1790
+      },
+      {
+        "size": 160,
+        "indoor": "RAV-HM1601BTP-E",
+        "cooling_kW": 14.0,
+        "heating_kW": 16.0,
+        "airflow_m3h": "1260/1650/2100",
+        "ESP_Pa": "50/120",
+        "noise_cool_dB": "33/36/40",
+        "weight_kg": 41,
+        "dimensions_mm": "275 x 1400 x 750",
+        "price_EUR": 1940
+      }
+    ],
+    "outdoor_compatibility": [
+      "DI-C",
+      "DI",
+      "SDI"
+    ],
+    "set_prices_DI_C_1f": {
+      "size_80": {
+        "set_price_EUR": 3310,
+        "SEER": 5.1,
+        "SCOP": 4.0,
+        "energy_class_cool": "A",
+        "energy_class_heat": "A+"
+      },
+      "size_110": {
+        "set_price_EUR": 4130,
+        "SEER": 5.1,
+        "SCOP": 3.8,
+        "energy_class_cool": "A",
+        "energy_class_heat": "A"
+      },
+      "size_140": {
+        "set_price_EUR": 4500
+      },
+      "size_160": {
+        "set_price_EUR": 5430
+      }
+    },
+    "set_prices_DI_C_3f": {
+      "size_110": {
+        "set_price_EUR": 4490,
+        "SEER": 5.3,
+        "SCOP": 3.8,
+        "energy_class_cool": "A",
+        "energy_class_heat": "A"
+      },
+      "size_140": {
+        "set_price_EUR": 4760
+      },
+      "size_160": {
+        "set_price_EUR": 5990
+      }
+    },
+    "set_prices_DI_1f": {
+      "size_56": {
+        "set_price_EUR": 3190,
+        "SEER": 5.8,
+        "SCOP": 4.11,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      },
+      "size_80": {
+        "set_price_EUR": 3960,
+        "SEER": 6.37,
+        "SCOP": 4.3,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_90": {
+        "set_price_EUR": 4330,
+        "SEER": 6.75,
+        "SCOP": 4.3,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_110": {
+        "set_price_EUR": 5130,
+        "SEER": 6.4,
+        "SCOP": 4.0,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "set_price_EUR": 5450
+      },
+      "size_160": {
+        "set_price_EUR": 6290
+      }
+    },
+    "set_prices_DI_3f": {
+      "size_110": {
+        "set_price_EUR": 5610,
+        "SEER": 6.0,
+        "SCOP": 3.92,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A"
+      },
+      "size_140": {
+        "set_price_EUR": 5990
+      },
+      "size_160": {
+        "set_price_EUR": 6820
+      }
+    },
+    "set_prices_SDI_1f": {
+      "size_56": {
+        "set_price_EUR": 3540,
+        "SEER": 5.28,
+        "SCOP": 4.08,
+        "energy_class_cool": "A",
+        "energy_class_heat": "A+"
+      },
+      "size_80": {
+        "set_price_EUR": 4350,
+        "SEER": 7.86,
+        "SCOP": 4.85,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A++"
+      },
+      "size_110": {
+        "set_price_EUR": 6130,
+        "SEER": 7.19,
+        "SCOP": 4.3,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "set_price_EUR": 6640
+      }
+    },
+    "set_prices_SDI_3f": {
+      "size_110": {
+        "set_price_EUR": 6040,
+        "SEER": 6.1,
+        "SCOP": 4.19,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "set_price_EUR": 6290
+      },
+      "size_160": {
+        "set_price_EUR": 7020
+      }
+    },
+    "compatible_accessories": [
+      "RBC-ASCU32Y-E",
+      "RBC-AXU31-E",
+      "TCB-SF56C6BPE",
+      "TCB-SF80C6BPE",
+      "TCB-SF160C6BPE",
+      "TCB-FF101URE2"
+    ]
+  },
+  "high_pressure_duct": {
+    "category": "Vysokotlaková kanálová jednotka",
+    "model_indoor_pattern": "RAV-RM__DTP-E2",
+    "key_features": [
+      "Pre kombináciu s digitálnym invertorom BIG (DI BIG)",
+      "Nastaviteľný externý statický tlak do 250 Pa",
+      "Veľký vzduchový výkon do 4800 m³/h"
+    ],
+    "indoor_units": [
+      {
+        "size": 224,
+        "indoor": "RAV-RM2241DTP-E2",
+        "cooling_kW": 19.0,
+        "heating_kW": 22.4,
+        "airflow_m3h": 3800,
+        "ESP_Pa": "50/97/250",
+        "noise_cool_dB": "-/44/-",
+        "weight_kg": 97,
+        "dimensions_mm": "448 x 1400 x 900",
+        "price_EUR": 4960
+      },
+      {
+        "size": 280,
+        "indoor": "RAV-RM2801DTP-E2",
+        "cooling_kW": 22.5,
+        "heating_kW": 27.0,
+        "airflow_m3h": 4800,
+        "ESP_Pa": "50/97/250",
+        "noise_cool_dB": "-/46/-",
+        "weight_kg": 97,
+        "dimensions_mm": "448 x 1400 x 900",
+        "price_EUR": 5220
+      }
+    ],
+    "outdoor_compatibility": [
+      "DI BIG only"
+    ],
+    "set_prices_DI_BIG_3f": {
+      "size_224": {
+        "models": "RAV-RM2241DTP-E2 + RAV-GM2243AT8P-E + RBC-ASCU32Y-E",
+        "set_price_EUR": 11710,
+        "SEER": 5.82,
+        "SCOP": 3.78
+      },
+      "size_280": {
+        "models": "RAV-RM2801DTP-E2 + RAV-GM2803AT8P-E + RBC-ASCU32Y-E",
+        "set_price_EUR": 12630,
+        "SEER": 5.49,
+        "SCOP": 3.69
+      }
+    },
+    "compatible_accessories": [
+      "RBC-ASCU32Y-E",
+      "RBC-AXU31-E",
+      "TCB-DP40DPE",
+      "TCB-LK2801DP-E",
+      "TCB-PCUC2E"
+    ]
+  },
+  "floor_standing": {
+    "category": "Stojanová jednotka",
+    "model_indoor_pattern": "RAV-HM__FT-E",
+    "key_features": [
+      "Dokonalá cirkulácia vzduchu",
+      "Plug & Play s integrovaným komfortným diaľkovým ovládaním",
+      "Integrovaný systém na detekciu únikov chladiva",
+      "Nejde o skladový tovar – dodacia lehota na dopyt",
+      "Voliteľná krycia sada (TCB-CKC1F-E)",
+      "Cena setu zahŕňa RBC-AMSU52-E (komfortné káblové)"
+    ],
+    "required_remote_in_set": "RBC-AMSU52-E",
+    "indoor_units": [
+      {
+        "size": 56,
+        "indoor": "RAV-HM561FT-E",
+        "cooling_kW": 5.0,
+        "heating_kW": 5.3,
+        "airflow_m3h": "600/--/820",
+        "noise_cool_dB": "38/42/46",
+        "weight_kg": 44,
+        "dimensions_mm": "1750 x 600 x 210",
+        "price_EUR": 2730
+      },
+      {
+        "size": 80,
+        "indoor": "RAV-HM801FT-E",
+        "cooling_kW": 6.7,
+        "heating_kW": 7.7,
+        "airflow_m3h": "640/--/930",
+        "noise_cool_dB": "41/45/50",
+        "weight_kg": 46,
+        "dimensions_mm": "1750 x 600 x 210",
+        "price_EUR": 2875
+      },
+      {
+        "size": 90,
+        "indoor": "RAV-HM901FT-E",
+        "cooling_kW": 8.0,
+        "heating_kW": 8.6,
+        "airflow_m3h": "820/--/1330",
+        "noise_cool_dB": "37/40/45",
+        "weight_kg": 59,
+        "dimensions_mm": "1750 x 600 x 390",
+        "price_EUR": 3035
+      },
+      {
+        "size": 110,
+        "indoor": "RAV-HM1101FT-E",
+        "cooling_kW": 9.5,
+        "heating_kW": 11.2,
+        "airflow_m3h": "1170/--/1660",
+        "noise_cool_dB": "41/46/51",
+        "weight_kg": 59,
+        "dimensions_mm": "1750 x 600 x 390",
+        "price_EUR": 3170
+      },
+      {
+        "size": 140,
+        "indoor": "RAV-HM1401FT-E",
+        "cooling_kW": 12.1,
+        "heating_kW": 13.0,
+        "airflow_m3h": "1350/--/1760",
+        "noise_cool_dB": "45/48/53",
+        "weight_kg": 59,
+        "dimensions_mm": "1750 x 600 x 390",
+        "price_EUR": 3235
+      },
+      {
+        "size": 160,
+        "indoor": "RAV-HM1601FT-E",
+        "cooling_kW": 14.0,
+        "heating_kW": 16.0,
+        "airflow_m3h": "1350/--/1760",
+        "noise_cool_dB": "45/48/53",
+        "weight_kg": 59,
+        "dimensions_mm": "1750 x 600 x 390",
+        "price_EUR": 3290
+      }
+    ],
+    "outdoor_compatibility": [
+      "DI",
+      "SDI"
+    ],
+    "set_prices_DI_1f": {
+      "size_56": {
+        "set_price_EUR": 4785,
+        "SEER": 5.86,
+        "SCOP": 4.01,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      },
+      "size_80": {
+        "set_price_EUR": 5530,
+        "SEER": 5.53,
+        "SCOP": 4.0,
+        "energy_class_cool": "A",
+        "energy_class_heat": "A+"
+      },
+      "size_90": {
+        "set_price_EUR": 5920,
+        "SEER": 6.24,
+        "SCOP": 4.0,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_110": {
+        "set_price_EUR": 6675,
+        "SEER": 6.22,
+        "SCOP": 3.92,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A"
+      },
+      "size_140": {
+        "set_price_EUR": 7000
+      },
+      "size_160": {
+        "set_price_EUR": 7745
+      }
+    },
+    "set_prices_DI_3f": {
+      "size_110": {
+        "set_price_EUR": 7155,
+        "SEER": 5.88,
+        "SCOP": 3.92,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A"
+      },
+      "size_140": {
+        "set_price_EUR": 7540
+      },
+      "size_160": {
+        "set_price_EUR": 8275
+      }
+    },
+    "set_prices_SDI_1f": {
+      "size_56": {
+        "set_price_EUR": 5135,
+        "SEER": 5.87,
+        "SCOP": 4.21,
+        "energy_class_cool": "A+",
+        "energy_class_heat": "A+"
+      },
+      "size_80": {
+        "set_price_EUR": 5920,
+        "SEER": 6.43,
+        "SCOP": 4.43,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_110": {
+        "set_price_EUR": 7675,
+        "SEER": 6.99,
+        "SCOP": 4.4,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "set_price_EUR": 8190
+      }
+    },
+    "set_prices_SDI_3f": {
+      "size_110": {
+        "set_price_EUR": 7585,
+        "SEER": 6.14,
+        "SCOP": 4.02,
+        "energy_class_cool": "A++",
+        "energy_class_heat": "A+"
+      },
+      "size_140": {
+        "set_price_EUR": 7840
+      },
+      "size_160": {
+        "set_price_EUR": 8475
+      }
+    },
+    "compatible_accessories": [
+      "TCB-CKC1F-E"
+    ]
+  },
+  "ventilation_kit": {
+    "category": "Vetracia sada pre jednotky",
+    "model_indoor_pattern": "TCB-IFDLR01UP-E",
+    "key_features": [
+      "Pripojenie tepelných výmenníkov tretích strán",
+      "Pre použitie s centrálnymi vetracími zariadeniami alebo vzduchovými clonami",
+      "Konfigurovateľné ovládanie podľa teploty odpadového vzduchu alebo signálom 0-10 V",
+      "Kabeláž pripravená na pripojenie"
+    ],
+    "specs": {
+      "cooling_range_kW": "3,0 – 27,0",
+      "heating_range_kW": "4,5 – 31,5",
+      "airflow_range_m3h": "450 – 5040",
+      "supply": "220-240/1+N/50",
+      "dimensions_mm": "420 x 330 x 122",
+      "weight_kg": 4.1
+    },
+    "outdoor_compatibility": [
+      "DI",
+      "SDI",
+      "DI BIG Single Fan"
+    ],
+    "model": {
+      "code": "TCB-IFDLR01UP-E",
+      "price_EUR": 1180
+    }
+  },
+  "bms_interfaces": {
+    "category": "Riadiace systémy a BMS rozhrania",
+    "model_code_logic": {
+      "BMS-IF*UEW-E": "Rozhranie pre R32 (8 jednotiek max)",
+      "BMS-IF*1280U-E": "Rozhranie pre 128 zón (väčšie inštalácie)",
+      "TO-RC-*": "Komerčné brány (KNX/Modbus/BACnet, viď accessories)"
+    },
+    "key_features": [
+      "Integrácia RAV jednotiek do BMS (KNX, Modbus, BACnet, 0-10 V)",
+      "Skupinové riadenie 8-256 zón",
+      "Energy Monitoring a Touch Screen ovládače pre väčšie inštalácie"
+    ],
+    "items": [
+      {
+        "code": "BMS-IFKX0UEW-E",
+        "type": "KNX brána (R32)",
+        "feature": "Skupinové riadenie až 8 jednotiek",
+        "compatibility": [
+          "RAV",
+          "RAS R32"
+        ],
+        "price_EUR": 770
+      },
+      {
+        "code": "BMS-IFMB0UEW-E",
+        "type": "Modbus brána (R32)",
+        "feature": "Skupinové riadenie až 8 jednotiek",
+        "compatibility": [
+          "RAV",
+          "RAS R32"
+        ],
+        "price_EUR": 640
+      },
+      {
+        "code": "HWS-IFAIP01U-E",
+        "type": "0-10 V analógové rozhranie",
+        "feature": "Riadenie cez externý signál 0-10 V",
+        "compatibility": [
+          "RAV"
+        ],
+        "price_EUR": 360
+      },
+      {
+        "code": "BMS-IWF0010UCP-E",
+        "type": "WiFi rozhranie",
+        "feature": "Diaľkové ovládanie cez aplikáciu",
+        "compatibility": [
+          "RAV",
+          "RAS"
+        ],
+        "price_EUR": 180
+      },
+      {
+        "code": "BMS-IFLSV4E",
+        "type": "TCS-Net Relay rozhranie",
+        "feature": "Integrácia do TCS-Net (centrálny komunikačný systém)",
+        "compatibility": [
+          "RAV",
+          "VRF"
+        ],
+        "price_EUR": 1410
+      },
+      {
+        "code": "BMS-IFWH5E",
+        "type": "Energy Monitoring Relay",
+        "feature": "Monitoring spotreby energie",
+        "compatibility": [
+          "RAV",
+          "VRF"
+        ],
+        "price_EUR": 960
+      },
+      {
+        "code": "BMS-IFDD03E",
+        "type": "Digital I/O rozhranie",
+        "feature": "Externé digitálne vstupy/výstupy",
+        "compatibility": [
+          "RAV",
+          "VRF"
+        ],
+        "price_EUR": 1035
+      },
+      {
+        "code": "BMS-IFMB1280U-E",
+        "type": "Modbus brána 128 zón",
+        "feature": "Pre väčšie inštalácie (128 vnútorných jednotiek)",
+        "compatibility": [
+          "RAV",
+          "VRF"
+        ],
+        "price_EUR": 2745
+      },
+      {
+        "code": "BMS-IFBN1281U-E",
+        "type": "BACnet brána 128 zón",
+        "feature": "Pre väčšie inštalácie (128 vnútorných jednotiek)",
+        "compatibility": [
+          "RAV",
+          "VRF"
+        ],
+        "price_EUR": 2630
+      },
+      {
+        "code": "TCB-IFCB640TLE",
+        "type": "Touch Screen Controller 64 zón",
+        "feature": "Dotykový centrálny ovládač pre 64 vnútorných jednotiek",
+        "compatibility": [
+          "RAV"
+        ],
+        "price_EUR": 2975
+      },
+      {
+        "code": "BMS-CT2560U-E",
+        "type": "Touch Screen Controller 256 zón",
+        "feature": "Dotykový centrálny ovládač pre 256 vnútorných jednotiek",
+        "compatibility": [
+          "RAV",
+          "VRF"
+        ],
+        "price_EUR": 5730
+      },
+      {
+        "code": "BMS-CT5121E",
+        "type": "Touch Screen Controller (legacy 512 zón)",
+        "feature": "Vyradzovaný model; náhrada BMS-CT2560U-E",
+        "compatibility": [
+          "VRF"
+        ],
+        "price_EUR": 7545
+      }
+    ],
+    "source": "Toshiba Productcatalog_2026-2027_SK_FINAL.pdf p.123-124"
+  }
+}

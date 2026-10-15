@@ -1,0 +1,513 @@
+{
+  "metadata": {
+    "category": "Accessories",
+    "category_full": "Príslušenstvo a riadiace systémy",
+    "source": "Cenník Samsung Chladenie 2026, 1. vydanie (© Samsung Electronics Air Conditioner Europe B.V.) (str. 18-47)",
+    "validity": "od 1.1.2026",
+    "currency": "EUR (MOC bez DPH)",
+    "compatibility_legend": {
+      "RAC1": "Single-Split residential (NEPLATÍ pre AR30/AR35)",
+      "FJM": "Multi-Split Free Joint Multi",
+      "CAC": "Commercial Air Conditioner"
+    }
+  },
+  "individual_controllers": {
+    "description": "Individuálne ovládače pre jednotlivé jednotky.",
+    "items": [
+      {
+        "code": "AR-EH03E",
+        "type": "Infračervený diaľkový ovládač",
+        "feature": "s funkciou WindFree™",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 76
+      },
+      {
+        "code": "AR-CH01E",
+        "type": "Solárny infračervený diaľkový ovládač",
+        "feature": "Solárne nabíjanie + USB-C núdzové dobíjanie",
+        "compatibility": [
+          "CAC"
+        ],
+        "price_EUR": 99
+      },
+      {
+        "code": "MWR-WG01KN",
+        "type": "Káblový ovládač",
+        "feature": "SK/CZ lokalizácia, štruktúra menu v slovenčine/češtine",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 206
+      },
+      {
+        "code": "MWR-SH11N",
+        "type": "Káblový dotykový ovládač",
+        "feature": "Plnofarebný dotykový displej",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 158
+      },
+      {
+        "code": "MIM-H14EN",
+        "type": "Individuálny Wi-Fi Kit (NASA)",
+        "feature": "Pre CAC HighEE - kompatibilný s panelmi bez 'W' na konci",
+        "compatibility": [
+          "CAC"
+        ],
+        "price_EUR": 81
+      }
+    ]
+  },
+  "central_systems": {
+    "description": "Centrálne riadiace systémy pre správu viacerých jednotiek.",
+    "items": [
+      {
+        "code": "MCM-A202DN",
+        "type": "Prepínač ON/OFF",
+        "feature": "NASA komunikácia",
+        "compatibility": [
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 173
+      },
+      {
+        "code": "MCM-A300BN",
+        "type": "Centrálny dotykový ovládač",
+        "feature": "Riadenie viacerých jednotiek",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 1485
+      },
+      {
+        "code": "MIM-H04EN",
+        "type": "Wi-Fi Kit centrálny (NASA)",
+        "feature": "Diaľkové ovládanie cez smartfón/tablet, Energy Monitoring, kompatibilné s iOS 9.0+ / Android 5.0+",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 231
+      },
+      {
+        "code": "MIM-D01AN",
+        "type": "Centrálny riadiaci systém DMS2.5",
+        "feature": "Pokročilý systém správy budov",
+        "compatibility": [
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 1946
+      },
+      {
+        "code": "MST-P3P",
+        "type": "S-NET3",
+        "feature": "Centrálny softvér Samsung",
+        "compatibility": [
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 3139
+      },
+      {
+        "code": "MIM-B16N",
+        "type": "Pulzný modul PIM",
+        "feature": "Pre rozpočítavanie spotreby elektrickej energie",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 514
+      }
+    ]
+  },
+  "bms_building_management": {
+    "description": "Riadiace systémy budov (BMS) – integrácia do existujúcich BMS.",
+    "items": [
+      {
+        "code": "MIM-B17BN",
+        "type": "BACnet brána",
+        "feature": "BACnet/IP gateway",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 3317
+      },
+      {
+        "code": "MIM-B18BN",
+        "type": "LonWorks brána",
+        "feature": "LonWorks gateway",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 3370
+      },
+      {
+        "code": "MIM-B19N",
+        "type": "Modbus interface modul",
+        "feature": "Modbus RTU komunikácia",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 115
+      }
+    ]
+  },
+  "other_accessories": {
+    "description": "Ostatné príslušenstvo: senzory, adaptéry, prijímače.",
+    "items": [
+      {
+        "code": "MRW-TA",
+        "type": "Externý senzor teploty",
+        "compatibility": [
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 33
+      },
+      {
+        "code": "MIM-A00N",
+        "type": "Adaptér na pripojenie káblového ovládača",
+        "feature": "Pre vnútorné nástenné jednotky",
+        "compatibility": [
+          "RAC",
+          "FJM"
+        ],
+        "price_EUR": 39
+      },
+      {
+        "code": "MIM-R10N",
+        "type": "Adaptér na pripojenie nadradeného systému",
+        "feature": "Pre vonkajšiu jednotku; podľa kompatibility jednotlivých sérií RAC",
+        "compatibility": [
+          "RAC"
+        ],
+        "price_EUR": 285
+      },
+      {
+        "code": "MIM-B14",
+        "type": "Adaptér pre externý kontakt",
+        "feature": "ZAP/VYP, porucha/chod",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 28
+      },
+      {
+        "code": "MIM-C02N",
+        "type": "S-Converter (servisné účely)",
+        "compatibility": [
+          "RAC",
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 295
+      },
+      {
+        "code": "MRK-A10N",
+        "type": "Prijímač IR signálu vrátane kábla",
+        "feature": "Pre kanálové a kazetové jednotky",
+        "compatibility": [
+          "FJM",
+          "CAC"
+        ],
+        "price_EUR": 54
+      }
+    ]
+  },
+  "motion_sensors": {
+    "description": "Senzory pohybu MDS pre kazety – úspora energie pri neprítomnosti osôb.",
+    "items": [
+      {
+        "code": "MCR-SMD",
+        "type": "MDS / Senzor pohybu WindFree™ Mini 4-Way (620x620 mm)",
+        "compatibility": [
+          "CAC"
+        ],
+        "price_EUR": 125,
+        "feature": "Aj na FJM Mini 4-Way zapojenia (pricelist Príslušenstvo tabuľka: len CAC)"
+      },
+      {
+        "code": "MCR-SMC",
+        "type": "MDS / Senzor pohybu WindFree™ 4-Way (950x950 mm)",
+        "compatibility": [
+          "CAC"
+        ],
+        "price_EUR": 125
+      },
+      {
+        "code": "MCR-SME",
+        "type": "MDS / Senzor pohybu 360 Cassette",
+        "compatibility": [
+          "CAC"
+        ],
+        "price_EUR": 125
+      }
+    ]
+  },
+  "decorative_panels_cassettes": {
+    "description": "Dekoračné panely pre kazetové jednotky – NUTNÉ pre prevádzku.",
+    "Mini_4_Way_60x60": [
+      {
+        "code": "PC4SUFMAN",
+        "desc": "Dekoračný panel Mini 4-Way Cassette (620x620x57)",
+        "for": "FJM, CAC RNN",
+        "price_EUR": 252
+      },
+      {
+        "code": "PC4SUFMANW",
+        "desc": "Dekoračný panel Mini 4-Way Cassette s WiFi",
+        "for": "CAC HighEE BNN",
+        "price_EUR": 252
+      }
+    ],
+    "1_Way_Cassette": [
+      {
+        "code": "PC1NWFMAN",
+        "desc": "Dekoračný panel 1-Way Cassette (1198x500x35)",
+        "for": "FJM, CAC",
+        "price_EUR": 273
+      }
+    ],
+    "4_Way_Cassette_95x95": [
+      {
+        "code": "PC4NUFMAN",
+        "desc": "Dekoračný panel 4-Way (950x950x64)",
+        "for": "CAC RN4",
+        "price_EUR": 270
+      },
+      {
+        "code": "PC4NUFMANW",
+        "desc": "Dekoračný panel 4-Way s WiFi",
+        "for": "CAC HighEE BN4",
+        "price_EUR": 270,
+        "dimensions_mm": "950x950x64"
+      },
+      {
+        "code": "PC4NBFMANW",
+        "desc": "Dekoračný panel 4-Way čierny s WiFi",
+        "for": "CAC HighEE BN4",
+        "price_EUR": 270,
+        "dimensions_mm": "950x950x64"
+      },
+      {
+        "code": "PC4NUCEAN",
+        "desc": "Air Purification (950x950x48)",
+        "for": "CAC 4-Way RN4",
+        "price_EUR": 845
+      },
+      {
+        "code": "PC4NUCMANW",
+        "desc": "Air Purification s WiFi",
+        "for": "CAC HighEE 4-Way",
+        "price_EUR": 845,
+        "dimensions_mm": "950x950x48"
+      },
+      {
+        "code": "PC4NUXMAN",
+        "desc": "Auto Elevation (950x950x48)",
+        "for": "CAC 4-Way RN4",
+        "price_EUR": 587
+      },
+      {
+        "code": "PC4NUXMANW",
+        "desc": "Auto Elevation s WiFi",
+        "for": "CAC HighEE 4-Way",
+        "price_EUR": 587,
+        "dimensions_mm": "950x950x48"
+      }
+    ],
+    "360_Cassette": [
+      {
+        "code": "PC4NUDMAN",
+        "desc": "Štvorec biely (1000x1000x66)",
+        "for": "CAC 360 RN4P",
+        "price_EUR": 256
+      },
+      {
+        "code": "PC4NUNMAN",
+        "desc": "Kruh biely (Ø1050x94)",
+        "for": "CAC 360 RN4P",
+        "price_EUR": 256
+      },
+      {
+        "code": "PC4NBDMAN",
+        "desc": "Štvorec čierny (1000x1000x66)",
+        "for": "CAC 360 RN4P",
+        "price_EUR": 256
+      },
+      {
+        "code": "PC4NBNMAN",
+        "desc": "Kruh čierny (Ø1050x94)",
+        "for": "CAC 360 RN4P",
+        "price_EUR": 256
+      },
+      {
+        "code": "PC6EUCMAN",
+        "desc": "Air Purification (Ø1050x102)",
+        "for": "CAC 360 RN4P",
+        "price_EUR": 751
+      },
+      {
+        "code": "PC6EUXMAN",
+        "desc": "Auto Elevation (Ø1050x102)",
+        "for": "CAC 360 RN4P",
+        "price_EUR": 704
+      }
+    ],
+    "360_Cassette_HighEE_WiFi": [
+      {
+        "code": "PC6NUSMANW",
+        "desc": "Štvorec biely s WiFi (1000x1000x66)",
+        "for": "CAC 360 HEE BN6",
+        "price_EUR": 256
+      },
+      {
+        "code": "PC6EUSMANW",
+        "desc": "Kruh biely s WiFi (Ø1050x94)",
+        "for": "CAC 360 HEE",
+        "price_EUR": 256
+      },
+      {
+        "code": "PC6NBSMANW",
+        "desc": "Štvorec čierny s WiFi",
+        "for": "CAC 360 HEE",
+        "price_EUR": 256,
+        "dimensions_mm": "1000x1000x66"
+      },
+      {
+        "code": "PC6EBSMANW",
+        "desc": "Kruh čierny s WiFi",
+        "for": "CAC 360 HEE",
+        "price_EUR": 256,
+        "dimensions_mm": "Ø1050x94"
+      },
+      {
+        "code": "PC6EUCMANW",
+        "desc": "Air Purification s WiFi (Ø1050x102)",
+        "for": "CAC 360 HEE",
+        "price_EUR": 751
+      },
+      {
+        "code": "PC6EUXMANW",
+        "desc": "Auto Elevation s WiFi (Ø1050x102)",
+        "for": "CAC 360 HEE",
+        "price_EUR": 704
+      }
+    ]
+  },
+  "condensate_pumps": {
+    "description": "Čerpadlá kondenzátu – pre kanálové jednotky bez zabudovaného čerpadla.",
+    "items": [
+      {
+        "code": "MDP-Z075SZED",
+        "type": "Čerpadlo kondenzátu",
+        "for": "FJM/CAC MSP Duct, LSP",
+        "price_EUR": 132
+      },
+      {
+        "code": "MDP-G075SP",
+        "type": "Čerpadlo kondenzátu (externé)",
+        "for": "MSP Duct, HSP, LSP",
+        "price_EUR": 123
+      },
+      {
+        "code": "MDP-G075SQ",
+        "type": "Čerpadlo kondenzátu (interné)",
+        "for": "MSP Duct",
+        "price_EUR": 123
+      }
+    ]
+  },
+  "refnets": {
+    "description": "Refnety pre CAC DPM Twin/Triple/Quad – rozdvojovacie potrubia.",
+    "items": [
+      {
+        "code": "MXJ-2D2509K",
+        "desc": "Refnet pre 2 vnútorné jednotky",
+        "price_EUR": 157,
+        "compatibility": [
+          "CAC"
+        ]
+      },
+      {
+        "code": "MXJ-3D2509K",
+        "desc": "Refnet pre 3 vnútorné jednotky",
+        "price_EUR": 195,
+        "compatibility": [
+          "CAC"
+        ]
+      },
+      {
+        "code": "MXJ-4D2509K",
+        "desc": "Refnet pre 4 vnútorné jednotky",
+        "price_EUR": 287,
+        "compatibility": [
+          "CAC"
+        ]
+      }
+    ]
+  },
+  "ahu_kits": {
+    "description": "AHU Kits – ovládanie kondenzačných jednotiek pre vzduchotechniku (VZT).",
+    "items": [
+      {
+        "code": "MXD-K100XN",
+        "desc": "AHU Kit pre R410a vonkajšie jednotky (AC100/140 BXPDKH/N + AC200/250 KXAPNH)",
+        "dimensions_mm": "380x130x280",
+        "weight_kg": 3.3,
+        "supply": "1f/220-240/50",
+        "price_EUR": 814,
+        "compatibility": [
+          "CAC"
+        ]
+      },
+      {
+        "code": "MXD-K100XN1",
+        "desc": "AHU Kit pre R32 vonkajšie jednotky (AC026-AC140 RXADKG/N + BXAPKG/N)",
+        "dimensions_mm": "380x130x280",
+        "weight_kg": 3.3,
+        "supply": "1f/220-240/50",
+        "price_EUR": 855,
+        "compatibility": [
+          "CAC"
+        ]
+      }
+    ]
+  },
+  "pricing_quick_reference": {
+    "cheapest_remote": "AR-EH03E – 76 € (IR + WindFree)",
+    "wired_remote_with_SK": "MWR-WG01KN – 206 € (slovenská lokalizácia)",
+    "touch_remote": "MWR-SH11N – 158 €",
+    "wifi_individual": "MIM-H14EN – 81 € (CAC HEE)",
+    "wifi_central": "MIM-H04EN – 231 € (RAC/FJM/CAC, smartthings)",
+    "central_touch": "MCM-A300BN – 1485 €",
+    "BMS_cheapest": "MIM-B19N Modbus – 115 €",
+    "BMS_BACnet": "MIM-B17BN – 3317 €",
+    "BMS_LonWorks": "MIM-B18BN – 3370 €",
+    "panel_cheapest": "PC4SUFMAN(W) Mini 4-Way 60x60 – 252 €",
+    "panel_most_expensive": "PC4NUCEAN Air Purification 4-Way – 845 €"
+  }
+}
