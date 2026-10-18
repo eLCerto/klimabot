@@ -495,6 +495,53 @@ class QuoteTests(BotTest):
         finally:
             bot._FILTRATION_BY_SERIES["HAORI"] = saved
 
+    def test_series_name_gives_set_codes_without_a_search(self):  # live demo: one 9 s search per series
+        haori = bot.lookup_product("HAORI 2,5 kW")["series_sets"]
+        self.assertEqual([s["codes"] for s in haori], [["RAS-10P2AVSG-E", "RAS-B10N4KVRG-E2"]])
+        daiseikai = bot.lookup_product("Toshiba DAISEIKAI 10")["series_sets"]
+        self.assertEqual({s["series"] for s in daiseikai}, {"DAISEIKAI_10_White", "DAISEIKAI_10_Wood"})
+        self.assertGreater(len(daiseikai), 2, "'10' is part of the name, not a size")
+        self.assertTrue(all(s["series"] == "AR35_WIFI" for s in bot.lookup_product("Samsung AR35")["series_sets"]))
+        self.assertEqual(bot.lookup_product("RAS-B10N4KVRG-E2")["model_code"], "RAS-B10N4KVRG-E2")
+        missing_size = bot.lookup_product("DAISEIKAI 10 2,0 kW")
+        self.assertEqual(len(missing_size["series_sets"]), len(daiseikai), "a missing size returns every size")
+        self.assertIn("2 kW", missing_size["note"])
+
+    def test_one_search_per_response(self):  # scenario detska_izba_alergia: two searches issued together
+        ran = []
+        real = bot.search_knowledge
+        bot.search_knowledge = lambda query, k=None: ran.append(query) or {"results": "", "sources": []}
+        try:
+            self.turn("Hľadám čo najtichšiu klimatizáciu do detskej izby.",
+                      resp(tool("search_knowledge", query="najtichšia klimatizácia detská izba"),
+                           tool("search_knowledge", query="Samsung Toshiba tichá detská izba")),
+                      resp(text("Najtichšie sú nástenné rady. Akú veľkú izbu máte?")))
+        finally:
+            bot.search_knowledge = real
+        self.assertEqual(ran, ["najtichšia klimatizácia detská izba"])
+        self.assertIn('"limit": "response_searches"', self.log_text())
+
+    def test_repeated_searches_skip_the_reranker(self):
+        calls = []
+        real_rerank = bot.rerank
+        bot.rerank = lambda *a, **kw: calls.append(1) or real_rerank(*a, **kw)
+        try:
+            q = "najtichšia nástenná klimatizácia do detskej izby s dobrou filtráciou"  # 7+ words: no HyDE call
+            first = bot.search_knowledge(q)
+            self.assertEqual(bot.search_knowledge("  " + q.upper()), first)
+            self.assertEqual(len(calls), 1)
+            real_expand = bot.expand_query
+            bot.expand_query = lambda query: ""  # HyDE skipped (budget / API error): not shared
+            try:
+                bot.search_knowledge("klíma spálňa")
+                bot.search_knowledge("klíma spálňa")
+            finally:
+                bot.expand_query = real_expand
+            self.assertEqual(len(calls), 3)
+        finally:
+            bot.rerank = real_rerank
+            bot._SEARCH_CACHE.clear()
+
     def test_a_wrong_revision_suffix_still_quotes(self):  # live demo 2026-10-15: HAORI 10 is -E2, not -E1
         q = self.q([("RAS-B10N4KVRG-E1", 1), ("RAS-10P2AVSG-E", 1)])
         self.assertNotIn("error", q)

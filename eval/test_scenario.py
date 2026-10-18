@@ -19,6 +19,13 @@ SCENARIOS = {
         "Peter, 0911222333, Bratislava",
         "suhlasim",
     ],
+    # The live demo of 2026-10-15: 2-3 searches per message, one per series just to find codes.
+    "detska_izba_alergia": [
+        "Hľadám čo najtichšiu klimatizáciu do detskej izby, má 12 m².",
+        "nástenná je v poriadku",
+        "mam alergiu na prach, odporuc mi najlepsiu filtraciu",
+        "ktora z tych najlepsich je najlacnejsia?",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",

@@ -1,26 +1,30 @@
 ---
 name: search-knowledge-limit-per-turn
-description: Max 2× `search_knowledge` na user turn. Server-side counter loguje `search_knowledge_overuse` pri 3+. Použí `lookup_product` / `compare_products` / handoff namiesto opakovania.
+description: 1× `search_knowledge` na otázku zákazníka (druhý iba keď prvý nič nevrátil, tvrdý limit 3 na správu). Kódy setov cez `lookup_product` s názvom radu a výkonom, nie cez search.
 type: feedback
 ---
 
-`search_knowledge` je drahý (hybrid BM25 + embeddings + cross-encoder rerank, 5–10 chunkov v context budget-e). **Max 2× na user turn.** Server-side counter loguje `search_knowledge_overuse` pri 3+ a pošle notice botovi.
+`search_knowledge` je pomalý a drahý (hybrid BM25 + embeddings + cross-encoder rerank, ktorý na serveri trvá okolo 9 s, a 5–10 chunkov v context budget-e). **Na otázku zákazníka 1× dôkladný dotaz.** Server pri druhom hľadaní v tej istej správe pošle notice a tretie je posledné povolené (tvrdý limit).
 
 **Why:**
 - Každé volanie pridá ~5–8k tokenov. Pri 7× volaniach v session: 35–56k tokenov navyše = 4× vyššia cena.
 - Opakované dotazy na tú istú tému vrátia rovnaké chunky (diminishing returns).
-- Pri 5+ search-och bot odkladá akciu, zákazník čaká.
+- Každé hľadanie zákazníka zdrží o niekoľko sekúnd; tri hľadania = pol minúty čakania.
 
 **How to apply:**
 
-### Limit per turn
+### Limit na jednu správu zákazníka
 
 | Počet | Stav | Bot smie |
 |---|---|---|
-| 1× | OK | pokračuj |
-| 2× | OK pri komplexnom dotaze | druhý search **iný keyword set**, nie parafráza |
-| 3× | **Stop** | použí čo máš, `lookup_product` / `compare_products` / handoff |
-| 4×+ | porušenie | mal už handoff |
+| 1× | OK | jeden dotaz so všetkými kľúčovými slovami naraz |
+| 2 naraz | nespustí sa | v jednej odpovedi server spustí iba prvé hľadanie — zlúč kľúčové slová do jedného dotazu |
+| 2× | výnimka | iba keď prvý nevrátil nič použiteľné, **iný keyword set**, nie parafráza |
+| 3× | posledné povolené | potom server ďalšie hľadanie nespustí — použi čo máš |
+
+### Kódy setov bez hľadania
+
+`lookup_product` prijme aj **názov radu a výkon** („HAORI 2,5 kW“, „DAISEIKAI 10 3,5 kW“, „Avant S2“) a okamžite vráti presné kódy setov (vnútorná + vonkajšia jednotka). Na kódy nikdy nehľadaj cez `search_knowledge` („Toshiba HAORI model kód“ je zbytočných 9 sekúnd).
 
 ### Voľba keywordov
 
@@ -41,7 +45,7 @@ search_knowledge("Samsung FJM multi-split WindFree Avant Comfort 2 indoor vykuro
 search_knowledge("Samsung FJM AJ050 outdoor combinations table indoor pairings")
 ```
 
-### Po 2 search-och ak chýba info
+### Keď po hľadaní chýba info
 
 1. **`lookup_product`** s konkrétnym model kódom — vráti detail vrátane `category_path` + cena + špecifikácie.
 2. **`compare_products`** pre side-by-side 2+ modelov.

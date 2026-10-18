@@ -59,7 +59,7 @@ TURN_USD_CAP = float(os.getenv("KLIMABOT_TURN_USD_CAP", "0.40"))         # one c
 TURN_MAX_CALLS = 10
 TURN_MAX_TOOL_CALLS = 16
 RESPONSE_MAX_TOOL_CALLS = 6
-TURN_MAX_SEARCHES = 6
+TURN_MAX_SEARCHES = 3      # each search reranks for ~9 s on the demo server; set codes come from lookup_product
 TURN_MAX_SECONDS = 180
 API_MAX_RETRIES = 2         # 429 with a short retry-after, 5xx/529, connection errors
 API_MAX_RETRY_AFTER = 10    # seconds; a longer wait ends the turn instead
@@ -269,7 +269,11 @@ system_prompt = (
     "Pred odpoveďou na akúkoľvek otázku o produktoch, cenách, funkciách alebo pravidlách "
     "ZAVOLAJ `search_knowledge` s konkrétnym dotazom. Môžeš ho volať viackrát s rôznymi dotazmi "
     "ak prvý nenašiel relevantné informácie. Pre malú konverzáciu (pozdrav, poďakovanie) nemusíš nič hľadať.\n\n"
-    "Ak má zákazník konkrétny model kód, použi `lookup_product` na presné údaje.\n\n"
+    "Ak má zákazník konkrétny model kód, použi `lookup_product` na presné údaje.\n"
+    "Na jednu otázku zákazníka stačí **jeden** dôkladný `search_knowledge` so všetkými kľúčovými slovami naraz "
+    "(rady, funkcie, priestor) — každé hľadanie zákazníka zdrží o niekoľko sekúnd. Druhé hľadanie iba vtedy, keď "
+    "prvé nevrátilo nič použiteľné, a nikdy nie parafráza toho istého. Kódy setov konkrétneho radu zisti cez "
+    "`lookup_product` s názvom radu a výkonom (napr. „HAORI 2,5 kW“) — odpovedá okamžite.\n\n"
     "PRE CENY: zavolaj `quote` s model kódmi a počtami kusov (single-split: vnútorná + vonkajšia; "
     "multi-split: vonkajšia + všetky vnútorné; kazety: + panel), so segmentom a rozpočtom zákazníka, "
     "ak ho povedal. Výstup obsahuje aj recyklačný poplatok, dostupnosť (`availability` pri každej "
@@ -1435,6 +1439,36 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
     return result
 
 
+_SIZE_KW_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*kw\b", re.IGNORECASE)
+
+
+def _series_sets(text):
+    """The single-split sets of a series named in `text` ("HAORI 2,5 kW", "DAISEIKAI 10"), so the
+    model gets exact set codes without a search — in the live demo it ran a 9-second search
+    for each series it wanted to price. Only a size in kW filters ("DAISEIKAI 10" is a series
+    name, not size 10). None when no series is named."""
+    keys = [k for k, rx in _SERIES_RES.items() if rx.search(text)]
+    if not keys:
+        return None
+    kw = _SIZE_KW_RE.search(text)
+    kw = float(kw.group(1).replace(",", ".")) if kw else None
+    sets = []
+    for codes, rec in _SETS.items():
+        if not any(_series_key(rec).startswith(k) for k in keys):
+            continue
+        raw = rec["raw"]
+        if kw is not None and abs((raw.get("cooling_kW") or 0) - kw) > 0.3:
+            continue
+        sets.append({"description": _describe(rec, as_set=True), "series": _series_key(rec),
+                     "codes": sorted(codes), "cooling_kW": raw.get("cooling_kW")})
+    note = "Kódy setu pošli do `quote` (vnútorná + vonkajšia jednotka); cenu zisti iba cez `quote`."
+    if not sets and kw is not None:
+        # No set of that size: all sizes in one answer saves the model a second round trip.
+        all_sizes = _series_sets(_SIZE_KW_RE.sub("", text))
+        return {**all_sizes, "note": f"Veľkosť {kw:g} kW tento rad nemá — tu sú všetky jeho veľkosti. {note}"}
+    return {"series_sets": sorted(sets, key=lambda s: (s["series"], s["cooling_kW"] or 0)), "note": note}
+
+
 def lookup_product(model_code):
     code = model_code.strip().upper()
     rec = PRODUCT_BY_CODE.get(code)
@@ -1443,6 +1477,9 @@ def lookup_product(model_code):
         bare = code.split("/")[0]
         rec = PRODUCT_BY_CODE.get(bare)
     if not rec:
+        series = _series_sets(model_code)
+        if series:
+            return series
         matches = [c for c in PRODUCT_BY_CODE if c.startswith(code) or code in c]
         if not matches:
             near = _close_codes(model_code)
@@ -2398,12 +2435,14 @@ tools = [
         "description": (
             "Look up a product by exact model code (e.g. 'AR70H09CAAWNEU', 'RAS-B10P2KVSG-E'). "
             "Returns brand, category, catalog price and key specs. For any price you quote "
-            "to the customer call `quote` — don't retype prices from here."
+            "to the customer call `quote` — don't retype prices from here. "
+            "Názov radu s veľkosťou ('HAORI 2,5 kW', 'DAISEIKAI 10', 'Avant S2 3,5 kW') vráti presné kódy "
+            "setov toho radu okamžite — na kódy setov nepoužívaj `search_knowledge`."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "model_code": {"type": "string", "description": "Exact model code as printed on the unit or in the catalog."},
+                "model_code": {"type": "string", "description": "Exact model code, or a series name with an optional size in kW."},
             },
             "required": ["model_code"],
         },
@@ -2957,13 +2996,39 @@ def format_context(indices):
     return "\n\n---\n\n".join(pieces), sources
 
 
+# Finished searches, process-wide: the KB doesn't change while the bot runs, and the reranker costs
+# about 9 s per search on the demo server (2 cores). Repeats are common: the welcome card's example
+# questions are the same for every visitor. The 500 most recently used (query, k) pairs.
+_SEARCH_CACHE = OrderedDict()
+_SEARCH_CACHE_MAX = 500
+
+
 def search_knowledge(query, k=None):
     k = max(1, min(int(k or dynamic_k(query)), 10))
+    key = (" ".join(query.split()).lower(), k)
+    cached = _SEARCH_CACHE.get(key)
+    if cached:
+        try:
+            _SEARCH_CACHE.move_to_end(key)
+        except KeyError:  # another visitor's search evicted it meanwhile; the entry we hold is still valid
+            pass
+        expansion, context, sources = cached
+        log_event("search_knowledge", query=query, expansion=expansion, sources=sources, k=k, chars=len(context),
+                  cached=True)
+        return {"results": context, "sources": sources}
     expansion = expand_query(query)
     full_query = f"{query}\n{expansion}".strip() if expansion else query
     candidates = hybrid_search(full_query)
     top = rerank(full_query, candidates, top_k=k)
     context, sources = format_context(top)
+    # Only a normal expansion is shared: one skipped for a conversation's budget or an API error isn't.
+    if query in _HYDE_CACHE:
+        _SEARCH_CACHE[key] = (expansion, context, sources)
+        while len(_SEARCH_CACHE) > _SEARCH_CACHE_MAX:
+            try:
+                _SEARCH_CACHE.popitem(last=False)
+            except KeyError:
+                break
     log_event("search_knowledge", query=query, expansion=expansion, sources=sources, k=k, chars=len(context))
     return {"results": context, "sources": sources}
 
@@ -5200,7 +5265,7 @@ def run_user_turn_streaming(user_input):
     tool_calls = 0
     search_count = 0
     search_overuse_notified = False
-    SEARCH_NOTICE_AFTER = 2  # soft nudge in the tool result; the hard cap is TURN_MAX_SEARCHES
+    SEARCH_NOTICE_AFTER = 1  # soft nudge in the tool result; the hard cap is TURN_MAX_SEARCHES
     force_final = False      # the next call is the turn's last: no tools allowed
     stop_kind = None         # set when the budget stops the turn before a call
     regens_used = 0          # per customer turn, across all LLM responses
@@ -5483,6 +5548,7 @@ def run_user_turn_streaming(user_input):
 
         if stop_reason == "tool_use":
             tool_results = []
+            response_searches = 0
             for i, block in enumerate(tool_blocks):
                 yield ("tool_call", {"name": block.name, "input": block.input})
                 # Hard bounds: every tool_use still gets a tool_result, but over the
@@ -5494,12 +5560,21 @@ def run_user_turn_streaming(user_input):
                     over = "response_tool_calls"
                 elif block.name == "search_knowledge" and search_count >= TURN_MAX_SEARCHES:
                     over = "searches"
+                elif block.name == "search_knowledge" and response_searches:
+                    # Searches asked for together are issued before any result is seen, so the
+                    # second is usually a paraphrase of the first (scenario detska_izba_alergia):
+                    # ~9 s of reranking on the demo server for nothing new.
+                    over = "response_searches"
                 if over:
                     log_event("limit_hit", limit=over, name=block.name)
                     content_str, is_error = ((
                         "Limit nástrojov v jednej odpovedi je vyčerpaný — tento nástroj sa nespustil. Ak ho "
                         "potrebuješ (napr. `quote`), zavolaj ho v ďalšej odpovedi; ceny z lookup_product nepíš."
                     ) if over == "response_tool_calls" else (
+                        "V jednej odpovedi spúšťam iba jedno hľadanie — toto sa nespustilo. Použi výsledok prvého; "
+                        "ak mu naozaj niečo chýba, hľadaj v ďalšej odpovedi s inými kľúčovými slovami. Kódy setov "
+                        "daj `lookup_product` (názov radu a výkon)."
+                    ) if over == "response_searches" else (
                         "Limit nástrojov v tomto kroku je vyčerpaný — nástroj sa nespustil. "
                         "Odpovedz zákazníkovi z toho, čo už máš.")), True
                 else:
@@ -5527,6 +5602,7 @@ def run_user_turn_streaming(user_input):
                 # See knowledge/rules/feedback_search_knowledge_limit.md.
                 if not over and block.name == "search_knowledge":
                     search_count += 1
+                    response_searches += 1
                     if search_count > SEARCH_NOTICE_AFTER and not search_overuse_notified:
                         log_event("search_knowledge_overuse", count=search_count, limit=SEARCH_NOTICE_AFTER)
                         # Append a soft warning to this tool_result so the model
