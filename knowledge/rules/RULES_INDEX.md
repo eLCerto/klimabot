@@ -51,6 +51,7 @@ Toto je index pravidiel, ktoré bot nájde cez `search_knowledge`. Pravidlo = `f
 - [alergie-filtracia](feedback_alergie_filtracia.md) — Alergie/astma/prach → trieda 1 z poradia filtrácie (config/filtration_policy.json), žiadne zdravotné sľuby
 - [schvalene-tvrdenia](feedback_schvalene_tvrdenia.md) — Žiadne zdravotné sľuby, ozón nespomínaj (HAORI má plazmový ionizátor), záruka a sklad iba z podkladov
 - [komercne-priestory-cac-rav](feedback_komercne_priestory_cac_rav.md) — Serverovňa/ambulancia/barber/manikúra/obchod/kaviareň/fitness → Samsung CAC alebo Toshiba RAV
+- [priemyselne-priestory](feedback_priemyselne_priestory.md) — Hala/výroba/továreň chatbot nerieši: žiadny návrh ani cena, kontakt na firmu alebo sa ozve PM
 
 ### Hranice a bezpečnosť
 - [mimo-temy-a-bezpecnost](feedback_mimo_temy_a_bezpecnost.md) — Mimo témy jedna zdvorilá veta; žiadne lekárske rady; bot je AI asistent; žiadne údaje o zamestnancoch; dym/iskrenie/plyn → istič a 112; diagnózy nezapisovať

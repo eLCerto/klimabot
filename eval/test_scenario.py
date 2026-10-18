@@ -33,6 +33,12 @@ SCENARIOS = {
         "jedna izba ma 12 m2. priprav mi porovnanie kolko by stal multisplit a singlesplit",
         "15",
     ],
+    # Live demo of 2026-10-18: the bot designed a multi-split for an industrial hall.
+    "priemyselna_hala": [
+        "ahoj",
+        "chcem chladit priemyselnu halu",
+        "300 m2, 4 zony a 24/7",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",

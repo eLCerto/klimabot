@@ -1439,6 +1439,22 @@ class BoundaryTests(BotTest):
                              resp(text("Switch it off at the breaker now, and call 112 if anything is burning.")))
         self.assertNotIn(bot._SAFETY_FIRST["en"], shown, "the model already gave the safety steps")
 
+    def test_industrial_spaces_get_the_contact_not_a_design(self):  # live demo 2026-10-18: a 300 m² hall
+        self.sess.user_inputs.append("Je to skladový tovar? Spálňa 12 m2.")
+        self.assertFalse(bot._industrial_case(), "'tovar' (goods) is not a factory")
+        events, shown = self.turn("chcem chladit priemyselnu halu",
+                                  resp(text("Aká je plocha haly a koľko zón chcete chladiť?")))
+        self.assertTrue(bot._industrial_case())
+        self.assertIn(bot._industrial_contact_text("sk"), shown, "code adds the contact the model left out")
+        self.assertIn("error", bot.quote([{"code": c, "qty": 1} for c in AR30_SET]))
+        self.assertIn("priemyselný priestor", bot.build_server_context())
+        # Asking for the contact before any price is right here, not a reason to regenerate.
+        _, shown = self.turn("dobre", resp(text("Ak mi necháte meno a telefón alebo e-mail, projektový manažér sa vám ozve.")))
+        self.assertIn("projektový manažér sa vám ozve", shown)
+        self.assertEqual(bot._premature_promise_sentences(
+            "Alebo mi nechajte meno a telefón — potom vám projektový manažér zavolá."), [], "an offer, not a promise")
+        self.assertTrue(bot._premature_promise_sentences("Zaznamenal som váš telefón, projektový manažér sa ozve."))
+
     def test_danger_patterns_skip_idioms_and_sales_talk(self):
         for msg in ("Z klímy ide dym!", "jednotka iskrí", "cítim plyn pri vonkajšej jednotke", "kopol ma prúd",
                     "smrdí to spáleninou", "the AC is smoking", "I got an electric shock from it"):

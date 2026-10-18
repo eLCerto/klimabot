@@ -902,6 +902,21 @@ def _stems_re(stems):
 _SERVER_ROOM_RE = _stems_re(SIZING["server_room"]["triggers"])
 _EXPLICIT_COMMERCIAL_RES = {place: _stems_re(stems) for place, stems in SIZING["explicit_commercial"].items()}
 _INFERRED_COMMERCIAL_RE = _stems_re(SIZING["inferred_commercial"])
+# Industrial spaces (a hall, production, a factory) are out of the chatbot's scope (the owner's
+# decision, 2026-10-18): no design, no price — the PM's contact, or the PM calls back.
+_INDUSTRIAL_RE = _stems_re(SIZING["industrial"]["triggers"])
+
+
+def _industrial_case():
+    return bool(_INDUSTRIAL_RE.search(_all_user_text()))
+
+
+def _industrial_contact_text(language):
+    if language == "en":
+        return (f"Industrial spaces are designed individually by our project manager — please {_contact_offer('en')}. "
+                "If you leave your name and phone or e-mail here, the project manager will get back to you.")
+    return (f"Priemyselné priestory navrhuje individuálne náš projektový manažér — {_contact_offer('sk')}. "
+            "Ak nám tu necháte meno a telefón či e-mail, projektový manažér sa vám ozve.")
 _OFFICE_RE = _stems_re(SIZING["office_words"])
 _WIFI_WANTED_RE = _stems_re(SIZING["wifi_triggers"])
 _CUSTOMER_KW_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*kW\b", re.IGNORECASE)
@@ -1254,6 +1269,12 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
             f"z {CHAT_SEGMENTS} a overenie odovzdaj cez `request_human_handoff`."
         )}
 
+    if _industrial_case():
+        log_event("quote_refused_industrial")
+        return {"error": (
+            "Priemyselný priestor (hala, výroba) tento chatbot nenaceňuje ani nenavrhuje — rieši ho projektový "
+            "manažér individuálne. Nenaceňuj a nenavrhuj modely; daj zákazníkovi kontakt alebo ponúkni, že ak "
+            "nechá meno a telefón či e-mail, projektový manažér sa mu ozve.")}
     if len(items or []) > 20:
         return {"error": "Najviac 20 položiek v jednej ponuke. Rozdeľ ju na varianty."}
     wanted = {}  # canonical code → quantity
@@ -4365,8 +4386,19 @@ def _premature_promise_sentences(text):
             continue
         if x.rstrip().endswith("?") and _OFFER_QUESTION_RE.search(x):
             continue
+        # Industrial spaces: "leave your name and phone, the PM will call you" is the intended answer,
+        # an offer rather than a promise (scenario priemyselna_hala: rejected three times, then cut).
+        # A claim that the details are already recorded still counts.
+        if (_industrial_case() and _CONDITION_NAMES_CONTACT_RE.search(x)
+                and not _RECORDED_CLAIM_RE.search(fold_diacritics(x))):
+            continue
         out.append(x)
     return out
+
+
+_RECORDED_CLAIM_RE = re.compile(
+    r"zaznamen|ulozil|ulozen|zapisal|zapisan|zapisujem|ukladam|odovzdal|"
+    r"(?:mam|mame)\s+(?:uz\s+)?(?:vase|tvoje)\s+(?:udaje|kontakt|telef|cisl|meno)", re.IGNORECASE)
 
 _APPROX_PRICE_RE = re.compile(
     # "**" and "€" may sit between the marker and the number: "approximately **€2,213–2,623**"
@@ -4903,6 +4935,9 @@ CRITICAL_RULES_TEXT = (
     "kozmetika, obchod, predajňa, butik, reštaurácia, kaviareň, fitness, "
     "open-space kancelária >25 m². Komerčné rady majú vyššiu životnosť "
     "kompresora a vhodnú filtráciu pre 24/7 prevádzku.\n"
+    "- **Priemyselné priestory (hala, výroba, továreň) nerieš.** Nenavrhuj systém ani výkon, nenaceňuj; "
+    "daj kontakt na firmu alebo ponúkni, že ak zákazník nechá meno a telefón či e-mail, projektový manažér "
+    "sa mu ozve.\n"
     "- **Alergia / astma / prach / 'kvalita vzduchu' → najlepšia filtrácia.** "
     "Odporúčaj triedu 1 z poradia filtrácie, ktoré ti pošle server v kontexte, a drž sa ho aj pri "
     "námietke. **NIE** entry rady SEIYA, AR30/35, Luzon, Cebu (iba základný filter). "
@@ -4974,6 +5009,13 @@ def build_server_context(note=None):
         status += "\nZákazník píše po česky — odpovedaj VÝHRADNE po slovensky (žiadne české slová ani tvary)."
     if _wished(_ALLERGY_RE):
         status += "\n" + _filtration_ranking_text()
+    if _industrial_case():
+        status += (
+            "\nZákazník chce chladiť priemyselný priestor (hala, výroba, továreň). Tento chatbot ho nerieši: "
+            "nenavrhuj systém, výkon ani modely, nehľadaj a nenaceňuj, nepýtaj sa na plochu ani zóny. Krátko "
+            "napíš, že priemyselné priestory navrhuje individuálne projektový manažér, a ponúkni dve možnosti: "
+            f"kontakt ({_contact_offer()}), alebo nech nechá meno a telefón či e-mail — napíš to ako podmienku: "
+            "„Ak mi necháte meno a telefón či e-mail, projektový manažér sa vám ozve.“")
     parts.append(status)
     if note:
         parts.append(note)
@@ -5392,7 +5434,7 @@ def run_user_turn_streaming(user_input):
             if answering and not force_final and not attempt_text.strip() and not shown_this_turn:
                 violations.append("prazdna-odpoved: odpoveď je prázdna. Napíš zákazníkovi odpoveď na jeho poslednú "
                                   "správu — výsledky nástrojov už máš, nevolaj ich znova.")
-            if answering and attempt_text.strip() and _contact_before_price(attempt_text):
+            if answering and attempt_text.strip() and _contact_before_price(attempt_text) and not _industrial_case():
                 violations.append(
                     "kontakt-pred-ponukou: pýtaš si kontakt alebo obec skôr, než zákazník dostal cenu. Najprv "
                     "odporuč a naceň cez `quote`; o kontakt požiadaj až potom."
@@ -5518,6 +5560,11 @@ def run_user_turn_streaming(user_input):
             offer = _complaint_contact_text(language)
             attempt_text = f"{attempt_text.rstrip()}\n\n{offer}" if attempt_text.strip() else offer
             log_event("company_contact_appended", reason="support")
+        # Industrial spaces: the contact (or the PM calls back) instead of a design or a price.
+        elif is_final and _industrial_case() and COMPANY_EMAIL not in attempt_text and not _contact_shown_recently():
+            offer = _industrial_contact_text(language)
+            attempt_text = f"{attempt_text.rstrip()}\n\n{offer}" if attempt_text.strip() else offer
+            log_event("company_contact_appended", reason="industrial")
         # A refusal, or "I'll get back to you myself": make sure they have the company's contact.
         elif (is_final and (consent_event == "refused" or _DECLINE_CONTACT_RE.search(user_input))
               and COMPANY_EMAIL not in attempt_text and not _contact_shown_recently()):

@@ -17,6 +17,10 @@
     "ambulancia": ["ambulanci", "ordinácia", "ordinaci", "zubár", "zubar", "klinik", "mudr"]
   },
   "inferred_commercial": ["obchod", "predajň", "predajn", "butik", "showroom", "reštaurác", "restaurac", "kaviar", "cukrár", "fitness", "posilňov", "posilnov", "telocvič", "open space", "open-space", "openspace", "kancelári", "kancelari", "coworking"],
+  "industrial": {
+    "note": "Priemyselné priestory (hala, výroba, továreň) chatbot nerieši: nenavrhuje ani nenaceňuje, dá kontakt na projektového manažéra alebo ponúkne, že sa PM ozve. Kmene slov sa porovnávajú od začiatku slova, s diakritikou aj bez.",
+    "triggers": ["priemysel", "industri", "hala", "haly", "halu", "hale", "halou", "výrobn", "vyrobn", "továr", "tovaren", "tovarn", "fabrik", "závod", "zavod", "logistick", "factory", "warehouse", "production hall"]
+  },
   "office_words": ["kancelári", "kancelari", "coworking"],
   "office_residential_ok_up_to_m2": 25,
   "wifi_triggers": ["wifi", "wi-fi", "wi fi", "aplikáci", "aplikaci", "appk", "z mobilu", "cez mobil", "smartthings"]
