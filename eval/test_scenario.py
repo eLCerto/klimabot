@@ -26,6 +26,13 @@ SCENARIOS = {
         "mam alergiu na prach, odporuc mi najlepsiu filtraciu",
         "ktora z tych najlepsich je najlacnejsia?",
     ],
+    # Live demo of 2026-10-18: no search, series picked from the prompt's examples, no multi-split price.
+    "dve_izby_porovnanie": [
+        "potrebujem klimu do dvoch izieb",
+        "aka je vyhoda multisplitu voci single?",
+        "jedna izba ma 12 m2. priprav mi porovnanie kolko by stal multisplit a singlesplit",
+        "15",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",

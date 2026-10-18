@@ -24,7 +24,7 @@ type: feedback
 
 ### Kódy setov bez hľadania
 
-`lookup_product` prijme aj **názov radu a výkon** („HAORI 2,5 kW“, „DAISEIKAI 10 3,5 kW“, „Avant S2“) a okamžite vráti presné kódy setov (vnútorná + vonkajšia jednotka). Na kódy nikdy nehľadaj cez `search_knowledge` („Toshiba HAORI model kód“ je zbytočných 9 sekúnd).
+`lookup_product` prijme aj **názov radu a výkon** („<značka> <rad> <výkon v kW>“) a okamžite vráti presné kódy setov (vnútorná + vonkajšia jednotka). Na kódy nikdy nehľadaj cez `search_knowledge` (hľadanie „model kód“ je zbytočných 9 sekúnd).
 
 ### Voľba keywordov
 
