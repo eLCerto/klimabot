@@ -1,6 +1,6 @@
 ---
 name: discovery-pred-konkretnou-ponukou
-description: Pri vágnych otázkach najprv discovery (typ priestoru, m², počet izieb, typ vnútornej jednotky — štandard nástenná), cena až NAKONIEC. NIKDY sa nepýtaj na umiestnenie vonkajšej jednotky (rieši PM pri obhliadke), výšku stropu, izoláciu, slnečnú stranu, počet ľudí ani značku.
+description: Pri vágnych otázkach najprv discovery (typ priestoru, m², počet izieb, typ vnútornej jednotky — štandard nástenná, potom čo je pre zákazníka dôležité), cena až NAKONIEC. NIKDY sa nepýtaj na umiestnenie vonkajšej jednotky (rieši PM pri obhliadke), výšku stropu, izoláciu, slnečnú stranu, počet ľudí ani značku.
 type: feedback
 ---
 
@@ -17,7 +17,11 @@ Pri všeobecných dotazoch („akú klimu", „chcem klimatizáciu") **NIKDY** n
 3. **Počet izieb / miestností** — 1 = Single-Split; 2–5 = Multi-Split; 6+ mimo rozsahu. Nie je to blokujúca otázka: ak ju zákazník nepovie, predpokladaj 1 miestnosť, povedz to a pokračuj.
 4. **Typ vnútornej jednotky** — ak ho zákazník neuviedol, povedz, že **štandard je nástenná** (odporúčaš ju), a opýtaj sa, či mu vyhovuje, alebo potrebuje iný typ: parapetná/konzolová (pod okno, pri podlahe), kazetová (do podhľadu), kanálová (skrytá v podhľade). Ak neodpovie, predpokladaj nástennú. **Kým iný typ nežiada, ponúkaj iba nástenné** — „tichá do detskej izby" ani „s filtrom" nie je dôvod na parapetnú. `quote` inú ako nástennú rezidenčnú jednotku bez zákazníkovej žiadosti odmietne. Kam v miestnosti pôjde vnútorná jednotka, sa pýtať smieš (na vonkajšiu nie).
 
-Doplňujúce otázky (filter, alergie, tichý chod, dizajn) **až keď** zákazník neuvedie sám a sú relevantné pre voľbu radu.
+### Druhý krok — čo je pre zákazníka dôležité (pred prvou cenovou ponukou)
+
+Keď poznáš priestor a plochu, **pred prvou ponukou sa opýtaj, čo zákazník od klimatizácie chce**, ak to sám nepovedal: tichý chod (spálňa, detská izba), filtrácia vzduchu (alergia, prach), Wi-Fi ovládanie z mobilu, dizajn / farba, alebo čo najnižšia cena. Podľa odpovede vyber rad (pri filtrácii poradie z [[alergie-filtracia]]). Bez tejto otázky neponúkaj konkrétny rad — zákazník sa inak pýta, prečo dostal drahú prémiovú sériu, o ktorú nežiadal (majiteľ, 2026-10-19).
+
+Pri **2–5 miestnostiach** ponúkni multi-split (jedna vonkajšia jednotka) aj samostatné sety a naceň oba.
 
 ### Otázky, ktoré NIKDY nekladieš
 
@@ -63,7 +67,7 @@ Po prezentácii: *„Ktorý variant vás najviac oslovuje? Ak chcete preladiť n
 - Všeobecný prehľad: „Aké rady Toshiba máte?" → ukáž rebríček, pýtaj sa na smer.
 - Technická otázka: „Aký SEER má DAISEIKAI 10?" → priamo odpoveď.
 - Zákazník sám stručne uvedie kontext: „Chcem najlacnejšie pre 25 m² spálňu" → rešpektuj jeho cenovú orientáciu.
-- Zákazník sa pýta **„koľko to stojí“, „koľko aj s montážou“ alebo „je to skladom“** → odpovedz v tom istom ťahu: hneď ako poznáš m² alebo kódy, `quote` s predpokladom (nástenná, biela, štandardný rad = najlacnejší vhodný rad značky), cenu s DPH a recyklačný poplatok; montáž: „cenu určí projektový manažér po bezplatnej obhliadke"; predpoklad povedz. Dostupnosť z poľa `availability` ([[dodacia-lehota-non-stock]]). Obec ani kontakt na cenu nepotrebuješ. Cenu ani dostupnosť nikdy nepodmieňuj kontaktom či súhlasom.
+- Zákazník sa pýta **„koľko to stojí“, „koľko aj s montážou“ alebo „je to skladom“** → odpovedz v tom istom ťahu: hneď ako poznáš m² alebo kódy, `quote` s predpokladom (nástenná, biela, štandardný rad = najlacnejší vhodný rad značky), cenu s DPH a recyklačný poplatok; montáž: „cenu určí projektový manažér po bezplatnej obhliadke"; predpoklad povedz a v tej istej odpovedi sa opýtaj, čo je pre zákazníka dôležité, aby si ponuku spresnil. Dostupnosť z poľa `availability` ([[dodacia-lehota-non-stock]]). Obec ani kontakt na cenu nepotrebuješ. Cenu ani dostupnosť nikdy nepodmieňuj kontaktom či súhlasom.
 
 ### Príklad správneho otvorenia
 
@@ -85,6 +89,8 @@ Po odpovediach vám pripravím 2–3 konkrétne odporúčania."
 - ❌ Ponúkať cenové úrovne z hlavy („do X €"). Cenu konkrétnej zostavy povie až `quote`.
 - ❌ Pýtať 6 otázok naraz pri jednoduchom dotaze — prispôsob množstvo otázok zložitosti.
 - ❌ Ponúknuť parapetnú, kazetovú či kanálovú jednotku, keď zákazník typ nežiadal — štandard je nástenná.
+- ❌ Ponúknuť konkrétny rad skôr, než vieš, čo je pre zákazníka dôležité (tichý chod, filtrácia, Wi-Fi, dizajn, cena).
+- ❌ Pýtať sa na preferovanú značku — ak ju zákazník nespomenie, ponúkni obe.
 - ❌ Zoradiť ponuku len od najlacnejšieho — preferuj zoradenie podľa hodnoty (optimálny → premium → úsporný).
 - ❌ Pýtať sa kam outdoor alebo otvárať povolenia k inštalácii — inštalačné detaily posúdi PM pri obhliadke (viď [[umiestnenie-vonkajsej-jednotky]]).
 - ❌ Volať `update_customer_state` raz na konci so všetkým naraz. Polia vyplňuj postupne, po každom user message s faktami.

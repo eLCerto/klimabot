@@ -51,6 +51,14 @@ SCENARIOS = {
         "30 m2",
         "chcem parapetnu jednotku",
     ],
+    # Live demo of 2026-10-19: no feature question, three sets for three rooms, AR35 for a filter wish,
+    # a stale PM brief after the switch.
+    "byt_3_izby": [
+        "potrebujem klimu do bytu do 3 izieb",
+        "izby maju 20, 20 a 10 m2",
+        "mam zaujem o kvalitny filter a wifi",
+        "chcem nizsiu radu, nieco lacnejsie",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",

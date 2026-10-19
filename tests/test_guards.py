@@ -563,6 +563,62 @@ class QuoteTests(BotTest):
         self.assertFalse(single["discount_mixed"])
         self.assertRegex(single["discount_pct"], r"^\d+(,\d+)? %$")
 
+    def test_brief_follows_a_quote_made_after_the_lead(self):  # live demo 2026-10-19: AR35 chosen, brief kept Avant
+        self.sess.user_inputs.append("Byt, spálňa 12 m2, chcem čo najlacnejšiu.")
+        self.sess.consent = {"purpose": "sales", "ts": "2026-10-19T20:33:53", "evidence": "Áno, súhlasím"}
+        self.q([(c, 1) for c in AR30_SET])
+        self.assertNotIn("error", bot.capture_lead("Samuel", "0905000123", "Spálňa.", interested_in=[" + ".join(AR30_SET)]))
+        self.assertEqual(list(bot._refresh_lead_brief()), [], "no new quote, nothing to refresh")
+        self.q([("AR40H09C1AMNEU", 1), ("AR40H09C1AMXEU", 1)])
+        events = list(bot._refresh_lead_brief())
+        self.assertEqual([e for e, _ in events], ["handoff"])
+        brief = self.sess.handoff_path.read_text(encoding="utf-8")
+        self.assertIn("AR40H09C1AMNEU", brief)
+        self.assertIn("posledná ponuka", brief)
+        self.assertEqual(len(self.sess.lead_record["quotes"]), 2, "the PM's e-mail carries the latest version")
+
+    def test_phone_as_a_device_is_no_contact_request(self):  # live demo: a consent question out of nowhere
+        self.assertFalse(bot._asks_contact("Čo je pre vás dôležité? - Wi-Fi ovládanie cez telefón?"))
+        self.assertFalse(bot._asks_contact("Ovládate ju telefónom aj z mobilnej aplikácie?"))
+        self.assertTrue(bot._asks_contact("Aké je vaše telefónne číslo?"))
+        self.assertTrue(bot._asks_contact("Pošlite mi meno a telefón."))
+
+    def test_a_filter_wish_brings_the_filtration_ranking(self):  # live demo: "kvalitný filter" got the AR35
+        self.sess.user_inputs.append("mam zaujem o kvalitny filter a wifi")
+        warning = " ".join(self.q([("AR40H09C1AMNEU", 1), ("AR40H09C1AMXEU", 1)])["fit_warnings"])
+        self.assertIn("triedy 4", warning)
+        self.sess.user_inputs[:] = ["Spálňa 12 m2, nepotrebujem filtráciu."]
+        self.assertFalse(bot._wished(bot._ALLERGY_RE))
+
+    def test_several_sets_suggest_a_multi_split_too(self):  # live demo: three sets for a three-room flat
+        self.sess.user_inputs.append("Byt, 3 izby po 15 m2.")
+        three = self.q([(c, 3) for c in AR30_SET])
+        self.assertTrue(any("multi-split" in w for w in three["fit_warnings"]))
+        self.assertFalse(any("multi-split" in w for w in self.q([(c, 1) for c in AR30_SET]).get("fit_warnings", [])))
+
+    def test_placement_lists_are_removed(self):  # "Umiestnenie vonkajšej jednotky (balkón, fasáda, iné)"
+        text = "Pri obhliadke posúdi:\n- Umiestnenie vonkajšej jednotky (balkón, fasáda, iné)\n- Dĺžku potrubia"
+        self.assertEqual(bot.sanitize_reply(text)[0], "Pri obhliadke posúdi:\n- Dĺžku potrubia")
+
+    def test_features_are_asked_before_the_first_offer(self):  # the owner's wish, 2026-10-19
+        self.sess.user_inputs.append("Obývačka 30 m2, jedna izba.")
+        self.assertIn("čo je preň dôležité", bot.build_server_context())
+        self.sess.user_inputs.append("Hlavne nech je tichá.")
+        self.assertNotIn("čo je preň dôležité", bot.build_server_context())
+        self.sess.user_inputs[:] = ["Obývačka 30 m2."]
+        self.q([(c, 1) for c in AR30_SET])
+        self.assertNotIn("čo je preň dôležité", bot.build_server_context(), "after an offer the question is the bot's")
+
+    def test_an_offer_follows_the_requirements_and_a_cheaper_wish(self):  # scenario byt_3_izby
+        self.sess.user_inputs.extend(["potrebujem klimu do bytu do 3 izieb", "izby maju 20, 20 a 10 m2"])
+        self.assertTrue(bot._unanswered_price_question("mam zaujem o kvalitny filter a wifi", 0))
+        self.assertFalse(bot._unanswered_price_question("nástenná je v poriadku", 0))
+        self.q([(c, 1) for c in AR30_SET])
+        self.assertFalse(bot._unanswered_price_question("a ma to aj wifi?", 1), "after the offer, a question")
+        self.assertTrue(bot._unanswered_price_question("chcem nizsiu radu, nieco lacnejsie", 1))
+        self.assertFalse(bot._unanswered_price_question("chcem nizsiu radu, nieco lacnejsie", 0),
+                         "a quote made this turn answers it")
+
     def test_one_quote_is_one_system_of_one_brand(self):  # live demo 2026-10-19: a bare outdoor sold as a set
         self.sess.user_inputs.append("Obývačka 30 m2, chcem parapetnú jednotku.")
         mixed = self.q([("RAS-13P2AVSG-E", 1), ("AJ035TNJDKG/EU", 1), ("AJ050TXJ2KG/EU", 1)])

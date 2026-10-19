@@ -231,7 +231,11 @@ system_prompt = (
     "profesionálny tón, nie Discord support.\n"
     "4. **Žiadne Markdown nadpisy (#/##/###)** v chate. Tučná veta stačí. "
     "Nadpisy len pri štruktúrovanom bloku >10 riadkov.\n"
-    "5. **Discovery v poradí: typ priestoru → m² → počet izieb → typ vnútornej jednotky.** "
+    "5. **Discovery v poradí: typ priestoru → m² → počet izieb → typ vnútornej jednotky → čo je pre "
+    "zákazníka dôležité.** Pred prvou cenovou ponukou sa opýtaj na jeho požiadavky, ak ich sám nepovedal: "
+    "tichý chod (spálňa), filtrácia vzduchu (alergia, prach), Wi-Fi ovládanie z mobilu, dizajn / farba, "
+    "alebo čo najnižšia cena — podľa toho vyber rad. Pri 2–5 miestnostiach ponúkni multi-split aj samostatné "
+    "sety. Na značku sa nepýtaj; ak ju zákazník nespomenie, ponúkni obe. "
     "Ak zákazník typ vnútornej jednotky neuviedol, povedz, že štandard je **nástenná** (odporúčaš ju), "
     "a opýtaj sa, či mu vyhovuje, alebo potrebuje iný typ (parapetná/konzolová pod okno, kazetová do "
     "podhľadu, kanálová skrytá). Kým iný typ nežiada, ponúkaj iba nástenné. Kam v miestnosti pôjde "
@@ -291,7 +295,8 @@ system_prompt = (
     "ťahu: hneď ako poznáš m² (alebo konkrétne kódy), zavolaj `quote` s rozumným predpokladom "
     "(nástenná, biela, štandardný = najlacnejší vhodný rad značky) a predpoklad povedz; na montáž "
     "povedz, že jej cenu určí projektový manažér po bezplatnej obhliadke. Dostupnosť ber z poľa "
-    "`availability`. Cenu NIKDY nepodmieňuj kontaktom ani súhlasom so spracovaním údajov.\n\n"
+    "`availability`. Cenu NIKDY nepodmieňuj kontaktom ani súhlasom so spracovaním údajov. Ak požiadavky "
+    "zákazníka ešte nepoznáš, v tej istej odpovedi sa na ne opýtaj, aby si ponuku mohol spresniť.\n\n"
     "Keď sa od zákazníka dozvieš novú informáciu (rozpočet, miestnosť, segment, preferencia značky, "
     "kontakt), zavolaj `update_customer_state` s príslušnými poľami.\n\n"
     "Keď už zákazník dostal cenu a má záujem (ponuka, obhliadka, spätné kontaktovanie), vypýtaj si "
@@ -995,10 +1000,12 @@ def _wished(regex, text=None):
 
 _WIFI_WANTED_FOLDED_RE = re.compile("|".join(re.escape(fold_diacritics(t)) for t in SIZING["wifi_triggers"]), re.I)
 
-# Allergy, dust or air quality in the customer's words (folded, not negated: "nie som alergik").
+# Allergy, dust, air quality or a filter wish in the customer's words (folded, not negated: "nie som alergik").
 _ALLERGY_RE = re.compile(
     r"\balergi\w*|\balergik\w*|\bastm\w*|\broztoc\w*|\bpel\b|\bpelov\w*|\bpm\s?2[.,]5|\bantibakter\w*|"
-    r"\bantialerg\w*|\bprach\w*|\bkvalit\w*\s+vzduch\w*|\bcistic\w*\s+vzduch\w*|\bdust\b|\ballerg\w*|\basthm\w*",
+    r"\bantialerg\w*|\bprach\w*|\bkvalit\w*\s+vzduch\w*|\bcistic\w*\s+vzduch\w*|\bdust\b|\ballerg\w*|\basthm\w*|"
+    # a filter wish: "kvalitný filter a wifi" got the basic-filter AR35 in the live demo of 2026-10-19
+    r"\b(?:kvalitn|dobr|leps|najleps|premiov|vysokokvalitn)\w*\s+filt\w*|\bfiltrac\w*|\bfilter\s+quality",
     re.IGNORECASE)
 
 # Filtration ranking for allergy / dust / air quality (filtration_policy.json): sent in the server
@@ -1028,7 +1035,7 @@ _check_filtration_policy()
 def _filtration_ranking_text():
     tiers = [f"{t['tier']}. " + ", ".join(e["name"] for e in t["entries"]) + f" ({t['label']})"
              for t in FILTRATION["tiers"]]
-    return ("Zákazník spomenul alergiu, prach alebo kvalitu vzduchu. Poradie filtrácie nástenných radov (od "
+    return ("Zákazník spomenul alergiu, prach, filtráciu alebo kvalitu vzduchu. Poradie filtrácie nástenných radov (od "
             "najlepšej; rady v jednej triede sú rovnocenné — rešpektuj značku, ktorú zákazník chce, inak ponúkni "
             "lacnejší): " + "; ".join(tiers) + ". Odporúčaj triedu 1. Žiadny rad nenazývaj lepšou filtráciou, než "
             "mu dáva toto poradie, a nemeň odporúčanie len preto, že zákazník namietne.")
@@ -1251,7 +1258,7 @@ def _fit_check(fit_lines, override_reason=None):
                 continue
             tier, entry = ranked
             best = _best_filtration_sets(rec, text)
-            warnings.append(f"zákazník spomenul alergiu, prach alebo kvalitu vzduchu: {entry['name']} má filtráciu "
+            warnings.append(f"zákazník spomenul alergiu, prach, filtráciu alebo kvalitu vzduchu: {entry['name']} má filtráciu "
                             f"triedy {tier} ({entry['filtration']})"
                             + (" — alergikom ho neodporúčaj" if tier == 4 else "")
                             + (f"; triedu 1 v tejto veľkosti majú {', '.join(best)} — ponúkni ich ako prvé a cenu "
@@ -1263,6 +1270,13 @@ def _fit_check(fit_lines, override_reason=None):
     if toshiba_multi and multi_indoor <= toshiba_multi:
         warnings.append("Toshiba multi-split s jedinou vnútornou jednotkou podľa combinations_table iba chladí — "
                         "nevykuruje; povedz to zákazníkovi")
+    # Two to five single-split sets are as many outdoor units: offer a multi-split too (the live demo of
+    # 2026-10-19 priced three sets for a three-room flat and never mentioned one).
+    sets = sum(qty for _, _, qty, cat in fit_lines if cat == "single_split_sets")
+    if 2 <= sets <= 5 and not place and not any(cat == "multi_split_outdoor" for _, _, _, cat in fit_lines):
+        warnings.append(f"{sets} samostatné single-split sety = {sets} vonkajšie jednotky; ak ide o miestnosti "
+                        "jedného bytu či domu, naceň aj multi-split (jedna vonkajšia jednotka) samostatným volaním "
+                        "quote a ponúkni oba varianty")
     non_wall = sorted({c for rec, codes, _, cat in fit_lines if cat in _RESIDENTIAL_CATEGORIES
                        and _NON_WALL_PATH_RE.search(rec["category_path"]) for c in codes})
     if non_wall and not _wished(_INDOOR_TYPE_WISH_RE) and not any(c in text.upper() for c in non_wall):
@@ -2015,7 +2029,8 @@ def _render_quotes(quotes):
     blocks = []
     for i, q in enumerate(latest.values(), 1):
         promo = f", akcia {q['promotion']}" if q.get("promotion") else ""
-        rows = [f"**Variant {i}** (segment {q['segment']}{promo}):"]
+        last = " — **posledná ponuka zákazníkovi**" if i == len(latest) and len(latest) > 1 else ""
+        rows = [f"**Variant {i}** (segment {q['segment']}{promo}){last}:"]
         for line in q["lines"]:
             rows.append(f"- {line['qty']}× {line['description']} ({' + '.join(line['codes'])}): "
                         f"{_eur(line['unit_price_eur'])}/ks bez DPH, zľava {line['discount_pct']} %"
@@ -2243,6 +2258,22 @@ def _iter_message_text_and_tool_results():
                     for sub in tc:
                         if isinstance(sub, dict) and sub.get("type") == "text":
                             yield sub.get("text", "")
+
+
+# What matters to the customer, asked before the first offer (the owner's wish, 2026-10-19: a customer asked
+# why the bot quoted a premium series without asking about features first).
+_PREFERENCE_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|dizajn|design|farb\w*|\bciern\w*|\bbiel\w*|\bdrev\w*|"
+                            r"textil|je\s+mi\s+(?:to\s+)?jedno|nezalezi\s+mi|\bfunkci\w*", re.IGNORECASE)
+_FEATURE_QUESTION_RE = re.compile(
+    r"(?:funkci|dôležit|dolezit|požiadav|poziadav|záleží|zalezi)\w*[^?]{0,300}\?", re.IGNORECASE)
+
+
+def _preferences_known():
+    """The customer said what they want, or the bot already asked."""
+    if (_PREFERENCE_RE.search(fold_diacritics(_all_user_text())) or _wished(_WIFI_WANTED_FOLDED_RE)
+            or _wished(_CHEAP_WISH_RE) or _wished(_ALLERGY_RE)):
+        return True
+    return bool(_FEATURE_QUESTION_RE.search(_recent_assistant_text(n=50)))
 
 
 def _recent_assistant_text(n=4):
@@ -3619,6 +3650,10 @@ def sanitize_reply(text, language="sk"):
     # "Cena s DPH a recyklačnými poplatkami: …": the recycling fee is added on top of every total
     # (live demo 2026-10-19). "bez DPH a recyklačných poplatkov" is right and stays.
     text = _WITH_VAT_AND_FEE_RE.sub("s DPH, bez recyklačného poplatku", text)
+    # A line listing outdoor placement options ("Umiestnenie vonkajšej jednotky (balkón, fasáda, iné)") is the
+    # PM's topic at the site visit: the line goes. It used to be only logged, and kept coming back.
+    text = "\n".join(line for line in text.split("\n")
+                     if len({m.group(1).lower()[:6] for m in _PLACEMENT_RE.finditer(line)}) < 2)
     text = _WITH_VAT_AND_FEE_EN_RE.sub("incl. VAT, excluding the recycling fee", text)
     text = text.replace("🔧", "")  # looks like the debug view's tool chip (q04)
     if language == "sk":
@@ -4116,7 +4151,7 @@ def _support_case():
 
 
 def _support_contact_requests(text):
-    return [x for x in _sentences(text) if _CONTACT_REQUEST_RE.search(x)] if _support_case() else []
+    return [x for x in _sentences(text) if _asks_contact(x)] if _support_case() else []
 
 
 def validate_assistant_reply(text, prior_conversation_text="", compat_checked_outdoors=None):
@@ -4478,7 +4513,8 @@ _DATE_PROMISE_RE = re.compile(
 _REGEN_ONLY_RULES = ("jazyk-odpovede", "cena-neodpovedana", "kontakt-pred-ponukou", "prazdna-odpoved")
 _PRICE_QUESTION_RE = re.compile(
     r"\b(?:koľko|kolko|kolik)\b[^?\n]{0,60}(?:stoj|stál|stal|stát|bude|vyjde|zaplat|cen)|\bak[áa]\s+(?:je\s+)?cena\b|"
-    r"\bcenu\b|\bhow\s+much\b|\bwhat\s+(?:would|does|will)\b[^?\n]{0,40}\bcost\b|\bprice\b",
+    r"\bcenu\b|\bhow\s+much\b|\bwhat\s+(?:would|does|will)\b[^?\n]{0,40}\bcost\b|\bprice\b|"
+    r"\blacnej\w*|\bni[žz]š\w*\s+(?:rad|model|tried)\w*|\bcheaper\b",
     re.IGNORECASE)
 
 
@@ -4487,12 +4523,35 @@ def _unanswered_price_question(user_input, quotes_before=0):
     made this turn — either none exists yet, or the customer named a size or model in this message
     (q03, d04: codes given, no price)."""
     sess = S()
-    if len(sess.quotes) > quotes_before or not _PRICE_QUESTION_RE.search(user_input):
+    if len(sess.quotes) > quotes_before:
+        return False
+    if not sess.quotes and _offer_due(user_input):
+        return True
+    if not _PRICE_QUESTION_RE.search(user_input):
         return False
     size_known = _customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)
     if not (size_known or _codes_named(_all_user_text())):
         return False
-    return not sess.quotes or bool(_codes_named(user_input) or _CUSTOMER_M2_RE.search(user_input))
+    return (not sess.quotes or bool(_codes_named(user_input) or _CUSTOMER_M2_RE.search(user_input)
+                                    or _CHEAPER_RE.search(fold_diacritics(user_input))))
+
+
+# "chcem nižšiu radu, niečo lacnejšie": a cheaper variant is a price question — the live demo named
+# DAISEIKAI 10 as the cheaper option without a quote, and it is the dearer one.
+_CHEAPER_RE = re.compile(r"\blacnej\w*|\bnizs\w*\s+(?:rad|model|tried)\w*|\bcheaper\b|\blower[\s-]+(?:priced|cost)",
+                         re.IGNORECASE)
+
+
+def _offer_due(user_input):
+    """The customer has just said what matters (quietness, filtration, Wi-Fi, design, a low price), the size
+    is known and no offer exists yet: the offer with a price comes now (the owner's order, 2026-10-19 — ask
+    what matters, then offer; the bot kept asking "which variant?" instead)."""
+    if S().quotes or _industrial_case():
+        return False
+    if not (_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)):
+        return False
+    return bool(_PREFERENCE_RE.search(fold_diacritics(user_input)) or _wished(_WIFI_WANTED_FOLDED_RE, user_input)
+                or _wished(_CHEAP_WISH_RE, user_input) or _wished(_ALLERGY_RE, user_input))
 
 
 # The customer can be asked for contact details once there's a price (K7: town, phone and the
@@ -4504,7 +4563,7 @@ _CONTACT_WISH_RE = re.compile(
 
 def _contact_before_price(reply):
     sess = S()
-    if sess.quotes or sess.consent is not None or not _CONTACT_REQUEST_RE.search(reply) or _support_case():
+    if sess.quotes or sess.consent is not None or not _asks_contact(reply) or _support_case():
         return False
     text = _all_user_text()
     if _contact_in(text) or _CONTACT_WISH_RE.search(text):
@@ -5026,6 +5085,16 @@ _CONTACT_REQUEST_RE = re.compile(
     r"|\b(telef\w*|phone)\b[\s\S]{0,120}\b(meno|name)\b",
     re.IGNORECASE,
 )
+# A phone as a device, not a contact: "Wi-Fi ovládanie cez telefón?" in a list of features made code attach
+# the consent question to a reply about features (live demo 2026-10-19).
+_PHONE_AS_DEVICE_RE = re.compile(
+    r"\b(?:cez|zo?|v|na|do|mobiln\w*|smart)\s+(?:telef[óo]n\w*|mobil\w*|smartf[óo]n\w*|aplik[áa]ci\w*)|"
+    r"\btelef[óo]nom\b|\bvia\s+(?:your\s+)?(?:phone|app)\b|\bphone\s+app\b", re.IGNORECASE)
+
+
+def _asks_contact(text):
+    """A request for contact details, with phone-as-device phrases blanked out first."""
+    return _CONTACT_REQUEST_RE.search(_PHONE_AS_DEVICE_RE.sub(" ", text))
 
 
 def _contact_in(text):
@@ -5257,6 +5326,11 @@ def build_server_context(note=None):
         status += "\nZákazník píše po česky — odpovedaj VÝHRADNE po slovensky (žiadne české slová ani tvary)."
     if _wished(_ALLERGY_RE):
         status += "\n" + _filtration_ranking_text()
+    if (not S().quotes and _CUSTOMER_M2_RE.search(_all_user_text()) and not _industrial_case()
+            and not _preferences_known()):
+        status += ("\nPred prvou cenovou ponukou sa zákazníka opýtaj, čo je preň dôležité (tichý chod, filtrácia "
+                   "vzduchu, Wi-Fi ovládanie z mobilu, dizajn, čo najnižšia cena), a podľa toho vyber rad. Ak sa "
+                   "priamo pýta na cenu, naceň štandard a v tej istej odpovedi sa opýtaj na požiadavky.")
     if _industrial_case():
         status += (
             "\nZákazník chce chladiť priemyselný priestor (hala, výroba, továreň). Tento chatbot ho nerieši: "
@@ -5480,6 +5554,29 @@ def _close_turn(text, kind):
 def _maybe_auto_capture():
     if _should_auto_capture():
         yield from _auto_capture_lead()
+    yield from _refresh_lead_brief()
+
+
+def _refresh_lead_brief():
+    """A quote after the lead: rewrite the PM brief, and the record the PM's e-mail carries, with it. In the
+    live demo of 2026-10-19 the customer switched to a cheaper series after the lead; the bot said it would
+    update it and didn't, so the brief kept the dearer offer."""
+    sess = S()
+    record = sess.lead_record
+    if record is None or len(sess.quotes) <= len(record.get("quotes", [])):
+        return
+    record = {**record, "quotes": list(sess.quotes), "customer_state": dict(sess.customer_state),
+              "updated": datetime.datetime.now().isoformat(timespec="seconds")}
+    sess.lead_record = record
+    with LEADS_PATH.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    try:
+        sess.handoff_path = _write_handoff_markdown(record)
+    except Exception as e:
+        log_event("handoff_md_failed", error=str(e))
+        return
+    log_event("handoff_refreshed", reason="new_quote", quotes=len(record["quotes"]))
+    yield ("handoff", {"markdown": sess.handoff_path.read_text(encoding="utf-8"), "path": _rel(sess.handoff_path)})
 
 
 def run_user_turn_streaming(user_input):
@@ -5669,14 +5766,25 @@ def run_user_turn_streaming(user_input):
             ) if attempt_text.strip() else []
             if answering and not force_final and _unanswered_price_question(user_input, quotes_before):
                 codes = sorted(_codes_named(user_input) or _codes_named(_all_user_text()))
-                violations.append(
-                    "cena-neodpovedana: zákazník sa pýta na cenu a "
-                    + (f"uviedol kódy {codes}" if codes else "veľkosť priestoru poznáš") + ", ale cenu si neuviedol. "
-                    "Zavolaj `quote` hneď" + (f" s kódmi {codes}" if codes else
-                                              " s rozumným predpokladom (nástenná jednotka, štandardný rad, biela)")
-                    + ", uveď cenu s DPH a recyklačný poplatok a predpoklad povedz; cenu montáže určí projektový "
-                    "manažér po bezplatnej obhliadke. Doplňujúcu otázku polož až potom."
-                )
+                if _offer_due(user_input) and not _PRICE_QUESTION_RE.search(user_input):
+                    violations.append(
+                        "cena-neodpovedana: zákazník práve povedal, čo je preň dôležité, a veľkosť priestoru poznáš "
+                        "— teraz príde ponuka s cenou. Vyber rad podľa jeho požiadaviek, kódy zisti cez "
+                        "`lookup_product`, zavolaj `quote` (pri 2–5 miestnostiach samostatné sety aj multi-split, "
+                        "každý variant zvlášť) a uveď cenu s DPH; cenu montáže určí projektový manažér po "
+                        "bezplatnej obhliadke. Na variant sa nepýtaj pred cenou — ukáž ceny a nech si vyberie."
+                    )
+                else:
+                    violations.append(
+                        "cena-neodpovedana: zákazník sa pýta na cenu a "
+                        + (f"uviedol kódy {codes}" if codes else "veľkosť priestoru poznáš") + ", ale cenu si "
+                        "neuviedol. Zavolaj `quote` hneď" + (f" s kódmi {codes}" if codes else
+                                                            " s rozumným predpokladom (nástenná jednotka, štandardný "
+                                                            "rad, biela)")
+                        + ", uveď cenu s DPH a recyklačný poplatok a predpoklad povedz; cenu montáže určí projektový "
+                        "manažér po bezplatnej obhliadke. Doplňujúcu otázku polož až potom. Lacnejší variant "
+                        "naceň cez `quote` — netvrď, že je lacnejší, kým to `quote` neukáže."
+                    )
             # An empty final reply (text written next to the tools is hidden, so this would leave the
             # customer with nothing): one retry with a note, then the fallback line below.
             if answering and not force_final and not attempt_text.strip() and not shown_this_turn:
@@ -5786,7 +5894,7 @@ def run_user_turn_streaming(user_input):
                      and (sess.customer_state.get("lead_phone") or sess.customer_state.get("lead_email")))
         if (is_final and not support_case and sess.consent is None and consent_event != "refused"
                 and ((contact_in_message and consent_event is None)
-                     or (not sess.consent_refused and _CONTACT_REQUEST_RE.search(attempt_text))
+                     or (not sess.consent_refused and _asks_contact(attempt_text))
                      or reask)
                 and not any(_consent_question_shown(t) for t in shown_this_turn + [attempt_text])):
             purpose = _consent_purpose()
