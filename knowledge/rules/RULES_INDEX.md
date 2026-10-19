@@ -39,7 +39,7 @@ Toto je index pravidiel, ktoré bot nájde cez `search_knowledge`. Pravidlo = `f
 - [multi-split-pravidla](feedback_multi_split_pravidla.md) — Max 5 izieb; kompatibilitu overí `check_compatibility` alebo `quote`
 
 ### Produktové detaily
-- [kazety-vyzaduju-panel](feedback_kazety_potrebuju_panel.md) — Kazety nefungujú bez dekoračného panela; panel (a ovládač) pridaj do `quote`
+- [kazety-vyzaduju-panel](feedback_kazety_potrebuju_panel.md) — Kazety nefungujú bez dekoračného panela a ovládača; rezidenčné kazety sú v multi-split radoch, kódy cez `lookup_product`
 - [brand-specificke-funkcie](feedback_brand_specificke_funkcie.md) — WindFree=Samsung, HADA Careflow/Bi-Flow=Toshiba; nezamieňaj
 - [dodacia-lehota-non-stock](feedback_dodacia_lehota_non_stock.md) — Non-stock (DAISEIKAI Wood, Smart kazeta, Stojanová RAV) → upozorni
 - [model-code-verifikacia](feedback_model_code_verifikacia.md) — Po `lookup_product` over že rad sedí s prezentáciou; inak znova hľadaj

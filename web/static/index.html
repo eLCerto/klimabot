@@ -281,6 +281,7 @@
     .qc-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; margin-top: 4px; font-size: 12.5px; }
     .qc-avail { color: var(--success-text); }
     .qc-unit { color: var(--text-2); font-variant-numeric: tabular-nums; }
+    .qc-disc { color: var(--success-text); font-weight: 600; }
     .qc-totals { margin: 0; padding: 10px 16px 12px; background: var(--surface-2); border-top: 1px solid var(--border); font-size: 13.5px; }
     .qc-totals > div { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
     .qc-totals dt { color: var(--text-2); }
@@ -858,7 +859,7 @@ function removeQuickReplies() {
 const CARD_TEXT = {
   sk: {
     title: "Cenová ponuka", sub: "vypočítaná z cenníka", piece: "ks", withVat: "s DPH",
-    catalog: "Cenníková cena bez DPH", discount: "Zľava", promotion: "Akcia",
+    catalog: "Cenníková cena bez DPH", discount: "Zľava", discountOverall: "spolu", promotion: "Akcia",
     total: "Spolu bez DPH", vat: "DPH 23 %", grand: "Spolu s DPH",
     fee: (f) => `Recyklačný poplatok ${f.min}–${f.max} € za jednotku (${f.units} ks), presná suma pri objednávke.`,
     install: "Montáž: cenu určí projektový manažér po bezplatnej obhliadke.",
@@ -866,7 +867,7 @@ const CARD_TEXT = {
   },
   en: {
     title: "Price quote", sub: "calculated from the price list", piece: "pc", withVat: "incl. VAT",
-    catalog: "List price excl. VAT", discount: "Discount", promotion: "Promotion",
+    catalog: "List price excl. VAT", discount: "Discount", discountOverall: "overall", promotion: "Promotion",
     total: "Total excl. VAT", vat: "VAT 23 %", grand: "Total incl. VAT",
     fee: (f) => `Recycling fee ${f.min}–${f.max} € per unit (${f.units} pcs), exact amount with the order.`,
     install: "Installation: priced by the project manager after a free site visit.",
@@ -894,7 +895,9 @@ function addQuoteCard(card) {
     const desc = h("div", "qc-desc");
     desc.append(h("span", "qc-qty", `${line.qty}×`), line.description);
     const meta = h("div", "qc-meta");
-    meta.append(h("span", "qc-avail", line.availability || ""), h("span", "qc-unit", `${line.unit_price_with_vat} ${T.withVat} / ${T.piece}`));
+    const unit = h("span", "qc-unit", `${line.unit_price_with_vat} ${T.withVat} / ${T.piece}`);
+    if (line.discount_pct) unit.prepend(h("span", "qc-disc", `−${line.discount_pct}`), " ");
+    meta.append(h("span", "qc-avail", line.availability || ""), unit);
     li.append(desc, h("div", "qc-codes", line.codes), meta);
     lines.appendChild(li);
   }
@@ -906,7 +909,10 @@ function addQuoteCard(card) {
   };
   if (card.discount_total) {
     total(T.catalog, card.catalog_total);
-    total(card.promotion ? `${T.discount} (${T.promotion}: ${card.promotion})` : T.discount, `−${card.discount_total}`);
+    let label = T.discount;
+    if (card.discount_pct) label += card.discount_mixed ? ` ${card.discount_pct} ${T.discountOverall}` : ` ${card.discount_pct}`;
+    if (card.promotion) label += ` (${T.promotion}: ${card.promotion})`;
+    total(label, `−${card.discount_total}`);
   }
   total(T.total, card.total);
   total(T.vat, card.vat);

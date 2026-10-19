@@ -39,6 +39,12 @@ SCENARIOS = {
         "chcem chladit priemyselnu halu",
         "300 m2, 4 zony a 24/7",
     ],
+    # Live demo of 2026-10-19: "residential cassettes start at 5 kW", a wall unit priced as a cassette.
+    "pracovna_kazeta": [
+        "potrebujem klimu do pracovne, 20 m2, jedna miestnost",
+        "chcem kazetovu jednotku do domacnosti, nie komercnu",
+        "porovnaj cenu rezidencnej a komercnej kazetovej jednotky",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",

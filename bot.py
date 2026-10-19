@@ -275,7 +275,10 @@ system_prompt = (
     "daj do jedného dotazu, každé hľadanie zákazníka zdrží o niekoľko sekúnd. Druhé hľadanie iba vtedy, keď prvé "
     "nevrátilo nič použiteľné, a nikdy nie parafráza toho istého. Kódy setov radu, ktorý si vybral podľa "
     "výsledkov hľadania, zisti cez `lookup_product` s názvom radu a výkonom — odpovedá okamžite. Rad nevyberaj "
-    "z hlavy ani podľa príkladov v pokynoch.\n\n"
+    "z hlavy ani podľa príkladov v pokynoch.\n"
+    "Iný typ vnútornej jednotky (kazetová, kanálová, parapetná, podstropná) hľadaj cez `lookup_product` s typom a "
+    "výkonom („<značka> kazetová <výkon v kW>“) — vráti rezidenčné aj komerčné jednotky, k komerčným vhodné "
+    "vonkajšie a čo ktorá potrebuje. Bez toho nikdy netvrď, že taký typ v danej značke alebo výkone neexistuje.\n\n"
     "PRE CENY: zavolaj `quote` s model kódmi a počtami kusov (single-split: vnútorná + vonkajšia; "
     "multi-split: vonkajšia + všetky vnútorné; kazety: + panel), so segmentom a rozpočtom zákazníka, "
     "ak ho povedal. Výstup obsahuje aj recyklačný poplatok, dostupnosť (`availability` pri každej "
@@ -1136,6 +1139,56 @@ def _commercial_combo_errors(fit_lines):
     return errors
 
 
+# Cassettes run only with a decorative panel and a controller; ducted and ceiling units, and Toshiba RAV
+# floor-standing ones, with a controller ("POVINNÉ: diaľkové ovládanie + dekoračný panel", "Pre prevádzku
+# potrebný min. 1 ovládač" in the price lists). Wall, console and other floor-standing units come with an
+# infrared remote. The live demo quoted an RAV cassette without its controller: the price was too low.
+_NEEDS_CONTROLLER_PATH_RE = re.compile(r"cassette|kazet|duct|kanal|ceiling|podstrop|^Toshiba\.floor_standing", re.I)
+
+
+_CONTROLLER_OPTIONS = {"Toshiba": ["RBC-ASCU32Y-E"], "Samsung": ["MWR-SH11N", "MWR-WG01KN"]}  # wired controllers
+
+
+def _series_panels(rec):
+    """The decorative panel codes the price list names for this unit's series (required_panel(s) on the way
+    down its section path) — not on the unit's own row, where the scenario's bot looked for them in vain."""
+    if rec["source"] not in _SOURCE_CACHE:
+        _SOURCE_CACHE[rec["source"]] = json.loads((BOT_DIR / rec["source"]).read_text(encoding="utf-8"))
+    node, found = _SOURCE_CACHE[rec["source"]], []
+    for part in rec["category_path"].split(".")[1:]:
+        node = node.get(part) if isinstance(node, dict) else None
+        if not isinstance(node, dict):
+            break
+        for key in ("required_panel", "required_panels"):
+            value = node.get(key)
+            for panel in value if isinstance(value, list) else [value] if value else []:
+                if isinstance(panel, dict) and panel.get("code") in PRODUCT_BY_CODE:
+                    found.append(panel["code"])
+    return found
+
+
+def _controller_options(brand):
+    return [c for c in _CONTROLLER_OPTIONS.get(brand, []) if c in PRODUCT_BY_CODE]
+
+
+def _accessory_errors(fit_lines):
+    """Technical incompleteness (not overridable): a cassette without its panel, a unit without its controller."""
+    units = [(rec, codes, qty) for rec, codes, qty, cat in fit_lines if cat in ("multi_split_indoor", "commercial_indoor")]
+    cassettes = [(rec, qty) for rec, _, qty in units if _CASSETTE_PATH_RE.search(rec["category_path"])]
+    panels = sum(qty for _, _, qty, cat in fit_lines if cat == "panels")
+    needs_controller = [rec for rec, _, _ in units if _NEEDS_CONTROLLER_PATH_RE.search(rec["category_path"])]
+    errors = []
+    if sum(qty for _, qty in cassettes) > panels:
+        options = sorted({p for rec, _ in cassettes for p in _series_panels(rec)})
+        errors.append(f"kazeta bez dekoračného panela nefunguje ({sum(q for _, q in cassettes)} kaziet, {panels} "
+                      "panelov) — pridaj ku každej kazete jej panel" + (f": {options}" if options else ""))
+    if needs_controller and not any(cat == "controls" for _, _, _, cat in fit_lines):
+        options = sorted({c for rec in needs_controller for c in _controller_options(rec["brand"])})
+        errors.append(f"{sorted({r['model_code'] for r in needs_controller})} nefunguje bez ovládača — pridaj "
+                      "ovládač" + (f": {options}" if options else ""))
+    return errors
+
+
 def _fit_check(fit_lines, override_reason=None):
     """(errors, warnings) for a quote. `fit_lines`: (record, codes, qty, discount category)."""
     text = _all_user_text()
@@ -1203,6 +1256,13 @@ def _fit_check(fit_lines, override_reason=None):
                             + (" — alergikom ho neodporúčaj" if tier == 4 else "")
                             + (f"; triedu 1 v tejto veľkosti majú {', '.join(best)} — ponúkni ich ako prvé a cenu "
                                "zisti cez quote" if best else ""))
+    # A Toshiba multi-split outdoor unit with one indoor unit runs in cooling only ("1 jednotka len pri
+    # chladiacej prevádzke", combinations_table) — the scenario's bot sold a home a single cassette on one.
+    toshiba_multi = sum(qty for rec, _, qty, cat in fit_lines if cat == "multi_split_outdoor" and rec["brand"] == "Toshiba")
+    multi_indoor = sum(qty for _, _, qty, cat in fit_lines if cat == "multi_split_indoor")
+    if toshiba_multi and multi_indoor <= toshiba_multi:
+        warnings.append("Toshiba multi-split s jedinou vnútornou jednotkou podľa combinations_table iba chladí — "
+                        "nevykuruje; povedz to zákazníkovi")
     non_wall = sorted({c for rec, codes, _, cat in fit_lines if cat in _RESIDENTIAL_CATEGORIES
                        and _NON_WALL_PATH_RE.search(rec["category_path"]) for c in codes})
     if non_wall and not _wished(_INDOOR_TYPE_WISH_RE) and not any(c in text.upper() for c in non_wall):
@@ -1220,7 +1280,7 @@ def _fit_check(fit_lines, override_reason=None):
         log_event("quote_fit_overridden", errors=errors, override_reason=override_reason)
         warnings = [f"prepísané ({override_reason}): {e}" for e in errors] + warnings
         errors = []
-    return _commercial_combo_errors(fit_lines) + errors, warnings
+    return _commercial_combo_errors(fit_lines) + _accessory_errors(fit_lines) + errors, warnings
 
 
 def _quote_key(q):
@@ -1397,10 +1457,15 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
     fit_errors, fit_warnings = _fit_check(fit_lines, override_reason)
     if fit_errors:
         log_event("quote_fit_refused", codes=[c for _, codes, _, _ in fit_lines for c in codes], errors=fit_errors)
+        technical = set(_commercial_combo_errors(fit_lines) + _accessory_errors(fit_lines))
+        if all(e in technical for e in fit_errors):
+            return {"error": "Zostava je technicky neúplná alebo nemožná: " + "; ".join(fit_errors) + ". Uprav "
+                             "zostavu a zavolaj quote znova — override_reason to neobíde."}
         return {"error": (
             "Zostava nesedí k priestoru, ktorý zákazník opísal: " + "; ".join(fit_errors) + ". Uprav zostavu "
             "a zavolaj quote znova. Ak zákazník výslovne trvá práve na tejto zostave, zavolaj quote znova s "
-            "override_reason (čo presne zákazník povedal)."
+            "override_reason (čo presne zákazník povedal) — technické chyby (chýbajúci panel či ovládač, "
+            "nemožná kombinácia) tým neobídeš."
         )}
 
     result = {
@@ -1464,6 +1529,92 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
 _SIZE_KW_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*kw\b", re.IGNORECASE)
 
 
+# Indoor unit types other than the wall single-split sets, by the customer's word → the price-list section.
+# In the live demo of 2026-10-19 the bot found no residential cassette and claimed they "start at 5 kW";
+# they exist, as multi-split indoor units (Toshiba 1-way FLAT and 60x60, Samsung WindFree Mini 4-Way).
+_UNIT_TYPES = {
+    "kazetová": (re.compile(r"kazet|cassette|4[\s-]?way|4[\s-]?cest|\bflat\b|60\s*x\s*60"),
+                 re.compile(r"cassette|kazet", re.I)),
+    "kanálová": (re.compile(r"kanal|duct"), re.compile(r"duct|kanal", re.I)),
+    "parapetná / podlahová": (re.compile(r"parapet|konzol|console|podlah|floor|stojan"),
+                              re.compile(r"console|parapet|floor", re.I)),
+    "podstropná": (re.compile(r"podstrop|ceiling"), re.compile(r"ceiling|podstrop", re.I)),
+}
+_COMMERCIAL_WORDS_RE = re.compile(r"\brav\b|\bcac\b|komercn|commercial")
+_RESIDENTIAL_WORDS_RE = re.compile(r"\bras\b|\bfjm\b|multi|rezidencn|domacnost|residential")
+_UNIT_KINDS = {"multi_split_indoor": "rezidenčná (multi-split vnútorná jednotka)",
+               "commercial_indoor": "komerčná (Toshiba RAV / Samsung CAC)"}
+
+
+def _type_units(text):
+    """Indoor units of a type the text names ('kazetová 2,5 kW', 'Samsung kanálová'), residential multi-split
+    ones first; a size in kW and a single named brand narrow it. None when no type is named."""
+    folded = fold_diacritics(text).lower()
+    types = [path_rx for word_rx, path_rx in _UNIT_TYPES.values() if word_rx.search(folded)]
+    if not types:
+        return None
+    kw = _SIZE_KW_RE.search(text)
+    kw = float(kw.group(1).replace(",", ".")) if kw else None
+    brands = [b for b, rx in _BRAND_RES.items() if rx.search(text)]
+    # "RAV / CAC / komerčná" or "RAS / FJM / multi / domácnosť" narrows to one kind (scenario pracovna_kazeta).
+    commercial_only = bool(_COMMERCIAL_WORDS_RE.search(folded))
+    residential_only = bool(_RESIDENTIAL_WORDS_RE.search(folded)) and not commercial_only
+    units = {}
+    for rec in PRODUCT_INDEX:
+        category = _discount_category(rec)
+        cooling = rec["raw"].get("cooling_kW")
+        if (category not in _UNIT_KINDS or not any(rx.search(rec["category_path"]) for rx in types)
+                or (commercial_only and category != "commercial_indoor")
+                or (residential_only and category == "commercial_indoor")
+                or (len(brands) == 1 and rec["brand"] != brands[0])
+                or (kw is not None and not (isinstance(cooling, (int, float)) and abs(cooling - kw) <= 0.3))):
+            continue
+        unit = units.setdefault(rec["model_code"], {"code": rec["model_code"], "description": _describe(rec),
+                                                    "kind": _UNIT_KINDS[category], "cooling_kW": cooling})
+        if _CASSETTE_PATH_RE.search(rec["category_path"]):
+            unit["panel_options"] = _series_panels(rec)
+        if _NEEDS_CONTROLLER_PATH_RE.search(rec["category_path"]):
+            unit["controller_options"] = _controller_options(rec["brand"])
+        if category == "multi_split_indoor" and isinstance(cooling, (int, float)):
+            # The smallest multi-split outdoor units of the brand big enough for it; quote checks the
+            # combination itself. Without them the scenario's bot asked for brand and budget instead of pricing.
+            outdoors = sorted((o["raw"]["cooling_kW"], o["model_code"]) for o in PRODUCT_INDEX
+                              if o["brand"] == rec["brand"] and _discount_category(o) == "multi_split_outdoor"
+                              and isinstance(o["raw"].get("cooling_kW"), (int, float)) and o["raw"]["cooling_kW"] >= cooling)
+            unit["outdoor_options"] = list(dict.fromkeys(code for _, code in outdoors))[:3]
+        if category == "commercial_indoor" and isinstance(cooling, (int, float)):
+            # Same brand, same size: the scenario's bot guessed RAV outdoor codes three times.
+            unit["outdoor_options"] = sorted({o["model_code"] for o in PRODUCT_INDEX
+                                              if o["brand"] == rec["brand"] and _discount_category(o) == "commercial_outdoor"
+                                              and isinstance(o["raw"].get("cooling_kW"), (int, float))
+                                              and abs(o["raw"]["cooling_kW"] - cooling) <= 0.3})[:6]
+    for codes, rec in _SETS.items():  # a residential single-split set of the type (the Toshiba console set)
+        cooling = rec["raw"].get("cooling_kW")
+        if (any(rx.search(rec["category_path"]) for rx in types) and not commercial_only
+                and not (len(brands) == 1 and rec["brand"] != brands[0])
+                and not (kw is not None and not (isinstance(cooling, (int, float)) and abs(cooling - kw) <= 0.3))):
+            units.setdefault(" + ".join(sorted(codes)), {"codes": sorted(codes), "description": _describe(rec, as_set=True),
+                                                         "kind": "rezidenčný single-split set", "cooling_kW": cooling})
+    order = ["rezidenčný single-split set", _UNIT_KINDS["multi_split_indoor"], _UNIT_KINDS["commercial_indoor"]]
+    found = sorted(units.values(), key=lambda u: (order.index(u["kind"]), u["cooling_kW"] or 0))
+    size_note = ""
+    if not found and kw is not None:
+        # No unit of that size: every size in one answer (the scenario's bot asked for 2 kW, RAV starts at 2.5).
+        again = _type_units(_SIZE_KW_RE.sub("", text))
+        if again and again.get("units"):
+            found, size_note = again["units"], f"Veľkosť {kw:g} kW tento typ nemá — tu sú všetky veľkosti. "
+    if not found:
+        return {"error": "Taký typ nemáme" + (" v tejto značke." if brands else ".")}
+    if len(found) > 40:
+        return {"error": f"Príliš veľa jednotiek ({len(found)}) — uveď výkon v kW, značku alebo rezidenčná / komerčná."}
+    return {"units": found, "note": size_note + (
+        "Rezidenčná (multi-split) vnútorná jednotka sa predáva iba s multi-split vonkajšou jednotkou — pošli obe do "
+        "`quote`, kompatibilitu overí sám (Toshiba: s jedinou vnútornou jednotkou multi-split podľa combinations_table "
+        "iba chladí). Komerčná potrebuje vonkajšiu jednotku RAV / CAC (outdoor_options). Kazeta potrebuje "
+        "dekoračný panel (panel_options) a ovládač, kanálová a podstropná ovládač (controller_options) — pošli ich do "
+        "toho istého `quote`, bez nich ponuku odmietne. Cenu zisti iba cez `quote`.")}
+
+
 def _series_sets(text):
     """The single-split sets of a series named in `text` ("HAORI 2,5 kW", "DAISEIKAI 10"), so the
     model gets exact set codes without a search — in the live demo it ran a 9-second search
@@ -1499,7 +1650,7 @@ def lookup_product(model_code):
         bare = code.split("/")[0]
         rec = PRODUCT_BY_CODE.get(bare)
     if not rec:
-        series = _series_sets(model_code)
+        series = _type_units(model_code) or _series_sets(model_code)
         if series:
             return series
         matches = [c for c in PRODUCT_BY_CODE if c.startswith(code) or code in c]
@@ -3413,6 +3564,10 @@ _CITATION_RE = re.compile(
 )
 
 
+_WITH_VAT_AND_FEE_RE = re.compile(r"\b(?:s|vrátane|vratane)\s+DPH\s+a\s+(?:s\s+)?recykla\w*\s+poplatk\w*", re.I)
+_WITH_VAT_AND_FEE_EN_RE = re.compile(r"\bincl(?:uding|\.)?\s+VAT\s+and\s+(?:the\s+)?recycling\s+fees?", re.I)
+
+
 def sanitize_reply(text, language="sk"):
     """Strip purely-formatting tone violations from a reply.
 
@@ -3444,6 +3599,10 @@ def sanitize_reply(text, language="sk"):
 
     # No file citations for the customer (d01 even cited a file that doesn't exist).
     text = _CITATION_RE.sub("", text)
+    # "Cena s DPH a recyklačnými poplatkami: …": the recycling fee is added on top of every total
+    # (live demo 2026-10-19). "bez DPH a recyklačných poplatkov" is right and stays.
+    text = _WITH_VAT_AND_FEE_RE.sub("s DPH, bez recyklačného poplatku", text)
+    text = _WITH_VAT_AND_FEE_EN_RE.sub("incl. VAT, excluding the recycling fee", text)
     text = text.replace("🔧", "")  # looks like the debug view's tool chip (q04)
     if language == "sk":
         text = re.sub(r"\b[Tt]echnician(s)?\b", lambda m: ("T" if m.group(0)[0] == "T" else "t") + "echnik"
@@ -4137,6 +4296,20 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
             f"nepodlozene-udaje: technické údaje alebo úspory bez podkladu ('{figures[0].strip()[:90]}'). SEER, SCOP "
             "a hlučnosť uvádzaj iba z `lookup_product` / `compare_products`; percentá úspor a návratnosť nepíš."
         )
+    wall_cassette = _wall_called_cassette(text)
+    if wall_cassette:
+        violations.append(
+            f"typ-jednotky: nástenný rad nazývaš kazetou ('{wall_cassette[0][:120]}'). SEIYA, SHORAI, HAORI, "
+            "DAISEIKAI a Samsung WindFree / Cebu / Luzon / AR sú iba nástenné; kazety nájdeš cez `lookup_product` "
+            "('<značka> kazetová <výkon v kW>')."
+        )
+    mixups = _brand_term_mixups(text)
+    if mixups:
+        violations.append(
+            f"brand-funkcia: technológiu jednej značky pripisuješ druhej ('{mixups[0][:120]}'). WindFree, Tri-care, "
+            "4-in-1, Easy Filter Plus, Freeze Wash a SmartThings sú iba Samsung; HADA careflow, Smart Sensing, "
+            "plazmový ionizátor, Ultra Pure a Bi-Flow iba Toshiba."
+        )
     human = _HUMAN_CLAIM_RE.search(text)
     if human:
         violations.append(
@@ -4263,7 +4436,7 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
 _HARD_RULES = ("cena-z-nastroja", "aplikacia-rabatov", "model-code-verifikacia",
                "povolenia-instalacia", "umiestnenie-otazka", "rozpocet-tvrdenie",
                "interne-info", "slub-bez-suhlasu", "termin-slub", "cena-iny-produkt", "dph-zamena",
-               "mimo-katalogu", "nepodlozene-udaje", "reklamacia-kontakt", "ai-identita")
+               "mimo-katalogu", "nepodlozene-udaje", "reklamacia-kontakt", "ai-identita", "brand-funkcia", "typ-jednotky")
 # The bot is an AI assistant and says so when asked (EU AI Act transparency): a sentence claiming
 # to be a person is regenerated or cut. "Nie som človek" / "I'm not a human" are fine.
 _HUMAN_CLAIM_RE = re.compile(
@@ -4375,6 +4548,44 @@ def _internal_leak_sentences(text):
     return [s for s in _sentences(text) if _INTERNAL_LEAK_RE.search(s)]
 
 
+# Brand trademarks (knowledge/rules/feedback_brand_specificke_funkcie.md): a Samsung-only term in a
+# sentence about a Toshiba product, or the reverse. The live demo of 2026-10-19 gave Toshiba SHORAI
+# CURVE "funkcia WindFree". Sentences naming both brands and negations ("Toshiba nemá WindFree") pass.
+_SAMSUNG_ONLY_RE = re.compile(
+    r"wind\s*free|ai\s+motion|smartthings|bixby|solarcell|tri-?care|4-in-1|easy\s+filter|freeze\s+wash", re.I)
+_TOSHIBA_ONLY_RE = re.compile(
+    r"\bhada\b|smart\s+sensing|bi-?flow|plazmov\w*\s+ioniz|plasma\s+ioni[sz]|ultra\s+pure|ultra\s+fresh|"
+    r"magic\s+coil|katech[ií]n|tcc-link|tu2c", re.I)
+_TOSHIBA_CTX_RE = re.compile(r"toshib\w*|seiya|shorai|haori|daiseikai|\bRA[SV]\b|\bRA[SV]-", re.I)
+_SAMSUNG_CTX_RE = re.compile(
+    r"samsung|cebu|luzon|avant|premi[eè]re|comfort\s*s2|\bCAC\b|\bFJM\b|\bAR\d{2}|\bAJ\d{3}|\bAC\d{3}", re.I)
+_BRAND_NEGATION_RE = re.compile(r"\bnem[aá]\w*|\bnie\b|\bbez\b|\bnepodporuj\w*|\bdoesn'?t\b|\bno\b|\bwithout\b", re.I)
+
+
+# A wall-only series called a cassette: the scenario pracovna_kazeta priced the SHORAI CURVE wall set as
+# "SHORAI CURVE (2,5 kW, kazetová)". "nástenná, nie kazetová" passes (a negation).
+_WALL_SERIES_RE = re.compile(
+    r"seiya|shorai|haori|daiseikai|avant|premi[eè]re|comfort\s*s2|cebu|luzon|\bar[\s-]?3[05]\b", re.I)
+_CASSETTE_WORD_RE = re.compile(r"kazet\w*|cassette", re.I)
+
+
+def _wall_called_cassette(text):
+    return [s for s in _sentences(text) if _WALL_SERIES_RE.search(s) and _CASSETTE_WORD_RE.search(s)
+            and not _BRAND_NEGATION_RE.search(s) and not re.search(r"n[aá]stenn|wall", s, re.I)]
+
+
+def _brand_term_mixups(text):
+    out = []
+    for s in _sentences(text):
+        if _BRAND_NEGATION_RE.search(s):
+            continue
+        toshiba, samsung = _TOSHIBA_CTX_RE.search(s), _SAMSUNG_CTX_RE.search(s)
+        if (_SAMSUNG_ONLY_RE.search(s) and toshiba and not samsung) or \
+                (_TOSHIBA_ONLY_RE.search(s) and (samsung or _SAMSUNG_ONLY_RE.search(s)) and not toshiba):
+            out.append(s)
+    return out
+
+
 def _premature_promise_sentences(text):
     if S().consent is not None:
         return []
@@ -4439,7 +4650,8 @@ def _sentence_is_hard(sentence, trusted, bad_values=()):
                 or _budget_claim_unsupported(sentence) or _INTERNAL_LEAK_RE.search(sentence)
                 or _premature_promise_sentences(sentence) or _DATE_PROMISE_RE.search(sentence)
                 or _not_in_catalog_claims(sentence) or _unsupported_figures(sentence)
-                or _support_contact_requests(sentence) or _HUMAN_CLAIM_RE.search(sentence))
+                or _support_contact_requests(sentence) or _HUMAN_CLAIM_RE.search(sentence)
+                or _brand_term_mixups(sentence) or _wall_called_cassette(sentence))
 
 
 def _approx_amount(text):
@@ -4570,6 +4782,10 @@ def _regen_note(violations):
         "prazdna-odpoved": "Predošlá odpoveď bola prázdna: napíš zákazníkovi odpoveď (výsledky nástrojov už máš).",
         "ai-identita": "Si AI asistent spoločnosti Samuel Malíšek Klimabot — povedz to pravdivo; s človekom sa "
                        "zákazník spojí cez projektového manažéra alebo firemný kontakt.",
+        "typ-jednotky": "Nástenný rad nenazývaj kazetou; kazetu nájdi cez `lookup_product` ('<značka> kazetová <výkon v kW>') "
+                        "a nacenuj ju s panelom a ovládačom, alebo kazetu vynechaj.",
+        "brand-funkcia": "Každú technológiu pripíš iba jej značke (WindFree a Tri-care sú Samsung, HADA a plazmový "
+                         "ionizátor Toshiba); funkciu, ktorú rad podľa výsledkov hľadania nemá, vynechaj.",
         "kontakt-pred-ponukou": "Najprv odporuč konkrétny set a zavolaj `quote`; o kontakt (meno, telefón, e-mail, "
                                 "obec) požiadaj až po cene. Na cenu obec ani kontakt nepotrebuješ.",
     }
@@ -4730,20 +4946,35 @@ CONSENT_QUICK_REPLIES = {
 }
 
 
+def _pct(value):
+    """8 → '8 %', 11.2 → '11,2 %' (the Slovak way, like _eur)."""
+    return f"{value:g} %".replace(".", ",")
+
+
 def _quote_card(q, language="sk"):
     """The price card the chat shows under a reply that quotes `q`: every figure is a quote()
     field formatted by code, so the card can't disagree with the price list."""
     fee = q.get("recycling_fee_per_unit") or {}
     budget = q.get("budget") or {}
     promotion = q.get("promotion")
+    # The discount as a percentage (the owner's wish, 2026-10-19): one rate for the whole card, or, when the
+    # lines' categories differ, the overall rate of the total with each line's own rate.
+    rates = sorted({line.get("discount_pct") for line in q["lines"] if line.get("discount_pct")})
+    mixed = len(rates) > 1
+    overall = (rates[0] if len(rates) == 1 else
+               round(q["discount_total_eur"] / q["catalog_total_eur"] * 100, 1)
+               if mixed and q.get("discount_total_eur") and q.get("catalog_total_eur") else None)
     return {
         "language": language,
         "lines": [{"qty": line["qty"], "description": line["description"], "codes": " + ".join(line["codes"]),
                    "unit_price": _eur(line["unit_price_eur"]),
                    "unit_price_with_vat": _eur(line["unit_price_with_DPH_23pct_eur"]),
+                   "discount_pct": _pct(line["discount_pct"]) if mixed and line.get("discount_pct") else "",
                    "availability": line.get("availability") or ""} for line in q["lines"]],
         "catalog_total": _eur(q["catalog_total_eur"]),
         "discount_total": _eur(q["discount_total_eur"]) if q.get("discount_total_eur") else None,
+        "discount_pct": _pct(overall) if overall else None,
+        "discount_mixed": mixed,
         "promotion": (promotion.get("name") or promotion.get("code")) if isinstance(promotion, dict) else None,
         "total": _eur(q["total_eur"]),
         "vat": _eur(q["DPH_23pct_eur"]),

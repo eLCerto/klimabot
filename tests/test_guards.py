@@ -507,6 +507,89 @@ class QuoteTests(BotTest):
         self.assertEqual(len(missing_size["series_sets"]), len(daiseikai), "a missing size returns every size")
         self.assertIn("2 kW", missing_size["note"])
 
+    def test_unit_types_include_residential_cassettes(self):  # live demo 2026-10-19: "start at 5 kW"
+        toshiba = bot.lookup_product("Toshiba kazetová 2,5 kW")["units"]
+        codes = [u.get("code") for u in toshiba]
+        self.assertIn("RAS-M10G3YVG-E", codes, "the residential 1-way FLAT cassette, 2.5 kW")
+        self.assertIn("RAV-HM301MUTP-E", codes)
+        self.assertLess(codes.index("RAS-M10G3YVG-E"), codes.index("RAV-HM301MUTP-E"), "residential first")
+        rav = next(u for u in toshiba if u.get("code") == "RAV-HM301MUTP-E")
+        self.assertIn("RAV-GM302ATP-E", rav["outdoor_options"], "the matching RAV outdoor unit, not a guess")
+        self.assertIn("RBC-UM21P-E", rav["panel_options"])
+        self.assertEqual(rav["controller_options"], ["RBC-ASCU32Y-E"])
+        flat = next(u for u in toshiba if u.get("code") == "RAS-M10G3YVG-E")
+        self.assertTrue({"RBC-UY32P-E", "RBC-UY42P-E"} & set(flat["panel_options"]), flat)
+        self.assertEqual(flat["outdoor_options"][0], "RAS-2M10G3AVG-E", "the smallest Toshiba multi outdoor first")
+        self.sess.user_inputs.append("Pracovňa 20 m2 v byte, chcem kazetovú jednotku.")
+        priced = self.q([("RAS-M10G3YVG-E", 1), (flat["outdoor_options"][0], 1), (flat["panel_options"][0], 1),
+                         (flat["controller_options"][0], 1)])
+        self.assertNotIn("error", priced, "the lookup's suggestions make a complete, compatible quote")
+        self.assertTrue(any("iba chladí" in w for w in priced["fit_warnings"]))
+        mini = next(u for u in bot.lookup_product("Samsung kazetová 2,6 kW")["units"] if u.get("code") == "AJ026TNNDKG/EU")
+        self.assertIn("PC4SUFMAN", mini["panel_options"])
+        no_size = bot.lookup_product("Toshiba RAV kazetová 2 kW")  # RAV cassettes start at 2.5 kW
+        self.assertIn("2 kW", no_size["note"])
+        self.assertTrue(all(u["kind"].startswith("komerčná") for u in no_size["units"]), "'RAV' narrows to commercial")
+        self.assertIn("units", bot.lookup_product("Toshiba FLAT 10"), "a usable list, not 'too many'")
+        self.assertIn("RAV-HM301MUTP-E", [u.get("code") for u in bot.lookup_product("Toshiba RAV 60x60 2,5 kW")["units"]])
+        self.assertTrue(all(not u["kind"].startswith("komerčná")
+                            for u in bot.lookup_product("Toshiba kazetová do domácnosti")["units"]))
+        samsung = [u.get("code") for u in bot.lookup_product("Samsung kazetová 2,6 kW")["units"]]
+        self.assertIn("AJ026TNNDKG/EU", samsung)
+        seiya = bot.lookup_product("Toshiba SEIYA kazetová 5 kW")
+        self.assertNotIn("series_sets", seiya, "a wall series isn't a cassette")
+        console = bot.lookup_product("Toshiba parapetná 2,5 kW")["units"]
+        self.assertEqual(console[0]["kind"], "rezidenčný single-split set")
+
+    def test_cassette_needs_panel_and_controller(self):  # live demo: an RAV cassette quoted without its controller
+        cassette = [("RAV-HM301MUTP-E", 1), ("RAV-GM302ATP-E", 1)]
+        self.assertIn("panel", self.q(cassette)["error"])
+        no_controller = self.q(cassette + [("RBC-UM21P-E", 1)])
+        self.assertIn("ovládača", no_controller["error"])
+        self.assertIn("neobíde", no_controller["error"])
+        self.assertIn("ovládača", self.q(cassette + [("RBC-UM21P-E", 1)], override_reason="trvá")["error"],
+                      "a missing controller can't be overridden")
+        complete = self.q(cassette + [("RBC-UM21P-E", 1), ("RBC-ASCU32Y-E", 1)])
+        self.assertNotIn("error", complete)
+        self.assertNotIn("error", self.q([("RAV-GM302ATP-E", 1), ("RAV-HM301KRTP-E", 1)]), "a wall unit has a remote")
+        card = bot._quote_card(complete)
+        rates = {line["discount_pct"] for line in complete["lines"] if line["discount_pct"]}
+        self.assertEqual(card["discount_mixed"], len(rates) > 1)
+        self.assertTrue(card["discount_pct"].endswith("%"))
+        mixed = bot._quote_card(self.q([("RAV-GM302ATP-E", 1), ("RAV-HM301KRTP-E", 1), ("AR40H09C1BMNEU", 1),
+                                        ("AR40H09C1BMXEU", 1)]))
+        if mixed["discount_mixed"]:  # commercial and residential categories carry their own rates
+            self.assertTrue(all(line["discount_pct"].endswith("%") for line in mixed["lines"]))
+        single = bot._quote_card(self.q([(c, 1) for c in AR30_SET]))
+        self.assertFalse(single["discount_mixed"])
+        self.assertRegex(single["discount_pct"], r"^\d+(,\d+)? %$")
+
+    def test_toshiba_multi_with_one_indoor_unit_only_cools(self):  # scenario pracovna_kazeta
+        self.sess.user_inputs.append("Pracovňa 12 m2 v byte.")
+        one = self.q([("RAS-2M10G3AVG-E", 1), ("RAS-B10B2KVG-E2", 1)])
+        self.assertTrue(any("iba chladí" in w for w in one.get("fit_warnings", [])), one)
+        two = self.q([("RAS-2M10G3AVG-E", 1), ("RAS-B10B2KVG-E2", 1), ("RAS-B07B2KVG-E2", 1)])
+        self.assertFalse(any("iba chladí" in w for w in two.get("fit_warnings", [])))
+
+    def test_brand_terms_stay_with_their_brand(self):  # live demo: "Toshiba SHORAI CURVE … funkcia WindFree"
+        self.assertTrue(bot._brand_term_mixups("Toshiba SHORAI CURVE 2,5 kW — prémiový dizajn a funkcia WindFree."))
+        self.assertTrue(bot._brand_term_mixups("Samsung WindFree Avant S2 má aj plazmový ionizátor."))
+        for fine in ("Samsung má WindFree, Toshiba DAISEIKAI má HADA careflow.", "Toshiba nemá WindFree.",
+                     "Samsung WindFree Avant S2 s filtrom Tri-care.", "Toshiba HAORI má plazmový ionizátor."):
+            self.assertFalse(bot._brand_term_mixups(fine), fine)
+
+    def test_a_wall_series_is_never_a_cassette(self):  # scenario pracovna_kazeta
+        self.assertTrue(bot._wall_called_cassette("Rezidenčná **Toshiba SHORAI CURVE** (2,5 kW, kazetová):"))
+        for fine in ("SEIYA je nástenná, nie kazetová.", "Toshiba 60x60 Slim kazeta 2,5 kW",
+                     "Nástenná SHORAI CURVE alebo kazeta FLAT?"):
+            self.assertFalse(bot._wall_called_cassette(fine), fine)
+
+    def test_recycling_fee_is_never_inside_a_total(self):  # live demo: "Cena s DPH a recyklačnými poplatkami"
+        fixed = bot.sanitize_reply("Cena s DPH a recyklačnými poplatkami: 2 319,78 €")[0]
+        self.assertEqual(fixed, "Cena s DPH, bez recyklačného poplatku: 2 319,78 €")
+        kept = "Cena bez DPH a recyklačných poplatkov: 1 886 €"
+        self.assertEqual(bot.sanitize_reply(kept)[0], kept)
+
     def test_one_search_per_response(self):  # scenario detska_izba_alergia: two searches issued together
         ran = []
         real = bot.search_knowledge
@@ -717,7 +800,8 @@ class RoundThreeTests(BotTest):
         self.sess.user_inputs.append("Kozmetický salón 40 m², podhľad nemáme, nech to nefúka klientkam do tváre.")
         wall = bot.quote([{"code": "RAV-GM562ATP-E"}, {"code": "RAV-HM561KRTP-E"}], segment="B2B_firma")
         self.assertIn("podstropnú", wall["error"])
-        ceiling = bot.quote([{"code": "RAV-GM562ATP-E"}, {"code": "RAV-HM561CTP-E"}], segment="B2B_firma")
+        ceiling = bot.quote([{"code": "RAV-GM562ATP-E"}, {"code": "RAV-HM561CTP-E"}, {"code": "RBC-ASCU32Y-E"}],
+                            segment="B2B_firma")  # a ceiling unit runs only with its controller
         self.assertNotIn("error", ceiling)
 
     def test_exact_amounts_lose_the_approximation_marker(self):  # s01: "o ~465 €" cost 2 regenerations

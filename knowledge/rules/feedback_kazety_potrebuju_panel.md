@@ -1,6 +1,6 @@
 ---
 name: kazety-vyzaduju-dekoracny-panel
-description: Pri každej ponuke kazetovej jednotky uveď, že NEFUNGUJE bez dekoračného panela, a pridaj kód panela (a ovládača) do toho istého volania quote
+description: Kazeta NEFUNGUJE bez dekoračného panela a ovládača — pridaj ich do quote. Rezidenčné kazety sú v multi-split radoch (Toshiba FLAT a 60x60, Samsung Mini 4-Way), kódy cez lookup_product
 type: feedback
 ---
 
@@ -12,6 +12,13 @@ Kazetové vnútorné jednotky (Toshiba 60x60 Slim, 1-cestná FLAT, 4-cestná št
 - Trigger frázy zákazníka: „kazeta", „cassette", „60x60", „kruhová kazeta", „4-cestná".
 - Do jedného volania `quote` pošli: vnútornú kazetovú jednotku + vonkajšiu jednotku + kód panela (+ kód ovládača, ak ho jednotka nemá v cene).
 - V odpovedi rozpíš riadky z `quote` (jednotka, panel, ovládač) a `total_eur`.
+
+**Rezidenčné kazety existujú — ako multi-split vnútorné jednotky.** V single-split radoch (SEIYA, SHORAI, HAORI, DAISEIKAI, Samsung RAC) kazeta nie je, ale rezidenčné multi-split rady ju majú aj v malých výkonoch: Toshiba 1-cestná FLAT a 60x60 Slim (RAS multi), Samsung WindFree Mini 4-Way 60x60 a 1-Way (FJM). Predávajú sa s multi-split vonkajšou jednotkou, aj keď je v miestnosti jediná vnútorná (Toshiba: s jedinou vnútornou jednotkou podľa `combinations_table` iba chladí — povedz to). Komerčné kazety sú Toshiba RAV a Samsung CAC.
+
+- Kódy nájdeš okamžite cez `lookup_product` s typom a výkonom („<značka> kazetová <výkon v kW>“) — vráti rezidenčné aj komerčné kazety s tým, čo potrebujú.
+- Nikdy netvrď, že rezidenčná kazeta v danom výkone neexistuje, ani že začína od nejakého výkonu — over to cez `lookup_product`.
+- Nástennú jednotku (napr. SEIYA) nikdy nenazývaj kazetovou a nenaceňuj ju ako kazetu.
+- `quote` odmietne kazetu bez panela a bez ovládača.
 
 **Panely k bežným kazetám** (kód nájdeš aj cez `search_knowledge`):
 
