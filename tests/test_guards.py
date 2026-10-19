@@ -556,13 +556,21 @@ class QuoteTests(BotTest):
         rates = {line["discount_pct"] for line in complete["lines"] if line["discount_pct"]}
         self.assertEqual(card["discount_mixed"], len(rates) > 1)
         self.assertTrue(card["discount_pct"].endswith("%"))
-        mixed = bot._quote_card(self.q([("RAV-GM302ATP-E", 1), ("RAV-HM301KRTP-E", 1), ("AR40H09C1BMNEU", 1),
-                                        ("AR40H09C1BMXEU", 1)]))
-        if mixed["discount_mixed"]:  # commercial and residential categories carry their own rates
-            self.assertTrue(all(line["discount_pct"].endswith("%") for line in mixed["lines"]))
+        if card["discount_mixed"]:  # commercial indoor and outdoor units carry their own rates
+            self.assertTrue(all(line["discount_pct"].endswith("%") for line in card["lines"]
+                                if line["codes"] != "RBC-UM21P-E"), card["lines"])  # panels: no discount
         single = bot._quote_card(self.q([(c, 1) for c in AR30_SET]))
         self.assertFalse(single["discount_mixed"])
         self.assertRegex(single["discount_pct"], r"^\d+(,\d+)? %$")
+
+    def test_one_quote_is_one_system_of_one_brand(self):  # live demo 2026-10-19: a bare outdoor sold as a set
+        self.sess.user_inputs.append("Obývačka 30 m2, chcem parapetnú jednotku.")
+        mixed = self.q([("RAS-13P2AVSG-E", 1), ("AJ035TNJDKG/EU", 1), ("AJ050TXJ2KG/EU", 1)])
+        self.assertIn("RAS-13P2AVSG-E", mixed["error"])
+        brands = self.q([("RAS-13P2AVSG-E", 1), ("RAS-B13J2FVG-E1", 1), ("AJ035TNJDKG/EU", 1), ("AJ050TXJ2KG/EU", 1)])
+        self.assertIn("viacerých značiek", brands["error"])
+        self.assertNotIn("error", self.q([("RAS-13P2AVSG-E", 1), ("RAS-B13J2FVG-E1", 1)]), "the Toshiba console set")
+        self.assertNotIn("error", self.q([("AJ035TNJDKG/EU", 1), ("AJ050TXJ2KG/EU", 1)]), "the Samsung console on FJM")
 
     def test_toshiba_multi_with_one_indoor_unit_only_cools(self):  # scenario pracovna_kazeta
         self.sess.user_inputs.append("Pracovňa 12 m2 v byte.")

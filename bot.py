@@ -1381,6 +1381,14 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
         in_sets = [sorted(s - {code}) for s in _SETS if code in s]
         if multi_outdoor and code != multi_outdoor["model_code"]:
             same_list = [r for r in candidates if r["source"] == multi_outdoor["source"]]
+            if in_sets and not same_list:
+                # Live demo 2026-10-19: a Samsung multi outdoor let a lone Toshiba single-split outdoor through,
+                # and the bot sold that bare outdoor unit as a "set" for 979 €.
+                return {"error": (
+                    f"Kód {code} je súčasť single-split setu (druhá jednotka: {in_sets[0]}) a k multi-split "
+                    f"jednotke {multi_code} nepatrí. Set naceň celý (vnútorná + vonkajšia) samostatným volaním "
+                    "`quote`; k multi-split jednotke pridaj iba vnútorné jednotky z jej cenníka."
+                )}
             candidates = same_list or candidates
         elif in_sets and not multi_outdoor:
             return {"error": (
@@ -1402,6 +1410,15 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
         lines.append((rec, [code], qty, _unit_price(rec), False))
         if multi_outdoor and rec["code_role"] == "indoor":
             indoor_for_compat += [code] * qty
+
+    # One quote is one system of one brand. Two variants priced together got each other's prices: the
+    # bot read line prices as variant prices and one "variant" total included the other brand's unit.
+    unit_brands = sorted({rec["brand"] for rec, *_ in lines if _discount_category(rec) in _UNIT_CATEGORIES})
+    if len(unit_brands) > 1:
+        return {"error": (
+            f"Jednotky viacerých značiek {unit_brands} v jednom volaní. Každý variant (jedna značka, jedna zostava) "
+            "naceň samostatným volaním `quote` a každému variantu uveď jeho vlastnú cenu z jeho výsledku."
+        )}
 
     compatibility = None
     if multi_outdoor:

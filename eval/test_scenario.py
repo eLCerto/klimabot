@@ -45,6 +45,12 @@ SCENARIOS = {
         "chcem kazetovu jednotku do domacnosti, nie komercnu",
         "porovnaj cenu rezidencnej a komercnej kazetovej jednotky",
     ],
+    # Live demo of 2026-10-19: a bare Toshiba outdoor sold as a console set, two brands in one quote.
+    "obyvacka_parapetna": [
+        "ahoj, chcem klimu do obyvacky",
+        "30 m2",
+        "chcem parapetnu jednotku",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",
