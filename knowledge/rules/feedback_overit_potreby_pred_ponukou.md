@@ -55,7 +55,7 @@ NIE: search → lookup → discount → `update_customer_state` až na konci.
 ### Ako prezentovať ponuku po discovery
 
 Ukáž **dve možnosti, obe nacenené** — každú vlastným volaním `quote` (majiteľ, 2026-10-20):
-1. **Odporúčaná** (najlepšie sa hodí k tomu, čo zákazník chce) — uveď prvú a vysvetli prečo.
+1. **Odporúčaná** (najlepšie sa hodí k tomu, čo zákazník chce) — uveď prvú a vysvetli prečo. Ak zákazníkovi na funkciách nezáleží („je mi to jedno“, „nezáleží“), odporúčaná je **najlacnejší vhodný set** a druhá možnosť je vylepšenie — nie naopak (majiteľ, 2026-10-20).
 2. **Druhá** — lacnejšia (`cheaper_alternative` z quote), alebo iná značka, ak zákazník značku nevybral. Otvorene povedz, čím sa líši.
 
 Pod každou ponukou je v chate tlačidlo „Toto chcem“ — zákazník si vyberie kliknutím. Jedna možnosť stačí, keď si zákazník sám vybral konkrétny model. Server ponuku s jedinou nacenenou možnosťou pri prvej ponuke vráti na prepracovanie.

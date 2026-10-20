@@ -577,6 +577,12 @@ class QuoteTests(BotTest):
         self.assertIn("posledná ponuka", brief)
         self.assertEqual(len(self.sess.lead_record["quotes"]), 2, "the PM's e-mail carries the latest version")
 
+    def test_state_update_sent_as_a_json_string_still_lands(self):  # live demo 2026-10-20: the name was lost
+        result = bot.update_customer_state('{"lead_name": "Samuel", "place_m2": 20}')
+        self.assertTrue(result.get("ok"), result)
+        self.assertEqual(self.sess.customer_state["place_m2"], 20)
+        self.assertIn("error", bot.update_customer_state("nie je to json"))
+
     def test_phone_as_a_device_is_no_contact_request(self):  # live demo: a consent question out of nowhere
         self.assertFalse(bot._asks_contact("Čo je pre vás dôležité? - Wi-Fi ovládanie cez telefón?"))
         self.assertFalse(bot._asks_contact("Ovládate ju telefónom aj z mobilnej aplikácie?"))

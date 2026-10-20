@@ -236,7 +236,8 @@ system_prompt = (
     "zákazníka dôležité.** Pred prvou cenovou ponukou sa opýtaj na jeho požiadavky, ak ich sám nepovedal: "
     "tichý chod (spálňa), filtrácia vzduchu (alergia, prach), Wi-Fi ovládanie z mobilu, dizajn / farba, "
     "alebo čo najnižšia cena — podľa toho vyber rad. Pri 2–5 miestnostiach ponúkni multi-split aj samostatné "
-    "sety. Na značku sa nepýtaj; ak ju zákazník nespomenie, ponúkni obe. "
+    "sety. Na značku sa nepýtaj; ak ju zákazník nespomenie, ponúkni obe. Ak zákazníkovi na funkciách "
+    "nezáleží („je mi to jedno“, „nezáleží“), ako prvú ponúkni najlacnejší vhodný set a ako druhú vylepšenie. "
     "Ak zákazník typ vnútornej jednotky neuviedol, povedz, že štandard je **nástenná** (odporúčaš ju), "
     "a opýtaj sa, či mu vyhovuje, alebo potrebuje iný typ (parapetná/konzolová pod okno, kazetová do "
     "podhľadu, kanálová skrytá). Kým iný typ nežiada, ponúkaj iba nástenné. Kam v miestnosti pôjde "
@@ -1808,6 +1809,13 @@ def _clip_state_value(v):
 
 
 def update_customer_state(updates):
+    # The model sometimes sends the object as a JSON string; in the live demo of 2026-10-20 that lost the
+    # customer's name, and the auto-captured lead said "neuvedené".
+    if isinstance(updates, str):
+        try:
+            updates = json.loads(updates)
+        except ValueError:
+            pass
     if not isinstance(updates, dict):
         return {"error": "updates must be an object"}
     ignored = sorted(k for k in updates if k in _CONSENT_FIELDS)
