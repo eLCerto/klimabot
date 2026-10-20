@@ -665,6 +665,8 @@ class QuoteTests(BotTest):
         fixed = bot.sanitize_reply(reply)[0]
         self.assertIn("- WiFi ovládanie z mobilu — iba s voliteľným Wi-Fi modulom za príplatok", fixed)
         self.assertIn("- Wi-Fi SmartThings\n", fixed + "\n", "Avant S2 has Wi-Fi as standard")
+        self.assertEqual(bot.sanitize_reply("**Toshiba SEIYA** — spoľahlivá, Wi-Fi v základe.")[0],
+                         "**Toshiba SEIYA** — spoľahlivá, Wi-Fi — iba s voliteľným Wi-Fi modulom za príplatok.")
         self.assertEqual(bot.sanitize_reply("SEIYA má Wi-Fi modul voliteľne.")[0], "SEIYA má Wi-Fi modul voliteľne.")
         self.assertIn("SEIYA", bot._series_without_wifi())
         self.assertNotIn("WindFree_Premiere", bot._series_without_wifi(), "a colour variant with Wi-Fi covers the series")
@@ -689,7 +691,7 @@ class QuoteTests(BotTest):
         self.assertNotIn("error", self.q([("AJ035TNJDKG/EU", 1), ("AJ050TXJ2KG/EU", 1)]), "the Samsung console on FJM")
 
     def test_toshiba_multi_with_one_indoor_unit_only_cools(self):  # scenario pracovna_kazeta
-        self.sess.user_inputs.append("Pracovňa 12 m2 v byte.")
+        self.sess.user_inputs.append("Pracovňa 25 m2 v byte.")  # 2.5 kW: not oversized
         one = self.q([("RAS-2M10G3AVG-E", 1), ("RAS-B10B2KVG-E2", 1)])
         self.assertTrue(any("iba chladí" in w for w in one.get("fit_warnings", [])), one)
         two = self.q([("RAS-2M10G3AVG-E", 1), ("RAS-B10B2KVG-E2", 1), ("RAS-B07B2KVG-E2", 1)])
@@ -701,6 +703,67 @@ class QuoteTests(BotTest):
         for fine in ("Samsung má WindFree, Toshiba DAISEIKAI má HADA careflow.", "Toshiba nemá WindFree.",
                      "Samsung WindFree Avant S2 s filtrom Tri-care.", "Toshiba HAORI má plazmový ionizátor."):
             self.assertFalse(bot._brand_term_mixups(fine), fine)
+
+    def test_multi_split_lookup_and_cheaper_indoor_units(self):  # live demo 2026-10-20: eight failed lookups
+        units = bot.lookup_product("Samsung multi-split 2 kW")["units"]
+        comfort = next(u for u in units if u["code"] == "AR60F07C1AWNEU")
+        self.assertTrue(comfort["wifi_standard"])
+        self.assertIn("AJ040TXJ2KG/EU", comfort["outdoor_options"])
+        toshiba = bot.lookup_product("Toshiba multi-split 2 kW")  # Toshiba wall units: 2.5 kW, not 2
+        self.assertIn("najbližšia väčšia", toshiba["note"])
+        self.assertEqual({u["cooling_kW"] for u in toshiba["units"]}, {2.5})
+        avant = bot.lookup_product("Samsung WindFree Avant S2 multi-split 2 kW")["units"]
+        self.assertEqual({u["code"] for u in avant}, {"AR70F07C1AWNEU", "AR70F07C1ABNEU"}, "the named series only")
+        self.assertIn("s DPH, bez recyklačného poplatku", bot.sanitize_reply("Celkom s DPH a poplatkami 3 442,77 €.")[0])
+        seiya = next(u for u in toshiba["units"] if u["code"] == "RAS-B10E2KVG-E")
+        self.assertFalse(seiya["wifi_standard"], "SEIYA has Wi-Fi only as an optional module")
+        self.assertEqual(bot.lookup_product("Toshiba RAS-2M10G3AVG-E")["model_code"], "RAS-2M10G3AVG-E")
+        self.assertEqual(bot.lookup_product("Samsung FJM AJ050TXJ2KG/EU")["model_code"], "AJ050TXJ2KG/EU")
+        self.sess.user_inputs.append("Kuchyňa a obývačka, izby sú rovnaké - 20mm2, potrebujem wifi")
+        self.assertEqual(bot._customer_numbers(bot._CUSTOMER_M2_RE), [20.0], "'20mm2' is 20 m²")
+        avant = self.q([("AJ040TXJ2KG/EU", 1), ("AR70F07C1AWNEU", 2)])
+        alt = avant["cheaper_alternative"]
+        self.assertEqual(alt["items"][0], {"code": "AJ040TXJ2KG/EU", "qty": 1}, "the same outdoor unit")
+        cheaper = self.q([(i["code"], i["qty"]) for i in alt["items"]])
+        self.assertLess(cheaper["total_eur"], avant["total_eur"])
+        self.assertNotIn("cheaper_alternative", cheaper)
+        comfort_q = self.q([("AJ040TXJ2KG/EU", 1), ("AR60F07C1AWNEU", 2)])
+        price = bot._eur(comfort_q["total_with_DPH_23pct_eur"])
+        reply = f"**Samsung WindFree Comfort S2** — vonkajšia 4 kW + dve vnútorné po 2 kW\n- **Cena s DPH: {price}**"
+        self.assertEqual(bot._misattributed_amounts(reply), [], "a multi-split series is its own quote's product")
+
+    def test_multi_split_wall_units_are_sized_and_wifi_checked(self):  # scenario dom_multisplit_wifi
+        self.sess.user_inputs.append("Kuchyňa a obývačka, izby sú rovnaké - 20 m2, potrebujem wifi")
+        big = self.q([("RAS-2M18G3AVG-E", 1), ("RAS-B16E2KVG-E", 2)])
+        self.assertIn("naddimenzované", big["error"])
+        self.assertIn("2,5 kW" if "2,5 kW" in big["error"] else "2.5 kW", big["error"])
+        seiya = self.q([("RAS-2M10G3AVG-E", 1), ("RAS-B10E2KVG-E", 2)])
+        self.assertTrue(any("Wi-Fi" in w and "RAS-B10P2KVSG-E" in w for w in seiya["fit_warnings"]),
+                        seiya.get("fit_warnings"))
+        self.assertNotIn("error", self.q([("RAS-2M10G3AVG-E", 1), ("RAS-B10P2KVSG-E", 2)]))
+
+    def test_stock_claims_follow_the_quote(self):  # live demo 2026-10-20: Samsung "hneď dostupný", "skladný"
+        self.assertTrue(bot._false_stock_claims("Samsung je skladom."), "Samsung's default is 'PM confirms'")
+        self.assertFalse(bot._false_stock_claims("Toshiba je štandardne skladom."))
+        self.q([("AJ040TXJ2KG/EU", 1), ("AR70F07C1AWNEU", 2)])
+        self.q([("RAS-2M10G3AVG-E", 1), ("RAS-B10P2KVSG-E", 2)])
+        for bad in ("Samsung je lacnejší o 248 € a je hneď dostupný.", "**Odporúčam Samsung** — má WiFi, je skladný.",
+                    "WindFree Avant S2 je skladom."):
+            self.assertTrue(bot._false_stock_claims(bad), bad)
+        for fine in ("Toshiba SHORAI CURVE je štandardne skladom.", "Samsung nie je skladom, dostupnosť overí PM.",
+                     "Jedna z ponúk je skladom.", "Hľadáte klímu do skladu?"):
+            self.assertFalse(bot._false_stock_claims(fine), fine)
+        self.assertIn("sklad-tvrdenie", [v.split(":")[0] for v in bot.validate_assistant_reply(
+            "Samsung je hneď dostupný.")])
+
+    def test_no_brand_or_budget_question_before_the_offer(self):  # live demo 2026-10-20
+        asks = "1. **Aké je vaše rozpočtové maximum?**\n2. **Máte preferenciu značky — Samsung alebo Toshiba?**"
+        self.assertEqual(len(bot._forbidden_questions(asks)), 1, "the brand question; the size isn't known yet")
+        self.sess.user_inputs.append("Spálňa 20 m², chcem Wi-Fi.")
+        self.assertEqual(len(bot._forbidden_questions(asks)), 2, "the budget question too once the size is known")
+        self.assertEqual(bot._forbidden_questions("Čo je pre vás dôležité — tichý chod alebo Wi-Fi?"), [])
+        self.q([(c, 1) for c in AR30_SET])
+        self.assertEqual(bot._forbidden_questions(asks), [], "after an offer the gate leaves it to the rule")
 
     def test_a_wall_series_is_never_a_cassette(self):  # scenario pracovna_kazeta
         self.assertTrue(bot._wall_called_cassette("Rezidenčná **Toshiba SHORAI CURVE** (2,5 kW, kazetová):"))
@@ -757,7 +820,7 @@ class QuoteTests(BotTest):
 
     def test_wall_unit_unless_the_customer_asked_for_another_type(self):  # live demo 2026-10-15
         console_set = [("RAS-B10J2FVG-E1", 1), ("RAS-10P2AVSG-E", 1)]
-        self.sess.user_inputs.extend(["ahoj potrebujem klimu do jednej miestnosti", "12 m2, je to detska izba"])
+        self.sess.user_inputs.extend(["ahoj potrebujem klimu do jednej miestnosti", "25 m2, je to detska izba"])
         self.assertIn("nástenn", self.q(console_set)["error"])
         self.assertNotIn("error", self.q([(c, 1) for c in AR30_SET]))
         multi = [("RAS-2M14G3AVG-E", 1), ("RAS-B10J2FVG-E1", 1), ("RAS-B10B2KVG-E2", 1)]

@@ -66,8 +66,8 @@ Pri porovnaní 2× single-split a multi-split zavolaj `quote` **dvakrát** — k
 
 ### Workflow pred ponukou multi-split setu
 
-1. Z tabuľky / `lookup_product` zisti outdoor podľa počtu izieb.
-2. Z tabuľky / KB vyber indoor podľa veľkostí izieb.
+1. `lookup_product` s textom „<značka> multi-split <výkon v kW>“ vráti nástenné vnútorné jednotky tej veľkosti (`wifi_standard`) a vonkajšie (`outdoor_options`) — vonkajšiu vyber podľa počtu izieb. Na kódy nehľadaj cez `search_knowledge`.
+2. Vnútorné jednotky vyber podľa veľkostí izieb (1 kW / 10 m²).
 3. **Zavolaj `check_compatibility(outdoor_code, indoor_codes)`.**
 4. Pri error/warning → uprav výber a znova check.
 5. Až potom `quote` s vonkajšou + všetkými vnútornými jednotkami a prezentuj jeho cenu.

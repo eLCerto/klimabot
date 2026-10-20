@@ -64,6 +64,15 @@ SCENARIOS = {
         "Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?",
         "hladam najlepsi pomer cena vykon",
     ],
+    # Live demo of 2026-10-20: "20mm2" unread, multi-split codes not found, brand and budget asked, Samsung
+    # "hneď dostupný", the cheaper Wi-Fi option found only on the third ask.
+    "dom_multisplit_wifi": [
+        "dobr den, potreboval by som klimu do domu",
+        "mam dom 10x8 metrov a chcem chladit kuchynu a obyvacku",
+        "chcem multisplit, izby su rovnake - 20mm2",
+        "potrebujem wifi",
+        "je tam aj lacnejsia alternativa?",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",

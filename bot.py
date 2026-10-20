@@ -284,7 +284,10 @@ system_prompt = (
     "z hlavy ani podľa príkladov v pokynoch.\n"
     "Iný typ vnútornej jednotky (kazetová, kanálová, parapetná, podstropná) hľadaj cez `lookup_product` s typom a "
     "výkonom („<značka> kazetová <výkon v kW>“) — vráti rezidenčné aj komerčné jednotky, k komerčným vhodné "
-    "vonkajšie a čo ktorá potrebuje. Bez toho nikdy netvrď, že taký typ v danej značke alebo výkone neexistuje.\n\n"
+    "vonkajšie a čo ktorá potrebuje. Nástenné jednotky pre multi-split vráti „<značka> multi-split <výkon v kW>“ "
+    "(výkon jednej vnútornej jednotky, nie súčet; môžeš pridať aj názov radu) "
+    "(s Wi-Fi v základe a vhodnými vonkajšími). Bez toho nikdy netvrď, že taký typ v danej značke alebo výkone "
+    "neexistuje.\n\n"
     "PRE CENY: zavolaj `quote` s model kódmi a počtami kusov (single-split: vnútorná + vonkajšia; "
     "multi-split: vonkajšia + všetky vnútorné; kazety: + panel), so segmentom a rozpočtom zákazníka, "
     "ak ho povedal. Výstup obsahuje aj recyklačný poplatok, dostupnosť (`availability` pri každej "
@@ -933,8 +936,9 @@ def _industrial_contact_text(language):
 _OFFICE_RE = _stems_re(SIZING["office_words"])
 _WIFI_WANTED_RE = _stems_re(SIZING["wifi_triggers"])
 _CUSTOMER_KW_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*kW\b", re.IGNORECASE)
-_CUSTOMER_M2_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:m2|m²|m\^2|metrov\s+štvorcov|štvorcov|sq\.?\s*m|square\s+met)",
-                             re.IGNORECASE)
+# "20mm2" is a typo for 20 m² (live demo 2026-10-20: the size went unread, so no offer was forced).
+_CUSTOMER_M2_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m{1,2}²|m\^2|metrov\s+štvorcov|štvorcov|sq\.?\s*m|"
+                             r"square\s+met)", re.IGNORECASE)
 _NO_CEILING_RE = re.compile(
     r"(?:nemáme|nemám|nie\s+je|bez)\s+(?:žiadn\w+\s+)?podhľad|podhľad\w*\s+(?:nemáme|nemám|nie\s+je)|"
     r"betónov\w*\s+strop|no\s+(?:suspended|false)\s+ceiling|without\s+(?:a\s+)?(?:suspended|false)\s+ceiling",
@@ -969,6 +973,15 @@ def _has_wifi(rec):
     """Wi-Fi as standard (not 'voliteľne' / 'okrem …')."""
     return any(re.search(r"wi-?fi", f, re.I) and not re.search(r"volite|okrem|optional", f, re.I)
                for f in _series_features(rec))
+
+
+def _unit_has_wifi(rec):
+    """Wi-Fi as standard for a set or a multi-split wall unit: the multi-split price lists carry no
+    key_features, the single-split sets of the same series do. False when the series has no set."""
+    if "/single_split/" in rec["source"]:
+        return _has_wifi(rec)
+    series = rec["category_path"].rsplit(".", 1)[-1]
+    return any(_has_wifi(r) for r in _SETS.values() if r["brand"] == rec["brand"] and _series_key(r) == series)
 
 
 def _cheapest_wifi_set(cooling_kw):
@@ -1247,6 +1260,19 @@ def _fit_check(fit_lines, override_reason=None):
             if smaller:  # an error, not a warning: the bot ignored the warning and quoted 3.5 kW twice
                 errors.append(f"naddimenzované: na {max(m2):g} m² stačí ten istý rad vo veľkosti {smaller[0]:g} kW "
                               f"(tento má {kw:g} kW) — naceň menšiu, je lacnejšia")
+        # A multi-split wall unit bigger than the largest room the customer named needs (scenario
+        # dom_multisplit_wifi: 2× 4.2 kW for two 20 m² rooms).
+        for rec, codes, _, cat in fit_lines:
+            if cat != "multi_split_indoor" or not _WALL_MULTI_PATH_RE.search(rec["category_path"]):
+                continue
+            kw = rec["raw"].get("cooling_kW") or 0
+            smaller = sorted(r["raw"]["cooling_kW"] for r in _wall_multi_units(rec)
+                             if r["category_path"] == rec["category_path"]
+                             and need * SIZING["undersize_ratio"] <= r["raw"]["cooling_kW"] < kw)
+            if smaller:
+                errors.append(f"naddimenzované: najväčšia miestnosť, ktorú zákazník uviedol, má {max(m2):g} m² — "
+                              f"stačí vnútorná jednotka {smaller[0]:g} kW toho istého radu ({codes} má {kw:g} kW); "
+                              "naceň menšiu, je lacnejšia")
     if _wished(_WIFI_WANTED_FOLDED_RE):
         for rec, codes, _, cat in fit_lines:
             if cat == "single_split_sets" and not _has_wifi(rec):
@@ -1254,6 +1280,14 @@ def _fit_check(fit_lines, override_reason=None):
                 warnings.append(f"zákazník chce Wi-Fi, {codes} ju nemá v základe"
                                 + (f"; najlacnejší set tejto veľkosti s Wi-Fi: {alt['description']} {alt['codes']}"
                                    if alt else ""))
+            elif (cat == "multi_split_indoor" and _WALL_MULTI_PATH_RE.search(rec["category_path"])
+                  and not _unit_has_wifi(rec)):
+                options = [r for r in _wall_multi_units(rec) if r["raw"]["cooling_kW"] == rec["raw"].get("cooling_kW")
+                           and _unit_has_wifi(r)]
+                alt = min(options, key=_unit_price, default=None)
+                warnings.append(f"zákazník chce Wi-Fi, {codes} ju nemá v základe (iba voliteľný modul)"
+                                + (f"; najlacnejšia vnútorná jednotka tejto veľkosti s Wi-Fi: {_describe(alt)} "
+                                   f"{alt['model_code']}" if alt else ""))
     if _wished(_CHEAP_WISH_RE) and not place:
         for rec, codes, _, cat in fit_lines:
             if cat != "single_split_sets":
@@ -1336,14 +1370,16 @@ def _cheaper_alternative(fit_lines, total):
     defaults when the customer named no series). Suitable = enough kW for the m² (or the quoted
     set's capacity), Wi-Fi and a single named brand respected. None for named series, commercial
     places, allergy cases and anything but one single-split set."""
-    sets = [(rec, codes) for rec, codes, qty, cat in fit_lines if cat == "single_split_sets"]
-    if len(sets) != 1 or len(fit_lines) != 1:
-        return None
-    rec, codes = sets[0]
     text = _all_user_text()
     if _SERIES_NAMED_RE.search(text) or _SERVER_ROOM_RE.search(text) or any(
             rx.search(text) for rx in _EXPLICIT_COMMERCIAL_RES.values()) or re.search(r"alerg|astm", text, re.I):
         return None
+    sets = [(rec, codes) for rec, codes, qty, cat in fit_lines if cat == "single_split_sets"]
+    if not sets:
+        return _cheaper_multi_indoors(fit_lines)
+    if len(sets) != 1 or len(fit_lines) != 1:
+        return None
+    rec, codes = sets[0]
     best = _cheaper_suitable_set(rec, codes, text)
     if not best:
         return None
@@ -1351,6 +1387,47 @@ def _cheaper_alternative(fit_lines, total):
             "note": "Lacnejší vhodný set (výkon na plochu" + (", Wi-Fi" if best["wifi"] else "")
                     + (f", značka {best['brand']}" if best["brand"] else "") + "). Ak zákazník nechce konkrétny "
                     "rad, ponúkni ho a cenu zisti cez quote."}
+
+
+def _wall_multi_units(rec):
+    """Priced wall indoor units from the same multi-split price list as `rec`."""
+    return [r for r in PRODUCT_INDEX
+            if r["source"] == rec["source"] and r["code_role"] == "indoor" and _WALL_MULTI_PATH_RE.search(r["category_path"])
+            and isinstance(r["raw"].get("cooling_kW"), (int, float)) and _unit_price(r) is not None]
+
+
+def _cheaper_multi_indoors(fit_lines):
+    """The same multi-split outdoor unit with the cheapest wall indoor units of the same sizes from its price
+    list (Wi-Fi as standard if wished), when that is 5 %+ cheaper. The live demo of 2026-10-20 was asked for a
+    cheaper option with Wi-Fi three times and priced a bigger outdoor unit before finding Comfort S2."""
+    outdoors = [(rec, qty) for rec, _, qty, cat in fit_lines if cat == "multi_split_outdoor"]
+    indoors = [(rec, qty) for rec, _, qty, cat in fit_lines if cat == "multi_split_indoor"]
+    if (len(outdoors) != 1 or not indoors or len(outdoors) + len(indoors) != len(fit_lines)
+            or not all("wallmount" in rec["category_path"] for rec, _ in indoors)):
+        return None
+    outdoor, systems = outdoors[0]
+    wifi = _wished(_WIFI_WANTED_FOLDED_RE)
+    items, names, current, cheaper = [{"code": outdoor["model_code"], "qty": systems}], [], 0.0, 0.0
+    for rec, qty in indoors:
+        price, kw = _unit_price(rec), rec["raw"].get("cooling_kW")
+        if price is None or not isinstance(kw, (int, float)):
+            return None
+        options = [r for r in _wall_multi_units(outdoor) if r["raw"]["cooling_kW"] == kw and (not wifi or _unit_has_wifi(r))]
+        best = min(options, key=_unit_price, default=rec)
+        if _unit_price(best) >= price:
+            best = rec
+        items.append({"code": best["model_code"], "qty": qty})
+        names.append(f"{qty}× {_describe(best)}")
+        current += price * qty
+        cheaper += _unit_price(best) * qty
+    base = (_unit_price(outdoor) or 0) * systems
+    if current - cheaper < 0.05 * (current + base):
+        return None
+    return {"codes": [i["code"] for i in items], "items": items,
+            "description": " + ".join(names) + " s tou istou vonkajšou jednotkou",
+            "note": "Lacnejšie nástenné vnútorné jednotky rovnakého výkonu k tej istej vonkajšej jednotke"
+                    + (" (Wi-Fi v základe)" if wifi else "") + ". Ak zákazník nechce konkrétny rad, ponúkni ich; "
+                    "cenu zisti cez quote s týmito items."}
 
 
 def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, override_reason=None):
@@ -1590,17 +1667,24 @@ _UNIT_TYPES = {
                               re.compile(r"console|parapet|floor", re.I)),
     "podstropná": (re.compile(r"podstrop|ceiling"), re.compile(r"ceiling|podstrop", re.I)),
 }
+# "Samsung multi-split 2 kW" with no other type: the wall units (live demo 2026-10-20: eight lookups of
+# guessed codes and names failed, and the bot told the customer it had no multi-split codes).
+_MULTI_WORD_RE = re.compile(r"multi|\bfjm\b")
+_WALL_MULTI_PATH_RE = re.compile(r"wallmount", re.I)
 _COMMERCIAL_WORDS_RE = re.compile(r"\brav\b|\bcac\b|komercn|commercial")
 _RESIDENTIAL_WORDS_RE = re.compile(r"\bras\b|\bfjm\b|multi|rezidencn|domacnost|residential")
 _UNIT_KINDS = {"multi_split_indoor": "rezidenčná (multi-split vnútorná jednotka)",
                "commercial_indoor": "komerčná (Toshiba RAV / Samsung CAC)"}
 
 
-def _type_units(text):
-    """Indoor units of a type the text names ('kazetová 2,5 kW', 'Samsung kanálová'), residential multi-split
-    ones first; a size in kW and a single named brand narrow it. None when no type is named."""
+def _type_units(text, cap=True):
+    """Indoor units of a type the text names ('kazetová 2,5 kW', 'Samsung kanálová', 'Toshiba multi-split'
+    for wall units), residential multi-split ones first; a size in kW and a single named brand narrow it.
+    None when no type is named."""
     folded = fold_diacritics(text).lower()
     types = [path_rx for word_rx, path_rx in _UNIT_TYPES.values() if word_rx.search(folded)]
+    if not types and _MULTI_WORD_RE.search(folded):
+        types = [_WALL_MULTI_PATH_RE]
     if not types:
         return None
     kw = _SIZE_KW_RE.search(text)
@@ -1609,11 +1693,14 @@ def _type_units(text):
     # "RAV / CAC / komerčná" or "RAS / FJM / multi / domácnosť" narrows to one kind (scenario pracovna_kazeta).
     commercial_only = bool(_COMMERCIAL_WORDS_RE.search(folded))
     residential_only = bool(_RESIDENTIAL_WORDS_RE.search(folded)) and not commercial_only
+    # "Samsung WindFree Avant S2 multi-split 2 kW": the named series' wall units only.
+    series = [k for k, rx in _SERIES_RES.items() if rx.search(text)] if types == [_WALL_MULTI_PATH_RE] else []
     units = {}
     for rec in PRODUCT_INDEX:
         category = _discount_category(rec)
         cooling = rec["raw"].get("cooling_kW")
         if (category not in _UNIT_KINDS or not any(rx.search(rec["category_path"]) for rx in types)
+                or (series and not any(rec["category_path"].rsplit(".", 1)[-1].startswith(k) for k in series))
                 or (commercial_only and category != "commercial_indoor")
                 or (residential_only and category == "commercial_indoor")
                 or (len(brands) == 1 and rec["brand"] != brands[0])
@@ -1621,6 +1708,8 @@ def _type_units(text):
             continue
         unit = units.setdefault(rec["model_code"], {"code": rec["model_code"], "description": _describe(rec),
                                                     "kind": _UNIT_KINDS[category], "cooling_kW": cooling})
+        if _WALL_MULTI_PATH_RE.search(rec["category_path"]):
+            unit["wifi_standard"] = _unit_has_wifi(rec)
         if _CASSETTE_PATH_RE.search(rec["category_path"]):
             unit["panel_options"] = _series_panels(rec)
         if _NEEDS_CONTROLLER_PATH_RE.search(rec["category_path"]):
@@ -1649,18 +1738,31 @@ def _type_units(text):
     found = sorted(units.values(), key=lambda u: (order.index(u["kind"]), u["cooling_kW"] or 0))
     size_note = ""
     if not found and kw is not None:
-        # No unit of that size: every size in one answer (the scenario's bot asked for 2 kW, RAV starts at 2.5).
-        again = _type_units(_SIZE_KW_RE.sub("", text))
+        # No unit of that size (the scenario's bot asked for 2 kW, RAV starts at 2.5): the next size up of each
+        # brand and kind, else every size in one answer.
+        again = _type_units(_SIZE_KW_RE.sub("", text), cap=False)
         if again and again.get("units"):
-            found, size_note = again["units"], f"Veľkosť {kw:g} kW tento typ nemá — tu sú všetky veľkosti. "
+            bigger = [u for u in again["units"] if (u["cooling_kW"] or 0) >= kw]
+            if bigger:
+                key = lambda u: (u["description"].split(" ", 1)[0], u["kind"])  # noqa: E731
+                smallest = {}
+                for u in bigger:
+                    smallest[key(u)] = min(smallest.get(key(u), u["cooling_kW"]), u["cooling_kW"])
+                found = [u for u in bigger if u["cooling_kW"] == smallest[key(u)]]
+                size_note = f"Veľkosť {kw:g} kW tento typ nemá — tu je najbližšia väčšia veľkosť. "
+            else:
+                found, size_note = again["units"], f"Veľkosť {kw:g} kW tento typ nemá — tu sú všetky veľkosti. "
     if not found:
         return {"error": "Taký typ nemáme" + (" v tejto značke." if brands else ".")}
-    if len(found) > 40:
+    if cap and len(found) > 40:
         return {"error": f"Príliš veľa jednotiek ({len(found)}) — uveď výkon v kW, značku alebo rezidenčná / komerčná."}
     return {"units": found, "note": size_note + (
         "Rezidenčná (multi-split) vnútorná jednotka sa predáva iba s multi-split vonkajšou jednotkou — pošli obe do "
         "`quote`, kompatibilitu overí sám (Toshiba: s jedinou vnútornou jednotkou multi-split podľa combinations_table "
-        "iba chladí). Komerčná potrebuje vonkajšiu jednotku RAV / CAC (outdoor_options). Kazeta potrebuje "
+        "iba chladí); výkon v kW je výkon jednej vnútornej jednotky (na izbu), nie súčet. outdoor_options sú "
+        "najmenšie vonkajšie jednotky pre jednu takú jednotku — pre viac miestností vyber takú, čo unesie všetky "
+        "(quote overí). wifi_standard: Wi-Fi v základe (false = iba voliteľný modul). "
+        "Komerčná potrebuje vonkajšiu jednotku RAV / CAC (outdoor_options). Kazeta potrebuje "
         "dekoračný panel (panel_options) a ovládač, kanálová a podstropná ovládač (controller_options) — pošli ich do "
         "toho istého `quote`, bez nich ponuku odmietne. Cenu zisti iba cez `quote`.")}
 
@@ -1703,6 +1805,14 @@ def lookup_product(model_code):
         bare = code.split("/")[0]
         rec = PRODUCT_BY_CODE.get(bare)
     if not rec:
+        # A real code inside other words ("Toshiba RAS-2M10G3AVG-E", "Samsung FJM AJ050TXJ2KG/EU"): the live
+        # demo of 2026-10-20 looked up such strings six times and gave up.
+        inner = list(dict.fromkeys(c for m in _MODEL_CODE_LIKE_RE.finditer(code)
+                                   if (c := _canonical_code(m.group(0))) and c != code))
+        if len(inner) == 1:
+            return lookup_product(inner[0])
+        if inner:
+            return {"products": [lookup_product(c) for c in inner[:6]]}
         series = _type_units(model_code) or _series_sets(model_code)
         if series:
             return series
@@ -2686,7 +2796,8 @@ tools = [
             "Look up a product by exact model code (e.g. 'AR70H09CAAWNEU', 'RAS-B10P2KVSG-E'). "
             "Returns brand, category, catalog price and key specs. For any price you quote "
             "to the customer call `quote` — don't retype prices from here. "
-            "Názov radu s veľkosťou ('<značka> <rad> <výkon v kW>') vráti presné kódy setov toho radu okamžite — "
+            "Názov radu s veľkosťou ('<značka> <rad> <výkon v kW>') vráti presné kódy setov toho radu okamžite, "
+            "'<značka> multi-split <výkon jednej vnútornej v kW>' nástenné multi-split jednotky s vhodnými vonkajšími — "
             "na kódy setov nepoužívaj `search_knowledge`. Rad vyber podľa výsledkov hľadania a požiadaviek "
             "zákazníka, nie z hlavy."
         ),
@@ -3646,7 +3757,9 @@ _CITATION_RE = re.compile(
 # nearest one named on this line or above it; a line naming another brand or two series resets it.
 _WIFI_CLAIM_RE = re.compile(r"wi-?fi|ovládani\w*\s+(?:z|cez)\s+(?:mobil|telef|aplik|smartf)|\bsmartthings\b", re.I)
 _OPTIONAL_FEATURE_RE = re.compile(r"volite[ľl]|dokúp|dokup|príplat|priplat|optional|navyše|\bnemá\b|\bbez\b", re.I)
-_WIFI_OPTIONAL_NOTE = {"sk": " — iba s voliteľným Wi-Fi modulom za príplatok", "en": " — only with the optional Wi-Fi module at extra cost"}
+_WIFI_STANDARD_WORDS_RE = re.compile(r"\s+(?:v\s+základe|v\s+základnej\s+výbave|štandardne|ako\s+štandard|"
+                                     r"as\s+standard|built[\s-]in)\b", re.I)
+_WIFI_OPTIONAL_NOTE = {"sk":" — iba s voliteľným Wi-Fi modulom za príplatok", "en": " — only with the optional Wi-Fi module at extra cost"}
 
 
 @functools.lru_cache(maxsize=1)
@@ -3674,12 +3787,16 @@ def _fix_wifi_claims(text, language="sk"):
             current = None  # two series, or another brand: the line isn't about the remembered one
         if (current in no_wifi and _WIFI_CLAIM_RE.search(line) and not _OPTIONAL_FEATURE_RE.search(line)
                 and line.strip()):
-            line = line.rstrip() + _WIFI_OPTIONAL_NOTE.get(language, _WIFI_OPTIONAL_NOTE["sk"])
+            # "Wi-Fi v základe." became "Wi-Fi v základe. — iba s voliteľným…" (scenario dom_multisplit_wifi)
+            line = _WIFI_STANDARD_WORDS_RE.sub("", line).rstrip()
+            end = "." if line.endswith(".") else ""
+            line = line.rstrip(".") + _WIFI_OPTIONAL_NOTE.get(language, _WIFI_OPTIONAL_NOTE["sk"]) + end
         out.append(line)
     return "\n".join(out)
 
 
-_WITH_VAT_AND_FEE_RE = re.compile(r"\b(?:s|vrátane|vratane)\s+DPH(\**)\s+a\s+(?:s\s+)?recykla\w*\s+poplat\w*", re.I)
+# "s DPH a poplatkami" too (scenario dom_multisplit_wifi)
+_WITH_VAT_AND_FEE_RE = re.compile(r"\b(?:s|vrátane|vratane)\s+DPH(\**)\s+a\s+(?:s\s+)?(?:recykla\w*\s+)?poplat\w*", re.I)
 # "2 331 € (približne)": every amount is quote()'s exact figure (live demo 2026-10-20)
 _APPROX_AFTER_AMOUNT_RE = re.compile(r"(\d\s*€)\s*\(\s*(?:približne|pribl\.|cca\.?|okolo|zhruba|approx\.?|approximately)\s*\)",
                                      re.I)
@@ -4042,10 +4159,12 @@ def _quote_identity(q):
         for code in line["codes"]:
             codes.add(code)
             for rec in _RECORDS_BY_CODE.get(code, []):
-                key = re.sub(r"_(?:White|Black|Wood)$", "", rec["category_path"].split(".")[1]) \
-                    if "." in rec["category_path"] else ""
-                if key in _SERIES_RES:
-                    series.add(key)
+                # Any section: multi-split units sit one level deeper ("indoor_units_wallmount.WindFree_Comfort_S2"),
+                # and the live demo cut a Comfort S2 price as "another product's".
+                for section in rec["category_path"].split(".")[1:]:
+                    key = re.sub(r"_(?:White|Black|Wood)$", "", section)
+                    if key in _SERIES_RES:
+                        series.add(key)
     return {"series": series, "codes": codes, "brands": brands}
 
 
@@ -4438,6 +4557,13 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
             "4-in-1, Easy Filter Plus, Freeze Wash a SmartThings sú iba Samsung; HADA careflow, Smart Sensing, "
             "plazmový ionizátor, Ultra Pure a Bi-Flow iba Toshiba."
         )
+    stock_claims = _false_stock_claims(text)
+    if stock_claims:
+        violations.append(
+            f"sklad-tvrdenie: tvrdíš, že je tovar skladom alebo hneď dostupný ('{stock_claims[0][:120]}'), ale "
+            "`quote` mu dal inú dostupnosť. Dostupnosť ber iba z poľa `availability` danej ponuky (Samsung: "
+            "dostupnosť overí projektový manažér)."
+        )
     human = _HUMAN_CLAIM_RE.search(text)
     if human:
         violations.append(
@@ -4564,7 +4690,8 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
 _HARD_RULES = ("cena-z-nastroja", "aplikacia-rabatov", "model-code-verifikacia",
                "povolenia-instalacia", "umiestnenie-otazka", "rozpocet-tvrdenie",
                "interne-info", "slub-bez-suhlasu", "termin-slub", "cena-iny-produkt", "dph-zamena",
-               "mimo-katalogu", "nepodlozene-udaje", "reklamacia-kontakt", "ai-identita", "brand-funkcia", "typ-jednotky")
+               "mimo-katalogu", "nepodlozene-udaje", "reklamacia-kontakt", "ai-identita", "brand-funkcia", "typ-jednotky",
+               "sklad-tvrdenie")
 # The bot is an AI assistant and says so when asked (EU AI Act transparency): a sentence claiming
 # to be a person is regenerated or cut. "Nie som človek" / "I'm not a human" are fine.
 _HUMAN_CLAIM_RE = re.compile(
@@ -4586,7 +4713,8 @@ _DATE_PROMISE_RE = re.compile(
     r"\bthis\s+(?:month|week)\s+is\s+(?:doable|realistic|possible)",
     re.IGNORECASE)
 # Whole-reply problems: worth a regeneration, but there is no sentence to cut.
-_REGEN_ONLY_RULES = ("jazyk-odpovede", "cena-neodpovedana", "kontakt-pred-ponukou", "prazdna-odpoved", "dve-moznosti")
+_REGEN_ONLY_RULES = ("jazyk-odpovede", "cena-neodpovedana", "kontakt-pred-ponukou", "prazdna-odpoved", "dve-moznosti",
+                     "zakazana-otazka")
 _PRICE_QUESTION_RE = re.compile(
     r"\b(?:koľko|kolko|kolik)\b[^?\n]{0,60}(?:stoj|stál|stal|stát|bude|vyjde|zaplat|cen)|\bak[áa]\s+(?:je\s+)?cena\b|"
     r"\bcenu\b|\bhow\s+much\b|\bwhat\s+(?:would|does|will)\b[^?\n]{0,40}\bcost\b|\bprice\b|"
@@ -4712,6 +4840,70 @@ def _internal_leak_sentences(text):
     return [s for s in _sentences(text) if _INTERNAL_LEAK_RE.search(s)]
 
 
+# Stock claims come from quote's `availability` (stock_policy.json). The live demo of 2026-10-20 called
+# Samsung, whose availability the PM confirms, "hneď dostupný" and "skladný".
+_STOCK_CLAIM_RE = re.compile(
+    r"\bskladom\b|\bna\s+sklade\b|\bskladov[ýáé]\s+(?:tovar|model|polož)\w*|\bje\s+skladov[ýáé]\b|\bskladn[ýáé]\b|"
+    r"\b(?:hneď|ihneď|okamžite)\s+(?:k\s+dispozícii|dostupn\w*|k\s+dodaniu)|\bin\s+stock\b|"
+    r"\bavailable\s+(?:now|immediately|right\s+away)", re.IGNORECASE)
+_STOCK_NEGATION_RE = re.compile(
+    r"\bnie\s+(?:je|sú|su)\b[^.?!\n]{0,25}(?:sklad|dostupn)|\bnie\s+skladov|\bneskladov|\bnot\s+(?:in\s+stock|available)|"
+    r"\bnon-?stock", re.IGNORECASE)
+
+
+def _false_stock_claims(text):
+    """Sentences claiming stock for a product no quote of the session shows in stock: the product named in the
+    sentence (else its paragraph); unnamed, any quote in stock will do. Before any quote, only a brand whose
+    default is not stock."""
+    stock = STOCK["labels"]["stock"]
+    quotes = S().quotes
+    idents = [_quote_identity(q) for q in quotes]
+    not_stock_brands = lambda brands: brands and all(  # noqa: E731
+        STOCK["default_by_brand"].get(b) != "stock" for b in brands)
+    out = []
+    for block in _blocks(text):
+        block_named = _named_in(block)
+        for s in _sentences(block):
+            if not _STOCK_CLAIM_RE.search(s) or _STOCK_NEGATION_RE.search(s):
+                continue
+            series, codes, brands = _named_in(s)
+            if not (series or codes or brands):
+                series, codes, brands = block_named
+            if not quotes:
+                if not_stock_brands(brands):
+                    out.append(s)
+                continue
+            if series or codes:
+                about = [q for q, i in zip(quotes, idents) if series & i["series"] or codes & i["codes"]]
+            elif brands:
+                about = [q for q, i in zip(quotes, idents) if brands & i["brands"]]
+            else:
+                about = quotes
+            if about and not any(all(line.get("availability", stock) == stock for line in q["lines"]) for q in about):
+                out.append(s)
+            elif not about and not_stock_brands(brands):
+                out.append(s)
+    return out
+
+
+# Questions the discovery rule forbids (knowledge/rules/feedback_overit_potreby_pred_ponukou.md): the brand,
+# and the budget once the size is known — then the offer comes. The live demo of 2026-10-20 asked both instead
+# of pricing a multi-split it couldn't find.
+_BRAND_QUESTION_RE = re.compile(
+    r"preferenci\w*\s+(?:\w+\s+)?značk|(?:ktor\w*|ak[úáa]|akej)\s+značk\w*|samsung\w*\s+alebo\s+toshib\w*|"
+    r"toshib\w*\s+alebo\s+samsung\w*|preferujete\s+(?:samsung|toshib)|which\s+brand|brand\s+preference|"
+    r"samsung\s+or\s+toshiba|toshiba\s+or\s+samsung", re.IGNORECASE)
+_BUDGET_QUESTION_RE = re.compile(r"rozpo[čc]\w*|\bbudget\b", re.IGNORECASE)
+
+
+def _forbidden_questions(reply):
+    if S().quotes or _industrial_case() or _support_case():
+        return []
+    size_known = _customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)
+    return [s for s in _sentences(reply) if "?" in s and (
+        _BRAND_QUESTION_RE.search(s) or (size_known and _BUDGET_QUESTION_RE.search(s)))]
+
+
 # Brand trademarks (knowledge/rules/feedback_brand_specificke_funkcie.md): a Samsung-only term in a
 # sentence about a Toshiba product, or the reverse. The live demo of 2026-10-19 gave Toshiba SHORAI
 # CURVE "funkcia WindFree". Sentences naming both brands and negations ("Toshiba nemá WindFree") pass.
@@ -4815,7 +5007,7 @@ def _sentence_is_hard(sentence, trusted, bad_values=()):
                 or _premature_promise_sentences(sentence) or _DATE_PROMISE_RE.search(sentence)
                 or _not_in_catalog_claims(sentence) or _unsupported_figures(sentence)
                 or _support_contact_requests(sentence) or _HUMAN_CLAIM_RE.search(sentence)
-                or _brand_term_mixups(sentence) or _wall_called_cassette(sentence))
+                or _brand_term_mixups(sentence) or _wall_called_cassette(sentence) or _false_stock_claims(sentence))
 
 
 def _approx_amount(text):
@@ -4952,6 +5144,10 @@ def _regen_note(violations):
                         "vlastným `quote`, a nech si zákazník vyberie.",
         "brand-funkcia": "Každú technológiu pripíš iba jej značke (WindFree a Tri-care sú Samsung, HADA a plazmový "
                          "ionizátor Toshiba); funkciu, ktorú rad podľa výsledkov hľadania nemá, vynechaj.",
+        "sklad-tvrdenie": "Dostupnosť uveď iba z poľa `availability` z `quote` tej ponuky, o ktorej píšeš; inak ju vynechaj.",
+        "zakazana-otazka": "Na značku ani rozpočet sa nepýtaj: naceň dve možnosti (obe značky, alebo lacnejšiu a lepšiu) "
+                           "cez `quote`; kódy nájdeš cez `lookup_product` ('<značka> multi-split <výkon v kW>' alebo "
+                           "'<značka> <rad> <výkon v kW>').",
         "kontakt-pred-ponukou": "Najprv odporuč konkrétny set a zavolaj `quote`; o kontakt (meno, telefón, e-mail, "
                                 "obec) požiadaj až po cene. Na cenu obec ani kontakt nepotrebuješ.",
     }
@@ -5902,6 +6098,13 @@ def run_user_turn_streaming(user_input):
                     "kontakt-pred-ponukou: pýtaš si kontakt alebo obec skôr, než zákazník dostal cenu. Najprv "
                     "odporuč a naceň cez `quote`; o kontakt požiadaj až potom."
                 )
+            forbidden = _forbidden_questions(attempt_text) if answering and attempt_text.strip() else []
+            if forbidden:
+                violations.append(
+                    f"zakazana-otazka: pýtaš sa na značku alebo rozpočet ('{forbidden[0].strip()[:100]}'). Značku "
+                    "zákazník spomenie sám, ak ju chce; keď poznáš veľkosť, namiesto otázky na rozpočet naceň dve "
+                    "možnosti cez `quote`."
+                )
             hard = [v for v in violations if _is_hard(v)]
             regen_worthy = hard + [v for v in violations if v.split(":", 1)[0].strip() in _REGEN_ONLY_RULES]
             # A regeneration is one more paid call, allowed only while the budget, with this
@@ -5916,7 +6119,9 @@ def run_user_turn_streaming(user_input):
                 regens_used += 1
                 # A price question left without a quote: the next attempt must call a tool (d04 made no
                 # tool call in 7 turns and told the customer real codes weren't in the price list).
-                force_tool = any(v.startswith(("cena-neodpovedana", "dve-moznosti")) for v in regen_worthy)
+                force_tool = any(v.startswith(("cena-neodpovedana", "dve-moznosti")) for v in regen_worthy) or (
+                    any(v.startswith("zakazana-otazka") for v in regen_worthy)
+                    and bool(_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)))
                 log_event("bot_reply_regen_triggered", violations=regen_worthy, bad_reply_excerpt=attempt_text[:200],
                           stop_reason=response.stop_reason)
                 u_bad = response.usage
