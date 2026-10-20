@@ -1,6 +1,7 @@
 import contextvars
 import datetime
 import email.utils
+import functools
 import hashlib
 import json
 import os
@@ -295,7 +296,10 @@ system_prompt = (
     "ťahu: hneď ako poznáš m² (alebo konkrétne kódy), zavolaj `quote` s rozumným predpokladom "
     "(nástenná, biela, štandardný = najlacnejší vhodný rad značky) a predpoklad povedz; na montáž "
     "povedz, že jej cenu určí projektový manažér po bezplatnej obhliadke. Dostupnosť ber z poľa "
-    "`availability`. Cenu NIKDY nepodmieňuj kontaktom ani súhlasom so spracovaním údajov. Ak požiadavky "
+    "`availability`. Pri odporúčaní ukáž **dve možnosti**, obe nacenené (každú vlastným volaním `quote`): "
+    "odporúčanú a druhú — lacnejšiu, alebo inú značku, ak zákazník značku nevybral — a nech si vyberie. Jedna "
+    "stačí, keď si zákazník sám vybral konkrétny model. Cenu NIKDY nepodmieňuj kontaktom ani súhlasom so "
+    "spracovaním údajov. Ak požiadavky "
     "zákazníka ešte nepoznáš, v tej istej odpovedi sa na ne opýtaj, aby si ponuku mohol spresniť.\n\n"
     "Keď sa od zákazníka dozvieš novú informáciu (rozpočet, miestnosť, segment, preferencia značky, "
     "kontakt), zavolaj `update_customer_state` s príslušnými poľami.\n\n"
@@ -982,7 +986,9 @@ def _cheapest_wifi_set(cooling_kw):
 # negated ("neriešim wifi" in q01, "nechcem úplne najlacnejší" in s02).
 _CHEAP_WISH_RE = re.compile(
     r"\bnajlacn\w*|\blacn\w*|\bcheap\w*|\blowest\s+price|\bzakladn\w*\s+(?:rad|model|verzi)\w*|"
-    r"\bobycajn\w*|\bbasic\b|\bentry[\s-]level\b|\bbudget\s+(?:option|model)", re.IGNORECASE)
+    r"\bobycajn\w*|\bbasic\b|\bentry[\s-]level\b|\bbudget\s+(?:option|model)|"
+    # "najlepší pomer cena/výkon" got the premium HAORI in the live demo of 2026-10-20
+    r"\bpomer\w*\s+(?:cena|ceny|cien)\w*|\bvalue\s+for\s+money\b|\bprice[\s/-]+performance\b", re.IGNORECASE)
 _BRAND_RES = {"Samsung": re.compile(r"\bsamsung", re.IGNORECASE), "Toshiba": re.compile(r"\btoshib", re.IGNORECASE)}
 _ANY_BRAND_RE = re.compile(
     r"znack\w*\s+(?:mi\s+|nam\s+)?(?:je\s+)?(?:jedno|jedna|nezalezi)|nezalezi\s+(?:mi\s+)?na\s+znack|"
@@ -1228,6 +1234,18 @@ def _fit_check(fit_lines, override_reason=None):
         if capacity and capacity < need * SIZING["undersize_ratio"]:
             warnings.append(f"poddimenzované, ak zostava chladí celých {max(m2):g} m²: {capacity:g} kW, "
                             f"potrebné približne {need:g} kW")
+        # One set bigger than the room needs, when the same series has a smaller size that still covers it
+        # (the live demo of 2026-10-20 sold a 14 m² bedroom 3.5 kW).
+        sets = [(rec, qty) for rec, _, qty, cat in fit_lines if cat == "single_split_sets"]
+        if len(sets) == 1 and sets[0][1] == 1:
+            rec = sets[0][0]
+            kw = rec["raw"].get("cooling_kW") or 0
+            smaller = sorted(o["raw"]["cooling_kW"] for o in _SETS.values()
+                             if _series_key(o) == _series_key(rec) and isinstance(o["raw"].get("cooling_kW"), (int, float))
+                             and need * SIZING["undersize_ratio"] <= o["raw"]["cooling_kW"] < kw)
+            if smaller:  # an error, not a warning: the bot ignored the warning and quoted 3.5 kW twice
+                errors.append(f"naddimenzované: na {max(m2):g} m² stačí ten istý rad vo veľkosti {smaller[0]:g} kW "
+                              f"(tento má {kw:g} kW) — naceň menšiu, je lacnejšia")
     if _wished(_WIFI_WANTED_FOLDED_RE):
         for rec, codes, _, cat in fit_lines:
             if cat == "single_split_sets" and not _has_wifi(rec):
@@ -1656,7 +1674,7 @@ def _series_sets(text):
         return None
     kw = _SIZE_KW_RE.search(text)
     kw = float(kw.group(1).replace(",", ".")) if kw else None
-    sets = []
+    sets, features = [], {}
     for codes, rec in _SETS.items():
         if not any(_series_key(rec).startswith(k) for k in keys):
             continue
@@ -1665,12 +1683,15 @@ def _series_sets(text):
             continue
         sets.append({"description": _describe(rec, as_set=True), "series": _series_key(rec),
                      "codes": sorted(codes), "cooling_kW": raw.get("cooling_kW")})
-    note = "Kódy setu pošli do `quote` (vnútorná + vonkajšia jednotka); cenu zisti iba cez `quote`."
+        features.setdefault(_series_key(rec), _series_features(rec))
+    note = ("Kódy setu pošli do `quote` (vnútorná + vonkajšia jednotka); cenu zisti iba cez `quote`. Funkcie radu "
+            "(series_features) uvádzaj presne tak — čo tam nie je alebo je „voliteľne“, netvrď ako súčasť setu.")
     if not sets and kw is not None:
         # No set of that size: all sizes in one answer saves the model a second round trip.
         all_sizes = _series_sets(_SIZE_KW_RE.sub("", text))
         return {**all_sizes, "note": f"Veľkosť {kw:g} kW tento rad nemá — tu sú všetky jeho veľkosti. {note}"}
-    return {"series_sets": sorted(sets, key=lambda s: (s["series"], s["cooling_kW"] or 0)), "note": note}
+    return {"series_sets": sorted(sets, key=lambda s: (s["series"], s["cooling_kW"] or 0)),
+            "series_features": features, "note": note}
 
 
 def lookup_product(model_code):
@@ -3612,7 +3633,48 @@ _CITATION_RE = re.compile(
 )
 
 
-_WITH_VAT_AND_FEE_RE = re.compile(r"\b(?:s|vrátane|vratane)\s+DPH\s+a\s+(?:s\s+)?recykla\w*\s+poplatk\w*", re.I)
+# Wi-Fi claimed for a series that has it only as an option ("Voliteľne WiFi modul": SEIYA, SEIYA Classic 2, the
+# Toshiba console). The live demo of 2026-10-20 sold SEIYA with "WiFi ovládanie z mobilu". The series is the
+# nearest one named on this line or above it; a line naming another brand or two series resets it.
+_WIFI_CLAIM_RE = re.compile(r"wi-?fi|ovládani\w*\s+(?:z|cez)\s+(?:mobil|telef|aplik|smartf)|\bsmartthings\b", re.I)
+_OPTIONAL_FEATURE_RE = re.compile(r"volite[ľl]|dokúp|dokup|príplat|priplat|optional|navyše|\bnemá\b|\bbez\b", re.I)
+_WIFI_OPTIONAL_NOTE = {"sk": " — iba s voliteľným Wi-Fi modulom za príplatok", "en": " — only with the optional Wi-Fi module at extra cost"}
+
+
+@functools.lru_cache(maxsize=1)
+def _series_without_wifi():
+    """The series patterns whose every set lacks Wi-Fi as standard (a colour variant with it counts for all)."""
+    return frozenset(key for key in _SERIES_RES
+                     if (recs := [r for r in _SETS.values() if _series_key(r).startswith(key)])
+                     and not any(_has_wifi(r) for r in recs))
+
+
+@functools.lru_cache(maxsize=1)
+def _series_brands():
+    return {key: next((r["brand"] for r in _SETS.values() if _series_key(r).startswith(key)), None)
+            for key in _SERIES_RES}
+
+
+def _fix_wifi_claims(text, language="sk"):
+    no_wifi, brands, current, out = _series_without_wifi(), _series_brands(), None, []
+    for line in text.split("\n"):
+        named = [k for k, rx in _SERIES_RES.items() if rx.search(line)]
+        other_brand = current and any(rx.search(line) for b, rx in _BRAND_RES.items() if b != brands.get(current))
+        if len(named) == 1:
+            current = named[0]
+        elif named or other_brand:
+            current = None  # two series, or another brand: the line isn't about the remembered one
+        if (current in no_wifi and _WIFI_CLAIM_RE.search(line) and not _OPTIONAL_FEATURE_RE.search(line)
+                and line.strip()):
+            line = line.rstrip() + _WIFI_OPTIONAL_NOTE.get(language, _WIFI_OPTIONAL_NOTE["sk"])
+        out.append(line)
+    return "\n".join(out)
+
+
+_WITH_VAT_AND_FEE_RE = re.compile(r"\b(?:s|vrátane|vratane)\s+DPH(\**)\s+a\s+(?:s\s+)?recykla\w*\s+poplat\w*", re.I)
+# "2 331 € (približne)": every amount is quote()'s exact figure (live demo 2026-10-20)
+_APPROX_AFTER_AMOUNT_RE = re.compile(r"(\d\s*€)\s*\(\s*(?:približne|pribl\.|cca\.?|okolo|zhruba|approx\.?|approximately)\s*\)",
+                                     re.I)
 _WITH_VAT_AND_FEE_EN_RE = re.compile(r"\bincl(?:uding|\.)?\s+VAT\s+and\s+(?:the\s+)?recycling\s+fees?", re.I)
 
 
@@ -3649,12 +3711,14 @@ def sanitize_reply(text, language="sk"):
     text = _CITATION_RE.sub("", text)
     # "Cena s DPH a recyklačnými poplatkami: …": the recycling fee is added on top of every total
     # (live demo 2026-10-19). "bez DPH a recyklačných poplatkov" is right and stays.
-    text = _WITH_VAT_AND_FEE_RE.sub("s DPH, bez recyklačného poplatku", text)
+    text = _WITH_VAT_AND_FEE_RE.sub(r"s DPH\1, bez recyklačného poplatku", text)  # \1: a closing "**" stays
     # A line listing outdoor placement options ("Umiestnenie vonkajšej jednotky (balkón, fasáda, iné)") is the
     # PM's topic at the site visit: the line goes. It used to be only logged, and kept coming back.
     text = "\n".join(line for line in text.split("\n")
                      if len({m.group(1).lower()[:6] for m in _PLACEMENT_RE.finditer(line)}) < 2)
     text = _WITH_VAT_AND_FEE_EN_RE.sub("incl. VAT, excluding the recycling fee", text)
+    text = _APPROX_AFTER_AMOUNT_RE.sub(r"\1", text)
+    text = _fix_wifi_claims(text, language)
     text = text.replace("🔧", "")  # looks like the debug view's tool chip (q04)
     if language == "sk":
         text = re.sub(r"\b[Tt]echnician(s)?\b", lambda m: ("T" if m.group(0)[0] == "T" else "t") + "echnik"
@@ -4105,7 +4169,11 @@ def _not_in_catalog_claims(text):
 _SAVINGS_CLAIM_RE = re.compile(
     r"\bušetr\w*[^.?!\n]{0,40}\d+\s*%|\d+\s*%[^.?!\n]{0,40}(?:úspor\w*|menej\s+(?:energie|elektri\w*|prúdu)|"
     r"nižš\w*\s+spotreb\w*)|\bvráti\s+sa\b|\bnávratnos\w*|\bsave\w*[^.?!\n]{0,30}\d+\s*%|"
-    r"\d+\s*%\s*less\s+(?:energy|electricity|power)|\bpays?\s+(?:for\s+)?itself|\bpayback\b",
+    r"\d+\s*%\s*less\s+(?:energy|electricity|power)|\bpays?\s+(?:for\s+)?itself|\bpayback\b|"
+    # savings in words, no figure: "SEIYA vám ušetrí peniaze na elektrine" (live demo 2026-10-20)
+    r"\bušetr\w*[^.?!\n]{0,40}(?:elektri\w*|energi\w*|prúd\w*|účt\w*|faktúr\w*|prevádzk\w*|náklad\w*)|"
+    r"\bniž\w*\s+(?:náklad\w*|účt\w*|faktúr\w*)\s+(?:za|na)\s+(?:elektri\w*|energi\w*|prúd\w*)|"
+    r"\bsave\w*[^.?!\n]{0,30}(?:electricity|energy|bills?)\b",
     re.IGNORECASE)
 _SPEC_FIGURE_RE = re.compile(r"\b(?:SEER|SCOP)\b[^\d\n]{0,12}(\d{1,2}[.,]\d{1,2})|(?<![\d,.])(\d{2})\s*dB\b", re.IGNORECASE)
 
@@ -4510,7 +4578,7 @@ _DATE_PROMISE_RE = re.compile(
     r"\bthis\s+(?:month|week)\s+is\s+(?:doable|realistic|possible)",
     re.IGNORECASE)
 # Whole-reply problems: worth a regeneration, but there is no sentence to cut.
-_REGEN_ONLY_RULES = ("jazyk-odpovede", "cena-neodpovedana", "kontakt-pred-ponukou", "prazdna-odpoved")
+_REGEN_ONLY_RULES = ("jazyk-odpovede", "cena-neodpovedana", "kontakt-pred-ponukou", "prazdna-odpoved", "dve-moznosti")
 _PRICE_QUESTION_RE = re.compile(
     r"\b(?:koľko|kolko|kolik)\b[^?\n]{0,60}(?:stoj|stál|stal|stát|bude|vyjde|zaplat|cen)|\bak[áa]\s+(?:je\s+)?cena\b|"
     r"\bcenu\b|\bhow\s+much\b|\bwhat\s+(?:would|does|will)\b[^?\n]{0,40}\bcost\b|\bprice\b|"
@@ -4534,6 +4602,18 @@ def _unanswered_price_question(user_input, quotes_before=0):
         return False
     return (not sess.quotes or bool(_codes_named(user_input) or _CUSTOMER_M2_RE.search(user_input)
                                     or _CHEAPER_RE.search(fold_diacritics(user_input))))
+
+
+def _single_first_offer(user_input, quotes_before, reply):
+    """The first offer of the conversation shows one priced option. The owner wants two to choose from
+    (2026-10-20); one is right when the customer asked for a specific model or series."""
+    sess = S()
+    new = sess.quotes[quotes_before:]
+    if quotes_before or len({_quote_key(q) for q in new}) != 1 or _industrial_case():
+        return False
+    if _codes_named(user_input) or _SERIES_NAMED_RE.search(user_input):
+        return False
+    return bool(_quotes_in_reply(new, reply))
 
 
 # "chcem nižšiu radu, niečo lacnejšie": a cheaper variant is a price question — the live demo named
@@ -4860,6 +4940,8 @@ def _regen_note(violations):
                        "zákazník spojí cez projektového manažéra alebo firemný kontakt.",
         "typ-jednotky": "Nástenný rad nenazývaj kazetou; kazetu nájdi cez `lookup_product` ('<značka> kazetová <výkon v kW>') "
                         "a nacenuj ju s panelom a ovládačom, alebo kazetu vynechaj.",
+        "dve-moznosti": "Ukáž dve nacenené možnosti: odporúčanú a druhú (lacnejšiu alebo inú značku), každú "
+                        "vlastným `quote`, a nech si zákazník vyberie.",
         "brand-funkcia": "Každú technológiu pripíš iba jej značke (WindFree a Tri-care sú Samsung, HADA a plazmový "
                          "ionizátor Toshiba); funkciu, ktorú rad podľa výsledkov hľadania nemá, vynechaj.",
         "kontakt-pred-ponukou": "Najprv odporuč konkrétny set a zavolaj `quote`; o kontakt (meno, telefón, e-mail, "
@@ -5261,6 +5343,9 @@ CRITICAL_RULES_TEXT = (
     "Žiadne zdravotné sľuby ('vylieči', 'zabráni astme', 'odstráni alergény') — iba čo "
     "filter technicky robí; viď [[schvalene-tvrdenia]].\n"
     "- **Produkt pomenúvaj názvom radu a výkonom**, nie model kódom — kód iba keď sa naň zákazník pýta.\n"
+    "- **Netvrď nič, čo nemáš z nástrojov.** Funkcie radu (Wi-Fi, filtre, tichý chod, energetickú triedu) uvádzaj "
+    "iba tak, ako ich vrátil `lookup_product` (series_features) alebo `search_knowledge`; čo je tam „voliteľne“, "
+    "povedz ako voliteľné. Úspory energie, nižšie účty ani „vráti sa“ nepíš.\n"
     "- **Žiadne cyrilické písmená** v slovenskej odpovedi — používaj iba latinku.\n"
     "- **NIKDY si nevymýšľaj model kódy.** Každý model code, ktorý napíšeš "
     "zákazníkovi (napr. 'RAS-B10P2KVSG-E', 'AR60F12C1AWNEU', 'AJ050TXJ2KG'), "
@@ -5328,9 +5413,17 @@ def build_server_context(note=None):
         status += "\n" + _filtration_ranking_text()
     if (not S().quotes and _CUSTOMER_M2_RE.search(_all_user_text()) and not _industrial_case()
             and not _preferences_known()):
-        status += ("\nPred prvou cenovou ponukou sa zákazníka opýtaj, čo je preň dôležité (tichý chod, filtrácia "
-                   "vzduchu, Wi-Fi ovládanie z mobilu, dizajn, čo najnižšia cena), a podľa toho vyber rad. Ak sa "
-                   "priamo pýta na cenu, naceň štandard a v tej istej odpovedi sa opýtaj na požiadavky.")
+        last = S().user_inputs[-1] if S().user_inputs else ""
+        if _PRICE_QUESTION_RE.search(last):
+            # The customer asked for a price: price first, then ask (the live demo of 2026-10-20 asked about
+            # features instead and was regenerated twice for leaving the price question unanswered).
+            status += ("\nZákazník sa pýta na cenu: hneď naceň dve možnosti cez `quote` (štandard — najlacnejší "
+                       "vhodný nástenný rad, a druhú značku) a uveď ceny s DPH; potom sa v tej istej odpovedi "
+                       "opýtaj, čo je preň dôležité (tichý chod, filtrácia vzduchu, Wi-Fi, dizajn), aby si ponuku "
+                       "spresnil.")
+        else:
+            status += ("\nPred prvou cenovou ponukou sa zákazníka opýtaj, čo je preň dôležité (tichý chod, filtrácia "
+                       "vzduchu, Wi-Fi ovládanie z mobilu, dizajn, čo najnižšia cena), a podľa toho vyber rad.")
     if _industrial_case():
         status += (
             "\nZákazník chce chladiť priemyselný priestor (hala, výroba, továreň). Tento chatbot ho nerieši: "
@@ -5790,6 +5883,12 @@ def run_user_turn_streaming(user_input):
             if answering and not force_final and not attempt_text.strip() and not shown_this_turn:
                 violations.append("prazdna-odpoved: odpoveď je prázdna. Napíš zákazníkovi odpoveď na jeho poslednú "
                                   "správu — výsledky nástrojov už máš, nevolaj ich znova.")
+            if answering and attempt_text.strip() and _single_first_offer(user_input, quotes_before, attempt_text):
+                violations.append(
+                    "dve-moznosti: ukazuješ iba jednu nacenenú možnosť. Pri prvej ponuke ukáž dve, obe nacenené "
+                    "(každú vlastným volaním `quote`): odporúčanú a druhú — lacnejšiu alebo inú značku, ak zákazník "
+                    "značku nevybral (`cheaper_alternative` z quote ti ju ponúka). Pri každej uveď cenu s DPH."
+                )
             if answering and attempt_text.strip() and _contact_before_price(attempt_text) and not _industrial_case():
                 violations.append(
                     "kontakt-pred-ponukou: pýtaš si kontakt alebo obec skôr, než zákazník dostal cenu. Najprv "
@@ -5809,7 +5908,7 @@ def run_user_turn_streaming(user_input):
                 regens_used += 1
                 # A price question left without a quote: the next attempt must call a tool (d04 made no
                 # tool call in 7 turns and told the customer real codes weren't in the price list).
-                force_tool = any(v.startswith("cena-neodpovedana") for v in regen_worthy)
+                force_tool = any(v.startswith(("cena-neodpovedana", "dve-moznosti")) for v in regen_worthy)
                 log_event("bot_reply_regen_triggered", violations=regen_worthy, bad_reply_excerpt=attempt_text[:200],
                           stop_reason=response.stop_reason)
                 u_bad = response.usage

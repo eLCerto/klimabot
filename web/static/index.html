@@ -289,6 +289,7 @@
     .qc-totals .grand { margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 15.5px; font-weight: 700; }
     .qc-totals .grand dt { color: var(--text); }
     .qc-notes { list-style: none; margin: 0; padding: 10px 16px 14px; font-size: 12.5px; color: var(--text-3); display: grid; gap: 3px; }
+    .qc-foot { display: flex; justify-content: flex-end; padding: 0 16px 14px; }
 
     .typing .bubble { display: inline-flex; align-items: center; gap: 10px; color: var(--text-3); font-size: 13.5px; }
     .dots { display: inline-flex; gap: 4px; }
@@ -864,6 +865,8 @@ const CARD_TEXT = {
     fee: (f) => `Recyklačný poplatok ${f.min}–${f.max} € za jednotku (${f.units} ks), presná suma pri objednávke.`,
     install: "Montáž: cenu určí projektový manažér po bezplatnej obhliadke.",
     budget: (b) => `Rozpočet ${b.amount}: ${b.status}${b.basis ? ` (${b.basis})` : ""}.`,
+    want: "Toto chcem",
+    wantMessage: (c) => `Chcem túto ponuku: ${c.lines.map((l) => `${l.qty}× ${l.description}`).join(", ")} — ${c.total_with_vat} s DPH.`,
   },
   en: {
     title: "Price quote", sub: "calculated from the price list", piece: "pc", withVat: "incl. VAT",
@@ -872,6 +875,8 @@ const CARD_TEXT = {
     fee: (f) => `Recycling fee ${f.min}–${f.max} € per unit (${f.units} pcs), exact amount with the order.`,
     install: "Installation: priced by the project manager after a free site visit.",
     budget: (b) => `Budget ${b.amount}: ${b.status}${b.basis ? ` (${b.basis})` : ""}.`,
+    want: "I want this",
+    wantMessage: (c) => `I want this offer: ${c.lines.map((l) => `${l.qty}× ${l.description}`).join(", ")} — ${c.total_with_vat} incl. VAT.`,
   },
 };
 function h(tag, className, text) {
@@ -921,7 +926,14 @@ function addQuoteCard(card) {
   if (card.recycling_fee && card.recycling_fee.min != null) notes.appendChild(h("li", "", T.fee(card.recycling_fee)));
   notes.appendChild(h("li", "", T.install));
   if (card.budget) notes.appendChild(h("li", "", T.budget(card.budget)));
-  el.append(head, lines, totals, notes);
+  // "Toto chcem": sends the choice as the customer's own message, so the bot continues as if typed
+  // (contact details, then the consent question decided by code from the next message).
+  const foot = h("div", "qc-foot");
+  const want = h("button", "qr qr-yes", T.want);
+  want.type = "button";
+  want.addEventListener("click", () => { if (!busy) sendMessage(T.wantMessage(card)); });
+  foot.appendChild(want);
+  el.append(head, lines, totals, notes, foot);
   const row = h("div", "row bot card-row");
   const spacer = h("div", "avatar ghost");
   spacer.setAttribute("aria-hidden", "true");

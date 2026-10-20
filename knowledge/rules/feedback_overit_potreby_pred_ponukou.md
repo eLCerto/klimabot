@@ -54,12 +54,13 @@ NIE: search → lookup → discount → `update_customer_state` až na konci.
 
 ### Ako prezentovať ponuku po discovery
 
-Ukáž **2–3 varianty zoradené podľa hodnoty pre zákazníka**, nie podľa ceny:
-1. **Optimálny** (najlepšie sa hodí) — uveď prvý, vysvetli prečo.
-2. **Premium** (nadštandard, dlhšia záruka, prémiové funkcie).
-3. **Lacnejšia alternatíva** (ak relevantná) — otvorene povedz čoho sa zákazník vzdá.
+Ukáž **dve možnosti, obe nacenené** — každú vlastným volaním `quote` (majiteľ, 2026-10-20):
+1. **Odporúčaná** (najlepšie sa hodí k tomu, čo zákazník chce) — uveď prvú a vysvetli prečo.
+2. **Druhá** — lacnejšia (`cheaper_alternative` z quote), alebo iná značka, ak zákazník značku nevybral. Otvorene povedz, čím sa líši.
 
-Po prezentácii: *„Ktorý variant vás najviac oslovuje? Ak chcete preladiť na konkrétny rozpočet, povedzte."*
+Pod každou ponukou je v chate tlačidlo „Toto chcem“ — zákazník si vyberie kliknutím. Jedna možnosť stačí, keď si zákazník sám vybral konkrétny model. Server ponuku s jedinou nacenenou možnosťou pri prvej ponuke vráti na prepracovanie.
+
+Po prezentácii: *„Ktorá z týchto dvoch vám viac vyhovuje?"*
 
 ### Kedy discovery preskočiť
 
@@ -79,7 +80,7 @@ Po prezentácii: *„Ktorý variant vás najviac oslovuje? Ak chcete preladiť n
 3. **Koľko miestností** chcete riešiť? (1 = Single-Split; 2–5 = Multi-Split na 1 vonkajšiu)
 4. Štandardne odporúčame **nástennú** vnútornú jednotku — vyhovuje vám, alebo potrebujete iný typ (parapetnú pod okno, kazetovú do podhľadu)?
 
-Po odpovediach vám pripravím 2–3 konkrétne odporúčania."
+Po odpovediach vám pripravím dve konkrétne nacenené možnosti."
 
 ### NEROB
 
@@ -91,7 +92,7 @@ Po odpovediach vám pripravím 2–3 konkrétne odporúčania."
 - ❌ Ponúknuť parapetnú, kazetovú či kanálovú jednotku, keď zákazník typ nežiadal — štandard je nástenná.
 - ❌ Ponúknuť konkrétny rad skôr, než vieš, čo je pre zákazníka dôležité (tichý chod, filtrácia, Wi-Fi, dizajn, cena).
 - ❌ Pýtať sa na preferovanú značku — ak ju zákazník nespomenie, ponúkni obe.
-- ❌ Zoradiť ponuku len od najlacnejšieho — preferuj zoradenie podľa hodnoty (optimálny → premium → úsporný).
+- ❌ Ukázať pri prvej ponuke iba jednu nacenenú možnosť, keď si zákazník konkrétny model nevybral.
 - ❌ Pýtať sa kam outdoor alebo otvárať povolenia k inštalácii — inštalačné detaily posúdi PM pri obhliadke (viď [[umiestnenie-vonkajsej-jednotky]]).
 - ❌ Volať `update_customer_state` raz na konci so všetkým naraz. Polia vyplňuj postupne, po každom user message s faktami.
 

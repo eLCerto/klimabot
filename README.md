@@ -60,7 +60,7 @@ Caddyfile                                   HTTPS on a server (compose profile h
 
 Prices are informative list prices excluding VAT (DPH) and recycling fees, as of those editions. They change, and the official price lists are what counts. This project isn't affiliated with Samsung or Toshiba, and all trademarks belong to their owners.
 
-Not real: [`knowledge/montaz/`](knowledge/montaz/) is a small sample of an installation-materials price list with made-up prices, and the pricing policy in [`discounts.json`](config/discounts.json) is illustrative (the category discounts were drawn at random between 0 and 15 %). The "shop" in the demo is fictional.
+Not real: [`knowledge/montaz/`](knowledge/montaz/) is a small sample of an installation-materials price list with made-up prices, and the pricing policy in [`discounts.json`](config/discounts.json) is illustrative (a uniform 10 % discount). The "shop" in the demo is fictional.
 
 ## Run it locally
 
@@ -155,7 +155,7 @@ On a public page anyone can type someone else's phone number, so the PM gets at 
 
 Visitors see only the chat and the PM record. The **Ladenie** switch in the header shows what the bot does behind the scenes: tool calls, server notices and its notes about the customer. It is off by default in the demo and on with `KLIMABOT_DEMO=0`; `?debug=1` in the URL turns it on.
 
-In the chat, a reply that quotes a price gets a price card computed by the server (list price, discount, totals with and without VAT, availability, recycling fee), the consent question gets "Áno, súhlasím" / "Nie, nesúhlasím" buttons that send those exact words, and every reply can be rated 👍 / 👎 (counted by `cost_report.py`, with the replies rated down). Reloading the page keeps the conversation; closing the tab ends it after 20 seconds.
+In the chat, a reply that quotes a price gets a price card computed by the server (list price, discount in % and €, totals with and without VAT, availability, recycling fee) with a "Toto chcem" button that sends the choice as the customer's message, the consent question gets "Áno, súhlasím" / "Nie, nesúhlasím" buttons that send those exact words, and every reply can be rated 👍 / 👎 (counted by `cost_report.py`, with the replies rated down). Reloading the page keeps the conversation; closing the tab ends it after 20 seconds.
 
 ### Measuring cost on the real API
 

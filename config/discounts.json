@@ -14,16 +14,16 @@
     "calculation_formula": "final_price = catalog_price × (1 - min(category_pct + segment_pct + promo_pct, max_total_discount_pct) / 100)"
   },
   "category_discount_pct": {
-    "_comment": "Základná zľava podľa kategórie produktu — rovnaká pre Samsung aj Toshiba. Kategóriu určí quote z cenníka, v ktorom produkt je.",
-    "single_split_sets": 8,
-    "single_split_units": 11,
-    "multi_split_outdoor": 3,
-    "multi_split_indoor": 2,
+    "_comment": "Základná zľava podľa kategórie produktu — rovnaká pre Samsung aj Toshiba. Kategóriu určí quote z cenníka, v ktorom produkt je. Od 2026-10-20 jednotne 10 % (rozhodnutie majiteľa).",
+    "single_split_sets": 10,
+    "single_split_units": 10,
+    "multi_split_outdoor": 10,
+    "multi_split_indoor": 10,
     "commercial_outdoor": 10,
-    "commercial_indoor": 14,
-    "panels": 0,
-    "controls": 14,
-    "accessories": 4
+    "commercial_indoor": 10,
+    "panels": 10,
+    "controls": 10,
+    "accessories": 10
   },
   "_category_descriptions": {
     "single_split_sets": "Single-split set (vnútorná + vonkajšia jednotka) — Samsung RAC, Toshiba RAS",
@@ -45,7 +45,7 @@
       "trigger_phrases": []
     },
     "B2B_firma": {
-      "additional_pct": 3,
+      "additional_pct": 0,
       "description": "Firma s IČO – fakturácia s DPH (s odpočtom)",
       "trigger_phrases": [
         "máme firmu",

@@ -619,6 +619,60 @@ class QuoteTests(BotTest):
         self.assertFalse(bot._unanswered_price_question("chcem nizsiu radu, nieco lacnejsie", 0),
                          "a quote made this turn answers it")
 
+    def test_every_discount_is_ten_percent(self):  # the owner's decision, 2026-10-20
+        lines = self.q([(c, 1) for c in AR30_SET])["lines"] + self.q(
+            [("RAV-HM301MUTP-E", 1), ("RAV-GM302ATP-E", 1), ("RBC-UM21P-E", 1), ("RBC-ASCU32Y-E", 1)])["lines"]
+        self.assertEqual({line["discount_pct"] for line in lines}, {10})
+        b2b = self.q([(c, 1) for c in AR30_SET], segment="B2B_firma")
+        self.assertEqual(b2b["lines"][0]["discount_pct"], 10)
+        self.assertEqual(bot._quote_card(b2b)["discount_pct"], "10 %")
+
+    def test_the_first_offer_shows_two_options(self):  # the owner's wish, 2026-10-20
+        self.sess.user_inputs.append("Spálňa 14 m2, koľko by stála?")
+        q = self.q([(c, 1) for c in AR30_SET])
+        reply = f"Odporúčam Samsung AR30 za {bot._eur(q['total_with_DPH_23pct_eur'])} s DPH."
+        self.assertTrue(bot._single_first_offer("Spálňa 14 m2, koľko by stála?", 0, reply))
+        self.assertFalse(bot._single_first_offer("chcem AR30", 0, reply), "the customer chose a series")
+        self.q([(c, 1) for c in SEIYA_SET])
+        self.assertFalse(bot._single_first_offer("Spálňa 14 m2, koľko by stála?", 0, reply), "two options")
+        self.assertFalse(bot._single_first_offer("a s wifi?", 1, reply), "only the first offer")
+
+    def test_a_smaller_size_of_the_same_series_is_suggested(self):  # 3.5 kW for a 14 m² bedroom
+        self.sess.user_inputs.append("Spálňa 14 m2, hľadám najlepší pomer cena/výkon.")
+        self.assertTrue(bot._wished(bot._CHEAP_WISH_RE), "a value wish counts as cheap")
+        q = self.q([("RAS-13P2AVSG-E", 1), ("RAS-B13N4KVRG-E1", 1)])
+        self.assertIn("naddimenzované", q["error"])
+        self.assertIn("2,5", q["error"].replace(".", ","))
+        bigger = self.q([("RAS-13P2AVSG-E", 1), ("RAS-B13N4KVRG-E1", 1)], override_reason="zákazník chce 3,5 kW")
+        self.assertTrue(any("naddimenzované" in w for w in bigger["fit_warnings"]), "the customer may insist")
+        self.assertNotIn("error", self.q([("RAS-10P2AVSG-E", 1), ("RAS-B10N4KVRG-E2", 1)]))
+
+    def test_price_first_when_the_customer_asks_for_it(self):  # live demo 2026-10-20: features asked instead
+        self.sess.user_inputs.append("Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?")
+        self.assertIn("Zákazník sa pýta na cenu", bot.build_server_context())
+        self.sess.user_inputs[:] = ["Spálňa 14 m2."]
+        self.assertIn("Pred prvou cenovou ponukou", bot.build_server_context())
+
+    def test_no_unsupported_feature_or_savings_claims(self):  # live demo 2026-10-20: SEIYA "WiFi", "ušetrí"
+        reply = ("Odporúčam **Toshiba SEIYA (2,5 kW, biela)**.\n\nTáto jednotka vám ponúka:\n- Energetická trieda A++\n"
+                 "- WiFi ovládanie z mobilu\n\n**Samsung WindFree Avant S2**\n- Wi-Fi SmartThings")
+        fixed = bot.sanitize_reply(reply)[0]
+        self.assertIn("- WiFi ovládanie z mobilu — iba s voliteľným Wi-Fi modulom za príplatok", fixed)
+        self.assertIn("- Wi-Fi SmartThings\n", fixed + "\n", "Avant S2 has Wi-Fi as standard")
+        self.assertEqual(bot.sanitize_reply("SEIYA má Wi-Fi modul voliteľne.")[0], "SEIYA má Wi-Fi modul voliteľne.")
+        self.assertIn("SEIYA", bot._series_without_wifi())
+        self.assertNotIn("WindFree_Premiere", bot._series_without_wifi(), "a colour variant with Wi-Fi covers the series")
+        self.assertTrue(bot._unsupported_figures("SEIYA vám ušetrí peniaze na elektrine oproti lacnejším modelom."))
+        self.assertTrue(bot._unsupported_figures("Znamená to nižšie náklady na elektrinu."))
+        self.assertFalse(bot._unsupported_figures("SEIYA je lacnejšia o 201 €."))
+        self.assertIn("Voliteľne WiFi modul (RB-N105S-G)", bot.lookup_product("Toshiba SEIYA 2,5 kW")["series_features"]["SEIYA"])
+
+    def test_fee_and_approximation_labels_are_fixed(self):  # "s DPH a recyklačným poplatok: 2 331 € (približne)"
+        fixed = bot.sanitize_reply("Cena s DPH a recyklačným poplatok: 2 331 € (približne)")[0]
+        self.assertEqual(fixed, "Cena s DPH, bez recyklačného poplatku: 2 331 €")
+        bold = bot.sanitize_reply("Cena: **1 502,20 € s DPH** a recyklačným poplatkom (5–15 €).")[0]
+        self.assertEqual(bold, "Cena: **1 502,20 € s DPH**, bez recyklačného poplatku (5–15 €).")
+
     def test_one_quote_is_one_system_of_one_brand(self):  # live demo 2026-10-19: a bare outdoor sold as a set
         self.sess.user_inputs.append("Obývačka 30 m2, chcem parapetnú jednotku.")
         mixed = self.q([("RAS-13P2AVSG-E", 1), ("AJ035TNJDKG/EU", 1), ("AJ050TXJ2KG/EU", 1)])
@@ -735,7 +789,9 @@ class QuoteTests(BotTest):
 
     def test_cheap_wish_points_to_the_cheapest_suitable_set(self):  # a02, s01 final run
         self.sess.user_inputs.append("Chcem klímu do spálne 12 m2, koľko by stála najlacnejšia toshiba?")
-        q = self.q([("RAS-B13E2KVG-E", 1), ("RAS-13E2AVG-E", 1)])
+        self.assertIn("naddimenzované", self.q([("RAS-B13E2KVG-E", 1), ("RAS-13E2AVG-E", 1)])["error"],
+                      "3.3 kW for 12 m²: the 2.5 kW SEIYA covers it")
+        q = self.q([("RAS-B10E2KVG-E", 1), ("RAS-10E2AVG-E", 1)])
         self.assertIn("RAS-10B2AVG-E2", " ".join(q["fit_warnings"]))
         self.sess.user_inputs[:] = ["Spálňa 17 m2, chcem čo najlacnejšiu, značka mi je jedno, ale musí mať wifi."]
         q = self.q([("AR60F09C1AWNEU", 1), ("AR60F09C1AWXEU", 1)])
@@ -1286,6 +1342,11 @@ class WebTests(unittest.TestCase):
             self.assertEqual(r.status_code, 200, src)
             r.close()
         self.assertEqual(self.client.get("/api/config").get_json()["max_message_chars"], web.MAX_MESSAGE_CHARS)
+
+    def test_price_card_has_a_choose_button(self):  # the owner's wish, 2026-10-20: click instead of typing
+        page = (bot.BOT_DIR / "web" / "static" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('want: "Toto chcem"', page)
+        self.assertIn("sendMessage(T.wantMessage(card))", page, "the click sends the choice as the customer's message")
 
     def test_a_turn_is_charged_and_releases_everything(self):
         _, sid = self.new_session()

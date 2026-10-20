@@ -59,6 +59,11 @@ SCENARIOS = {
         "mam zaujem o kvalitny filter a wifi",
         "chcem nizsiu radu, nieco lacnejsie",
     ],
+    # Live demo of 2026-10-20: features asked instead of the price, HAORI 3.5 kW for 14 m², one option.
+    "spalna_14_cena": [
+        "Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?",
+        "hladam najlepsi pomer cena vykon",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",
