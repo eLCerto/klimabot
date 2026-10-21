@@ -1288,6 +1288,16 @@ def _fit_check(fit_lines, override_reason=None):
                 warnings.append(f"zákazník chce Wi-Fi, {codes} ju nemá v základe (iba voliteľný modul)"
                                 + (f"; najlacnejšia vnútorná jednotka tejto veľkosti s Wi-Fi: {_describe(alt)} "
                                    f"{alt['model_code']}" if alt else ""))
+    # N identical multi-split systems where one outdoor unit takes every room (live demo 2026-10-21: 2× AJ050
+    # for four rooms, the customer had to point out that AJ080 exists). Overridable: two systems are a choice.
+    for rec, codes, qty, cat in fit_lines:
+        if cat == "multi_split_outdoor" and qty > 1:
+            indoors = [(r, q) for r, _, q, c in fit_lines if c == "multi_split_indoor"]
+            count = sum(q for _, q in indoors)
+            fits = _multi_outdoors(rec["source"], count, sum((r["raw"].get("cooling_kW") or 0) * q for r, q in indoors))
+            if fits:
+                errors.append(f"{qty}× vonkajšia {codes}: jedna vonkajšia jednotka {fits[0]} unesie všetkých {count} "
+                              "vnútorných — naceň jednu vonkajšiu; dva systémy iba vtedy, keď ich zákazník chce")
     if _wished(_CHEAP_WISH_RE) and not place:
         for rec, codes, _, cat in fit_lines:
             if cat != "single_split_sets":
@@ -1361,7 +1371,8 @@ def _close_codes(code):
 
 
 _SERIES_NAMED_RE = re.compile(
-    r"seiya|shorai|haori|daiseikai|avant|comfort\s*s2|premiere|cebu|luzon|ar30|ar35|wind\s*free|\b(?:RAS|AR)\d*-?\w*\d",
+    # "samsung comfort" names Comfort S2 (live demo 2026-10-21: the bot was made to add a second series)
+    r"seiya|shorai|haori|daiseikai|avant|\bcomfort\b|premiere|cebu|luzon|ar30|ar35|wind\s*free|\b(?:RAS|AR)\d*-?\w*\d",
     re.IGNORECASE)
 
 
@@ -1387,6 +1398,20 @@ def _cheaper_alternative(fit_lines, total):
             "note": "Lacnejší vhodný set (výkon na plochu" + (", Wi-Fi" if best["wifi"] else "")
                     + (f", značka {best['brand']}" if best["brand"] else "") + "). Ak zákazník nechce konkrétny "
                     "rad, ponúkni ho a cenu zisti cez quote."}
+
+
+def _multi_outdoors(source, count, total_kw):
+    """Multi-split outdoor units of one price list that take `count` indoor units of `total_kw` together
+    (check_compatibility's limits), smallest first. The live demo of 2026-10-21 put four rooms on two
+    outdoor units and told the customer Samsung takes two at most — AJ080 takes four."""
+    found = {}
+    for r in PRODUCT_INDEX:
+        raw = r["raw"]
+        if (r["source"] == source and isinstance(raw.get("max_indoor_units"), int)
+                and isinstance(raw.get("cooling_kW"), (int, float))
+                and raw["max_indoor_units"] >= count and raw["cooling_kW"] * 1.76 >= total_kw):
+            found.setdefault(r["model_code"], raw["cooling_kW"])
+    return sorted(found, key=found.get)
 
 
 def _wall_multi_units(rec):
@@ -1545,7 +1570,14 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
             indoor_for_compat = [code for code, n in per_code.items() for _ in range(n // systems)]
         compatibility = check_compatibility(multi_outdoor["model_code"], indoor_for_compat)
         if not compatibility.get("compatible"):
-            return {"error": "Nekompatibilná multi-split zostava: " + "; ".join(compatibility.get("issues", [])),
+            count = len(indoor_for_compat)
+            fits = _multi_outdoors(multi_outdoor["source"], count, compatibility.get("indoor_total_kW") or 0)
+            hint = (f" Vonkajšie jednotky {multi_outdoor['brand']}, ktoré unesú {count} takéto vnútorné jednotky: "
+                    f"{fits[:3]} — jedna vonkajšia jednotka stačí, naceň ju." if fits else
+                    f" Žiadna vonkajšia jednotka {multi_outdoor['brand']} neunesie {count} takéto vnútorné jednotky "
+                    "— rozdeľ ich na dva systémy.")
+            return {"error": "Nekompatibilná multi-split zostava: " + "; ".join(compatibility.get("issues", [])) + hint
+                             + " Zákazníkovi netvrď, že značka viac vnútorných jednotiek nepodporuje.",
                     "compatibility": compatibility}
 
     promotion, promo_note = _find_promotion(promotion_code) if promotion_code else (None, None)
@@ -1721,6 +1753,9 @@ def _type_units(text, cap=True):
                               if o["brand"] == rec["brand"] and _discount_category(o) == "multi_split_outdoor"
                               and isinstance(o["raw"].get("cooling_kW"), (int, float)) and o["raw"]["cooling_kW"] >= cooling)
             unit["outdoor_options"] = list(dict.fromkeys(code for _, code in outdoors))[:3]
+            # The smallest outdoor unit for 2–5 such units, one per room (live demo 2026-10-21).
+            unit["outdoor_by_rooms"] = {str(n): fits[0] for n in range(2, 6)
+                                        if (fits := _multi_outdoors(rec["source"], n, n * cooling))}
         if category == "commercial_indoor" and isinstance(cooling, (int, float)):
             # Same brand, same size: the scenario's bot guessed RAV outdoor codes three times.
             unit["outdoor_options"] = sorted({o["model_code"] for o in PRODUCT_INDEX
@@ -1760,8 +1795,9 @@ def _type_units(text, cap=True):
         "Rezidenčná (multi-split) vnútorná jednotka sa predáva iba s multi-split vonkajšou jednotkou — pošli obe do "
         "`quote`, kompatibilitu overí sám (Toshiba: s jedinou vnútornou jednotkou multi-split podľa combinations_table "
         "iba chladí); výkon v kW je výkon jednej vnútornej jednotky (na izbu), nie súčet. outdoor_options sú "
-        "najmenšie vonkajšie jednotky pre jednu takú jednotku — pre viac miestností vyber takú, čo unesie všetky "
-        "(quote overí). wifi_standard: Wi-Fi v základe (false = iba voliteľný modul). "
+        "najmenšie vonkajšie jednotky pre jednu takú jednotku; outdoor_by_rooms je najmenšia vonkajšia jednotka "
+        "pre 2–5 takých jednotiek (jedna na izbu) — pre viac miestností vezmi tú (quote overí). wifi_standard: Wi-Fi "
+        "v základe (false = iba voliteľný modul). "
         "Komerčná potrebuje vonkajšiu jednotku RAV / CAC (outdoor_options). Kazeta potrebuje "
         "dekoračný panel (panel_options) a ovládač, kanálová a podstropná ovládač (controller_options) — pošli ich do "
         "toho istého `quote`, bez nich ponuku odmietne. Cenu zisti iba cez `quote`.")}
@@ -4069,7 +4105,7 @@ def _quote_totals(q):
     return out
 
 
-def _derived_amounts(customer):
+def _derived_amounts(customer, three_terms=True):
     """Differences and sums of same-basis quote totals (and of a total and a customer amount)."""
     derived = set()
     by_basis = {}
@@ -4082,8 +4118,34 @@ def _derived_amounts(customer):
             for j, b in enumerate(values[i + 1:], i + 1):
                 derived |= {abs(a - b), a + b}
                 # two systems together vs. a third variant (d03: multi + single vs. one big multi)
-                derived |= {abs(a + b - c) for k, c in enumerate(values) if k not in (i, j)}
+                if three_terms:
+                    derived |= {abs(a + b - c) for k, c in enumerate(values) if k not in (i, j)}
     return derived
+
+
+# "Cena: 5 242,75 €" that only a + b − c explains is a variant priced by the model: the live demo of
+# 2026-10-21 priced Luzon S2 on a new outdoor unit as the Comfort S2 total minus an earlier difference,
+# without a quote. The three-term figure stays fine as a difference ("o 400 € menej").
+_PRICE_LABEL_RE = re.compile(r"(?:\bcen[auy]\b|\bstoj[íi]\w*|\bprice\b|\bcosts?\b)[\s:=–-]*$", re.IGNORECASE)
+
+
+def _combination_prices(text):
+    """(raw, value) of amounts written as a price that only a three-quote combination explains."""
+    customer = _customer_amounts()
+    combos = _derived_amounts(customer) - _derived_amounts(customer, three_terms=False)
+    if not combos:
+        return []
+    direct = {a for q in S().quotes for a in _euro_fields(q)} | customer | _derived_amounts(customer, three_terms=False)
+    out = []
+    for line in text.split("\n"):
+        for m in _REPLY_EUR_RE.finditer(line):
+            raw = next(g for g in m.groups() if g)
+            value, tol = _parse_number(raw), _tolerance(raw)
+            if value is None or any(abs(value - d) <= tol for d in direct) or not any(abs(value - c) <= tol for c in combos):
+                continue
+            if _PRICE_LABEL_RE.search(line[max(0, m.start() - 30):m.start()].replace("*", "")):
+                out.append((raw, value))
+    return out
 
 
 def _trusted_amounts():
@@ -4106,7 +4168,8 @@ def _untrusted_amounts(text):
         return []
     trusted = _trusted_amounts()
     return [f"{raw} €" for raw, value in amounts
-            if not any(abs(value - t) <= _tolerance(raw) for t in trusted)]
+            if not any(abs(value - t) <= _tolerance(raw) for t in trusted)] + \
+           [f"{raw} €" for raw, _ in _combination_prices(text)]
 
 
 # --- What a trusted amount belongs to ---
@@ -4118,7 +4181,7 @@ def _untrusted_amounts(text):
 _SERIES_PATTERNS = {
     "SEIYA_Classic_2": r"seiya[\s_-]*classic", "SEIYA": r"seiya(?![\s_-]*classic)", "SHORAI_CURVE": r"shorai",
     "HAORI": r"haori", "DAISEIKAI_10": r"daiseikai", "Parapetna_jednotka": r"parapetn",
-    "WindFree_Avant_S2": r"avant", "WindFree_Comfort_S2": r"comfort[\s_-]*s2|wind[\s_-]*free[\s_-]*comfort",
+    "WindFree_Avant_S2": r"avant", "WindFree_Comfort_S2": r"\bcomfort\b|wind[\s_-]*free[\s_-]*comfort",
     "WindFree_Premiere_Plus": r"premiere[\s_-]*plus", "WindFree_Premiere": r"premiere(?![\s_-]*plus)",
     "Cebu_S2": r"\bcebu", "Luzon_S2": r"\bluzon", "AR35_WIFI": r"\bar[\s-]?35(?!\d)", "AR30_WIFI": r"\bar[\s-]?30(?!\d)",
 }
@@ -4802,7 +4865,9 @@ _INTERNAL_LEAK_RE = re.compile(
     r"STAV ZÁKAZNÍKA|server[_ -]context|systémov\w*\s+(?:prompt|inštrukci)|discovery\s+sekvenc\w*|"
     r"\bčakám\s+na\b[^.?!\n]{0,40}(?:zákazník|server)|zákazníkov\w*\s+(?:odpove|správ)|"
     r"\b(?:od|na|pre|so|zo)\s+zákazník(?:a|ovi|om)\b|\bnič\s+ďalšie\s+(?:sa\s+)?nep[íi]š|"
-    r"\b(?:zo|od)\s+servera\b|\bserver\w*\s+(?:\w+\s+)?(?:pripoj|pripája|zaznamen|pridá|vyhodno|polož)\w*",
+    r"\b(?:zo|od)\s+servera\b|\bserver\w*\s+(?:\w+\s+)?(?:pripoj|pripája|zaznamen|pridá|vyhodno|polož)\w*|"
+    # "server ti postaví GDPR otázku" (live demo 2026-10-21)
+    r"\bserver\s+(?:ti|vám|vam|ťa|vás|vas)\b|\bGDPR\s+otázk\w*",
     re.IGNORECASE)
 # Before consent nobody may be promised a call, and nothing may be called "recorded" (a03).
 # Matched on diacritic-folded text, so misspellings ("Záznamenávam", q05) don't slip through.
@@ -5019,7 +5084,7 @@ def _approx_amount(text):
 def _drop_hard_sentences(text):
     """Remove every sentence (or table row) with a HARD violation. Returns (text, dropped)."""
     trusted = _trusted_amounts()
-    bad_values = {v for _, v in _misattributed_amounts(text) + _vat_mislabeled_amounts(text)}
+    bad_values = {v for _, v in _misattributed_amounts(text) + _vat_mislabeled_amounts(text) + _combination_prices(text)}
     lines, dropped = [], []
     for line in text.split("\n"):
         sentences = _SENTENCE_SPLIT_RE.split(line)

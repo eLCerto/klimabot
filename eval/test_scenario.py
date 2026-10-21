@@ -73,6 +73,12 @@ SCENARIOS = {
         "potrebujem wifi",
         "je tam aj lacnejsia alternativa?",
     ],
+    # Live demo of 2026-10-21: four rooms on 2× AJ050, "Samsung takes 2 at most", a Luzon price nobody quoted.
+    "styri_izby_comfort": [
+        "ahoj, chcem klimu do styroch izieb multisplit samsung comfort",
+        "4 izby po 10 m2 chcem samsung comfort",
+        "je aj lacnejsia moznost?",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",

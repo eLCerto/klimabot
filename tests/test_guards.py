@@ -742,6 +742,34 @@ class QuoteTests(BotTest):
                         seiya.get("fit_warnings"))
         self.assertNotIn("error", self.q([("RAS-2M10G3AVG-E", 1), ("RAS-B10P2KVSG-E", 2)]))
 
+    def test_one_outdoor_unit_for_four_rooms(self):  # live demo 2026-10-21: 2× AJ050, "Samsung takes 2 at most"
+        comfort = next(u for u in bot.lookup_product("Samsung multi-split 2 kW")["units"] if u["code"] == "AR60F07C1AWNEU")
+        self.assertEqual(comfort["outdoor_by_rooms"]["4"], "AJ080TXJ4KG/EU")
+        self.assertEqual(comfort["outdoor_by_rooms"]["2"], "AJ040TXJ2KG/EU")
+        self.sess.user_inputs.append("ahoj, chcem klimu do styroch izieb multisplit samsung comfort, 4 izby po 10 m2")
+        too_few = self.q([("AJ050TXJ2KG/EU", 1), ("AR60F07C1AWNEU", 4)])
+        self.assertIn("AJ080TXJ4KG/EU", too_few["error"], "the error names the outdoor unit that takes four")
+        two = self.q([("AJ050TXJ2KG/EU", 2), ("AR60F07C1AWNEU", 4)])
+        self.assertIn("AJ080TXJ4KG/EU", two["error"])
+        self.assertNotIn("error", self.q([("AJ050TXJ2KG/EU", 2), ("AR60F07C1AWNEU", 4)],
+                                         override_reason="zákazník chce dva nezávislé systémy"))
+        self.assertNotIn("error", self.q([("AJ080TXJ4KG/EU", 1), ("AR60F07C1AWNEU", 4)]))
+        self.assertTrue(bot._SERIES_NAMED_RE.search("4 izby po 10 m2 chcem samsung comfort"),
+                        "a named series needs no second option")
+
+    def test_a_variant_priced_from_other_quotes_is_not_trusted(self):  # live demo 2026-10-21: Luzon on AJ080
+        self.sess.user_inputs.append("4 izby po 10 m2, multisplit, dva systémy")
+        reason = {"override_reason": "zákazník chce dva systémy"}
+        comfort_two = self.q([("AJ050TXJ2KG/EU", 2), ("AR60F07C1AWNEU", 4)], **reason)
+        luzon_two = self.q([("AJ050TXJ2KG/EU", 2), ("AR50F07C1BHNEU", 4)], **reason)
+        comfort_one = self.q([("AJ080TXJ4KG/EU", 1), ("AR60F07C1AWNEU", 4)])
+        key = "total_with_DPH_23pct_eur"
+        guessed = comfort_one[key] + luzon_two[key] - comfort_two[key]
+        self.assertTrue(bot._untrusted_amounts(f"- **Cena: {bot._eur(guessed)} s DPH**"), "a price nobody quoted")
+        diff = comfort_two[key] - luzon_two[key]
+        self.assertEqual(bot._untrusted_amounts(f"Luzon je o {bot._eur(diff)} lacnejšia."), [])
+        self.assertTrue(bot._INTERNAL_LEAK_RE.search("Keď mi ich poskytneš, server ti postaví GDPR otázku."))
+
     def test_stock_claims_follow_the_quote(self):  # live demo 2026-10-20: Samsung "hneď dostupný", "skladný"
         self.assertTrue(bot._false_stock_claims("Samsung je skladom."), "Samsung's default is 'PM confirms'")
         self.assertFalse(bot._false_stock_claims("Toshiba je štandardne skladom."))
@@ -1608,7 +1636,10 @@ class ReviewFixTests(BotTest):
     def test_identical_multi_split_systems_in_one_quote(self):  # 6
         out, ind = "RAS-2M10G3AVG-E", "RAS-B05B2KVG-E2"
         self.assertNotIn("error", bot.quote([{"code": out}, {"code": ind, "qty": 2}]))
-        self.assertNotIn("error", bot.quote([{"code": out, "qty": 2}, {"code": ind, "qty": 4}]))
+        self.assertIn("RAS-4M27G3AVG-E", bot.quote([{"code": out, "qty": 2}, {"code": ind, "qty": 4}])["error"],
+                      "one outdoor unit takes all four")
+        self.assertNotIn("error", bot.quote([{"code": out, "qty": 2}, {"code": ind, "qty": 4}],
+                                            override_reason="zákazník chce dva systémy"))
         self.assertIn("deliteľný", bot.quote([{"code": out, "qty": 2}, {"code": ind, "qty": 3}])["error"])
         two = bot.quote([{"code": out}, {"code": "RAS-2M14G3AVG-E"}, {"code": ind, "qty": 2}])
         self.assertIn("samostatným volaním", two["error"])
