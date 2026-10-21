@@ -582,6 +582,9 @@ class QuoteTests(BotTest):
         self.assertTrue(result.get("ok"), result)
         self.assertEqual(self.sess.customer_state["place_m2"], 20)
         self.assertIn("error", bot.update_customer_state("nie je to json"))
+        trailing = bot.update_customer_state('{\n  "place_room_count": 4\n}\nantml:parameter>\n</invoke>')  # replay
+        self.assertTrue(trailing.get("ok"), trailing)
+        self.assertEqual(self.sess.customer_state["place_room_count"], 4)
 
     def test_phone_as_a_device_is_no_contact_request(self):  # live demo: a consent question out of nowhere
         self.assertFalse(bot._asks_contact("Čo je pre vás dôležité? - Wi-Fi ovládanie cez telefón?"))
@@ -649,6 +652,9 @@ class QuoteTests(BotTest):
         q = self.q([("RAS-13P2AVSG-E", 1), ("RAS-B13N4KVRG-E1", 1)])
         self.assertIn("naddimenzované", q["error"])
         self.assertIn("2,5", q["error"].replace(".", ","))
+        unasked = self.q([("RAS-13P2AVSG-E", 1), ("RAS-B13N4KVRG-E1", 1)], override_reason="zákazník chce HAORI")
+        self.assertIn("neobíde", unasked["error"], "the bot can't override a size the customer never asked for")
+        self.sess.user_inputs.append("Chcem radšej 3,5 kW.")
         bigger = self.q([("RAS-13P2AVSG-E", 1), ("RAS-B13N4KVRG-E1", 1)], override_reason="zákazník chce 3,5 kW")
         self.assertTrue(any("naddimenzované" in w for w in bigger["fit_warnings"]), "the customer may insist")
         self.assertNotIn("error", self.q([("RAS-10P2AVSG-E", 1), ("RAS-B10N4KVRG-E2", 1)]))
@@ -756,6 +762,29 @@ class QuoteTests(BotTest):
         self.assertNotIn("error", self.q([("AJ080TXJ4KG/EU", 1), ("AR60F07C1AWNEU", 4)]))
         self.assertTrue(bot._SERIES_NAMED_RE.search("4 izby po 10 m2 chcem samsung comfort"),
                         "a named series needs no second option")
+        big = self.q([("AJ100TXJ5KG/EU", 1), ("AR60F07C1AWNEU", 4)])  # replay: 10 kW "for reserve"
+        self.assertIn("naddimenzovaná", big["error"])
+        self.assertIn("AJ080TXJ4KG/EU", big["error"])
+        reason = {"override_reason": "zákazník chce rezervu na piatu izbu"}
+        self.assertIn("neobíde", self.q([("AJ100TXJ5KG/EU", 1), ("AR60F07C1AWNEU", 4)], **reason)["error"])
+        self.sess.user_inputs.append("chcem aj rezervu na piatu izbu")
+        self.assertNotIn("error", self.q([("AJ100TXJ5KG/EU", 1), ("AR60F07C1AWNEU", 4)], **reason))
+
+    def test_choosing_an_offer_gets_a_note_against_premature_promises(self):  # replay 2026-10-21: two regens
+        self.sess.user_inputs.append("ahoj, chcem klimu do styroch izieb multisplit samsung comfort")
+        self.assertFalse(bot._offer_due(self.sess.user_inputs[-1]), "no size yet")
+        self.sess.user_inputs.append("4 izby po 10 m2 chcem samsung comfort")
+        self.assertTrue(bot._offer_due(self.sess.user_inputs[-1]), "a named series and the size: price it now")
+        self.assertNotIn("Pred prvou cenovou ponukou", bot.build_server_context(), "the series is the choice")
+        self.q([("AJ080TXJ4KG/EU", 1), ("AR60F07C1AWNEU", 4)])
+        self.assertNotIn("vybral ponuku", bot.build_server_context())
+        self.sess.user_inputs.append("Chcem túto ponuku: 1× Samsung – vonkajšia multi-split jednotka 8,0 kW — "
+                                     "5 619,13 € s DPH.")
+        self.assertIn("vybral ponuku", bot.build_server_context())
+        self.sess.user_inputs.append("Beriem tú lacnejšiu.")
+        self.assertIn("vybral ponuku", bot.build_server_context())
+        self.assertIn("na dohodnutie bezplatnej obhliadky",
+                      bot.sanitize_reply("Projektový manažér sa ozve na domluvu bezplatnej obhliadky.")[0])
 
     def test_a_variant_priced_from_other_quotes_is_not_trusted(self):  # live demo 2026-10-21: Luzon on AJ080
         self.sess.user_inputs.append("4 izby po 10 m2, multisplit, dva systémy")

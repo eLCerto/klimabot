@@ -1216,6 +1216,12 @@ def _accessory_errors(fit_lines):
     return errors
 
 
+# The customer asks for more power or a reserve (matched on folded text): only then may oversizing be overridden.
+_BIGGER_WISH_RE = re.compile(
+    r"\brezerv\w*|\bvacs\w*\s+(?:vykon|jednotk|vonkajs|klim)\w*|\bvykonnejs\w*|\bsilnejs\w*|"
+    r"\bvelk\w*\s+(?:vonkajs|jednotk|vykon)\w*|\bbigger\b|\bmore\s+power\b|\breserve\b|\bheadroom\b", re.IGNORECASE)
+
+
 def _fit_check(fit_lines, override_reason=None):
     """(errors, warnings) for a quote. `fit_lines`: (record, codes, qty, discount category)."""
     text = _all_user_text()
@@ -1298,6 +1304,20 @@ def _fit_check(fit_lines, override_reason=None):
             if fits:
                 errors.append(f"{qty}× vonkajšia {codes}: jedna vonkajšia jednotka {fits[0]} unesie všetkých {count} "
                               "vnútorných — naceň jednu vonkajšiu; dva systémy iba vtedy, keď ich zákazník chce")
+        # One outdoor unit bigger than the smallest one with at least the indoor units' total cooling (replay
+        # 2026-10-21: 10 kW "for reserve" next to the 8 kW that matches 4× 2 kW). Overridable: a wish for reserve.
+        elif cat == "multi_split_outdoor":
+            indoors = [(r, q) for r, _, q, c in fit_lines if c == "multi_split_indoor"]
+            count = sum(q for _, q in indoors)
+            total = sum((r["raw"].get("cooling_kW") or 0) * q for r, q in indoors)
+            fits = _multi_outdoors(rec["source"], count, total, ratio=1.0) if count >= 2 else []
+            kw = rec["raw"].get("cooling_kW") or 0
+            smallest = next((r["raw"]["cooling_kW"] for r in _RECORDS_BY_CODE.get(fits[0], [])
+                             if r["raw"].get("max_indoor_units")), None) if fits else None
+            if smallest and kw > smallest:
+                errors.append(f"naddimenzovaná vonkajšia {codes} ({kw:g} kW): na {count} vnútorné spolu {total:g} kW "
+                              f"stačí {fits[0]} ({smallest:g} kW) — naceň ju; väčšiu iba vtedy, keď zákazník výslovne "
+                              "chce rezervu")
     if _wished(_CHEAP_WISH_RE) and not place:
         for rec, codes, _, cat in fit_lines:
             if cat != "single_split_sets":
@@ -1354,9 +1374,17 @@ def _fit_check(fit_lines, override_reason=None):
         errors.append(f"{place}: nástenná jednotka {wall} fúka priamo na klientov — ponúkni podstropnú (Toshiba "
                       "RAV ceiling, Samsung Ceiling) alebo kazetu, ak je podhľad")
     if errors and override_reason:
-        log_event("quote_fit_overridden", errors=errors, override_reason=override_reason)
-        warnings = [f"prepísané ({override_reason}): {e}" for e in errors] + warnings
-        errors = []
+        # Oversizing gives way only to the customer's own wish for more power or a reserve, or codes they typed:
+        # the replay of 2026-10-21 pushed 2.5 kW units for 10 m² rooms through with "the customer wants Comfort".
+        bigger_wanted = (_wished(_BIGGER_WISH_RE) or _codes_named(_all_user_text())
+                         or _customer_numbers(_CUSTOMER_KW_RE))  # "chcem 3,5 kW" names the size
+        kept = [e + " (override_reason to neobíde: zákazník väčší výkon ani rezervu nežiadal)" for e in errors
+                if e.startswith("naddimenzovan") and not bigger_wanted]
+        overridden = [e for e in errors if not (e.startswith("naddimenzovan") and not bigger_wanted)]
+        if overridden:
+            log_event("quote_fit_overridden", errors=overridden, override_reason=override_reason)
+            warnings = [f"prepísané ({override_reason}): {e}" for e in overridden] + warnings
+        errors = kept
     return _commercial_combo_errors(fit_lines) + _accessory_errors(fit_lines) + errors, warnings
 
 
@@ -1400,16 +1428,17 @@ def _cheaper_alternative(fit_lines, total):
                     "rad, ponúkni ho a cenu zisti cez quote."}
 
 
-def _multi_outdoors(source, count, total_kw):
+def _multi_outdoors(source, count, total_kw, ratio=1.76):
     """Multi-split outdoor units of one price list that take `count` indoor units of `total_kw` together
-    (check_compatibility's limits), smallest first. The live demo of 2026-10-21 put four rooms on two
-    outdoor units and told the customer Samsung takes two at most — AJ080 takes four."""
+    (check_compatibility's limits; ratio=1.0 asks for the indoor total itself), smallest first. The live
+    demo of 2026-10-21 put four rooms on two outdoor units and told the customer Samsung takes two at
+    most — AJ080 takes four."""
     found = {}
     for r in PRODUCT_INDEX:
         raw = r["raw"]
         if (r["source"] == source and isinstance(raw.get("max_indoor_units"), int)
                 and isinstance(raw.get("cooling_kW"), (int, float))
-                and raw["max_indoor_units"] >= count and raw["cooling_kW"] * 1.76 >= total_kw):
+                and raw["max_indoor_units"] >= count and raw["cooling_kW"] * ratio >= total_kw):
             found.setdefault(r["model_code"], raw["cooling_kW"])
     return sorted(found, key=found.get)
 
@@ -1958,8 +1987,8 @@ def update_customer_state(updates):
     # The model sometimes sends the object as a JSON string; in the live demo of 2026-10-20 that lost the
     # customer's name, and the auto-captured lead said "neuvedené".
     if isinstance(updates, str):
-        try:
-            updates = json.loads(updates)
+        try:  # the leading object: a replay of 2026-10-21 sent the JSON followed by stray markup
+            updates = json.JSONDecoder().raw_decode(updates.strip())[0]
         except ValueError:
             pass
     if not isinstance(updates, dict):
@@ -2446,7 +2475,10 @@ _FEATURE_QUESTION_RE = re.compile(
 def _preferences_known():
     """The customer said what they want, or the bot already asked."""
     if (_PREFERENCE_RE.search(fold_diacritics(_all_user_text())) or _wished(_WIFI_WANTED_FOLDED_RE)
-            or _wished(_CHEAP_WISH_RE) or _wished(_ALLERGY_RE)):
+            or _wished(_CHEAP_WISH_RE) or _wished(_ALLERGY_RE)
+            # a named series or code is the choice itself (replay 2026-10-21: "chcem samsung comfort" was
+            # asked about features three times and never priced)
+            or _SERIES_NAMED_RE.search(_all_user_text())):
         return True
     return bool(_FEATURE_QUESTION_RE.search(_recent_assistant_text(n=50)))
 
@@ -3749,6 +3781,10 @@ _CZECH_TO_SLOVAK = {
     "soustavy": "sústavy",
     "vejdeme": "vojdeme",
     "vejde": "vojde",
+    "domluvu": "dohodnutie",  # "na domluvu bezplatnej obhliadky" (replay 2026-10-21)
+    "domluva": "dohoda",
+    "domluvit": "dohodnúť",
+    "chápu": "chápem",
 }
 # Longest first so multi-word entries beat single-word substrings.
 _CZECH_TOKEN_PAT = re.compile(
@@ -4830,7 +4866,11 @@ def _offer_due(user_input):
     if not (_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)):
         return False
     return bool(_PREFERENCE_RE.search(fold_diacritics(user_input)) or _wished(_WIFI_WANTED_FOLDED_RE, user_input)
-                or _wished(_CHEAP_WISH_RE, user_input) or _wished(_ALLERGY_RE, user_input))
+                or _wished(_CHEAP_WISH_RE, user_input) or _wished(_ALLERGY_RE, user_input)
+                # a series named now, or named earlier with the size just given
+                or _SERIES_NAMED_RE.search(user_input)
+                or (_SERIES_NAMED_RE.search(_all_user_text())
+                    and (_CUSTOMER_M2_RE.search(user_input) or _CUSTOMER_KW_RE.search(user_input))))
 
 
 # The customer can be asked for contact details once there's a price (K7: town, phone and the
@@ -5187,6 +5227,8 @@ def _regen_note(violations):
         "slub-bez-suhlasu": "Kým zákazník nesúhlasil, nesľubuj, že sa niekto ozve, a nepíš, že si niečo zaznamenal. "
                             "Ak už kontakt dal, poďakuj a jednou vetou povedz, že aby sa mu projektový manažér "
                             "mohol ozvať, potrebujeme jeho výslovné „áno“ na otázku nižšie (otázku pripojí server). "
+                            "Ďalší krok povedz iba ako podmienku v jednej vete, napr. „Ak mi necháte meno a telefón "
+                            "a odsúhlasíte otázku nižšie, projektový manažér sa vám ozve.“ — nie „potom sa vám ozve“. "
                             f"Ak kontakt dať nechce, ponúkni: {_contact_offer()}.",
         "jazyk-odpovede": "Celú odpoveď napíš po slovensky (Výborne, Ďakujem, vrátane, vonkajšia…), nie po česky.",
         "cena-neodpovedana": "Najprv zavolaj `quote` s predpokladom a uveď cenu; otázky na značku či typ až potom.",
@@ -5663,6 +5705,13 @@ def build_system_blocks():
     ]
 
 
+# The customer picks an offer: the price card's button text, or their own words.
+_OFFER_CHOSEN_RE = re.compile(
+    r"^\s*(?:chcem\s+túto\s+ponuku|i\s+want\s+this\s+offer)|"
+    r"\b(?:beriem|chcem|objednám|objednam|vyberám|vyberam)\s+(?:si\s+)?(?:t[úu]to|tento|ten|tú|tu|t[ée]to)\b|"
+    r"\bI'?ll\s+take\s+(?:it|this|that|the)\b", re.IGNORECASE)
+
+
 def build_server_context(note=None):
     """This call's server context (see the caching note above), with an optional server note."""
     parts = []
@@ -5693,6 +5742,15 @@ def build_server_context(note=None):
         else:
             status += ("\nPred prvou cenovou ponukou sa zákazníka opýtaj, čo je preň dôležité (tichý chod, filtrácia "
                        "vzduchu, Wi-Fi ovládanie z mobilu, dizajn, čo najnižšia cena), a podľa toho vyber rad.")
+    latest = S().user_inputs[-1] if S().user_inputs else ""
+    if S().quotes and S().consent is None and not _support_case() and _OFFER_CHOSEN_RE.search(latest):
+        # The "Toto chcem" button: every first draft said "zaznamenal som" or "ozve sa" and was regenerated
+        # twice (live demo and replay of 2026-10-21).
+        status += ("\nZákazník si práve vybral ponuku. Poďakuj, jednou vetou zopakuj vybranú zostavu a požiadaj o "
+                   "meno, telefón, e-mail a obec. Kým súhlas nie je zaznamenaný, nepíš „zaznamenal som“, "
+                   "„odovzdám“ ani „potom sa vám ozve“; ďalší krok iba ako podmienku („Ak mi necháte meno a "
+                   "telefón a odsúhlasíte otázku nižšie, projektový manažér sa vám ozve.“). Otázku na súhlas "
+                   "pripojí server sám.")
     if _industrial_case():
         status += (
             "\nZákazník chce chladiť priemyselný priestor (hala, výroba, továreň). Tento chatbot ho nerieši: "

@@ -74,10 +74,17 @@ SCENARIOS = {
         "je tam aj lacnejsia alternativa?",
     ],
     # Live demo of 2026-10-21: four rooms on 2× AJ050, "Samsung takes 2 at most", a Luzon price nobody quoted.
+    # The customer's eight messages verbatim (log 2026-10-21_17-03-13_c81f96).
     "styri_izby_comfort": [
         "ahoj, chcem klimu do styroch izieb multisplit samsung comfort",
         "4 izby po 10 m2 chcem samsung comfort",
-        "je aj lacnejsia moznost?",
+        "preco mi neponuknes jednu velku vonkajsiu jednotku?",
+        "to je loz, samsung umoznuje pripojenie do 5 jednotiek",
+        "chcem riesenie s jednou vonkajsou jednotkou",
+        "Chcem túto ponuku: 1× Samsung – vonkajšia multi-split jednotka 8,0 kW, 4× Samsung WindFree Comfort S2 – "
+        "vnútorná jednotka 2,0 kW — 5 619,13 € s DPH.",
+        "Áno, súhlasím",
+        "nevyplnim",
     ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
