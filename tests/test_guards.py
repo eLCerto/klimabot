@@ -784,6 +784,40 @@ class QuoteTests(BotTest):
         self.assertIn("A+++", cut)
         self.assertTrue(bot._wished(bot._PREFERENCE_RE, "chcem mat tu najlepsiu klimatizaciu"))
 
+    def test_filtration_claims_follow_the_ranking(self):  # replay 2026-10-21: Avant S2 "Štandardný filter"
+        table = ("| | **Toshiba HAORI** | **Samsung Avant S2** |\n|---|---|---|\n"
+                 "| **Dizajn** | Textilný kryt | Klasický |\n"
+                 "| **Filtrácia** | Plazmový ionizátor + Ultra Pure | Štandardný filter |")
+        self.assertEqual(bot._wrong_filtration_claims(table), ["| **Filtrácia** | Plazmový ionizátor + Ultra Pure | Štandardný filter |"])
+        cut, _ = bot._drop_hard_sentences(table)
+        self.assertNotIn("Štandardný filter", cut)
+        self.assertIn("Textilný kryt", cut, "the other rows stay")
+        self.assertTrue(bot._wrong_filtration_claims("**Samsung AR35 WiFi** — najlepšia filtrácia v ponuke."))
+        for fine in ("**Samsung AR35 WiFi:**\n- **Základný filter** — slabšia filtrácia",
+                     "Toshiba HAORI: plazmový ionizátor, najlepšia čistota vzduchu.",
+                     "| | **SEIYA** |\n|---|---|\n| Filter | štandardný filter |"):
+            self.assertEqual(bot._wrong_filtration_claims(fine), [], fine)
+
+    def test_the_best_ac_means_tier_one(self):  # the owner, 2026-10-21: best filter and best functions
+        self.assertFalse(bot._wished(bot._BEST_WISH_RE, "hľadám najlepší pomer cena/výkon"), "that is a cheap wish")
+        self.sess.user_inputs.append("Dom, dve izby po 15 m2, chcem mať tú najlepšiu klimatizáciu.")
+        context = bot.build_server_context()
+        self.assertIn("najlepšiu filtráciu a najviac funkcií", context)
+        self.assertIn("Poradie filtrácie", context)
+        comfort = self.q([("AR60F09C1AWNEU", 1), ("AR60F09C1AWXEU", 1)])
+        self.assertTrue(any("najlepšiu klimatizáciu" in w for w in comfort.get("fit_warnings", [])), comfort)
+        self.assertNotIn("cheaper_alternative", comfort, "the best wants no cheaper option")
+        self.assertNotIn("najlepšiu klimatizáciu", " ".join(
+            self.q([("RAS-10P2AVSG-E", 1), ("RAS-B10N4KVRG-E2", 1)]).get("fit_warnings", [])), "HAORI is tier 1")
+
+    def test_placement_sentence_goes_and_its_line_stays(self):  # replay 2026-10-21
+        line = ("Multi-split je ideálny pre váš dom. Jedna vonkajšia jednotka môže byť napr. v záhrade alebo na "
+                "streche. Z nej idú potrubia do oboch izieb.")
+        fixed = bot.sanitize_reply(line)[0]
+        self.assertNotIn("záhrade", fixed)
+        self.assertIn("Multi-split je ideálny", fixed)
+        self.assertIn("Z nej idú potrubia", fixed)
+
     def test_installing_own_unit_gets_no_sales_discovery(self):  # live demo 2026-10-21: balcony self-install
         for msg in ("ahoj, chcem namontovat klimu na balkon, vies mi poradit na co si davat pri montazi pozor?",
                     "mam klimu a montujem ju na balkon. ako ju mam nainstalovat?",

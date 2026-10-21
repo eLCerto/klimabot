@@ -1055,10 +1055,32 @@ _check_filtration_policy()
 def _filtration_ranking_text():
     tiers = [f"{t['tier']}. " + ", ".join(e["name"] for e in t["entries"]) + f" ({t['label']})"
              for t in FILTRATION["tiers"]]
-    return ("Zákazník spomenul alergiu, prach, filtráciu alebo kvalitu vzduchu. Poradie filtrácie nástenných radov (od "
-            "najlepšej; rady v jednej triede sú rovnocenné — rešpektuj značku, ktorú zákazník chce, inak ponúkni "
-            "lacnejší): " + "; ".join(tiers) + ". Odporúčaj triedu 1. Žiadny rad nenazývaj lepšou filtráciou, než "
-            "mu dáva toto poradie, a nemeň odporúčanie len preto, že zákazník namietne.")
+    return ("Zákazník spomenul alergiu, prach, filtráciu, kvalitu vzduchu alebo kvalitu klimatizácie. Poradie filtrácie "
+            "nástenných radov (od najlepšej; rady v jednej triede sú rovnocenné — rešpektuj značku, ktorú zákazník chce, "
+            "inak ponúkni lacnejší): " + "; ".join(tiers) + ". Odporúčaj triedu 1. Žiadny rad nenazývaj lepšou ani "
+            "horšou filtráciou, než mu dáva toto poradie (rad triedy 1 nemá „štandardný filter“), a nemeň odporúčanie "
+            "len preto, že zákazník namietne.")
+
+
+# "Chcem najlepšiu klimatizáciu" means the best filtration and the most features (the owner, 2026-10-21) — not
+# "najlepší pomer cena/výkon", which is a cheap wish. Matched on folded text.
+_BEST_WISH_RE = re.compile(r"\bnajleps\w*\b(?!\s+pomer)|\bnajkvalitnejs\w*|\bspickov\w*|\bpremiov\w*|"
+                           r"\btop\s+(?:model|klim\w*|rad\w*|jednotk\w*)|\bthe\s+best\b", re.IGNORECASE)
+# The customer compares quality: the ranking goes into the server context so the answer follows it.
+_QUALITY_QUESTION_RE = re.compile(r"\bkvalitnejs\w*|\blepsi\w*\s+filt\w*|\bwhich\s+is\s+better\b", re.IGNORECASE)
+
+
+def _filtration_rank(rec):
+    """(tier, entry) of a wall set or a multi-split wall unit (the series is the last path section), or None."""
+    return _FILTRATION_BY_SERIES.get(rec["category_path"].rsplit(".", 1)[-1])
+
+
+def _best_wish_text():
+    tier1 = next(t for t in FILTRATION["tiers"] if t["tier"] == 1)
+    return ("Zákazník chce najlepšiu klimatizáciu: to znamená najlepšiu filtráciu a najviac funkcií (majiteľ). Ponúkaj "
+            "iba rady triedy 1 z poradia filtrácie — " + ", ".join(e["name"] for e in tier1["entries"]) + " — a z nich "
+            "ten s najviac funkciami (key_features); ak zákazník značku nevybral, jednu možnosť od každej značky. Druhá "
+            "možnosť nie je lacnejší rad. Rady triedy 1 sú vo filtrácii rovnocenné: netvrď, že jeden filtruje lepšie.")
 
 
 def _best_filtration_sets(rec, text):
@@ -1334,18 +1356,22 @@ def _fit_check(fit_lines, override_reason=None):
     if cassettes and _NO_CEILING_RE.search(text):
         errors.append(f"zákazník nemá podhľad, kazety {cassettes} sa montujú do podhľadu — ponúkni podstropnú "
                       "jednotku (v salóne či ordinácii nie nástennú: fúka na ľudí)")
-    if _wished(_ALLERGY_RE):
+    allergy, best_wish = _wished(_ALLERGY_RE), _wished(_BEST_WISH_RE)
+    if allergy or best_wish:
         for rec, codes, _, cat in fit_lines:
-            ranked = _FILTRATION_BY_SERIES.get(_series_key(rec)) if cat == "single_split_sets" else None
+            ranked = (_filtration_rank(rec) if cat == "single_split_sets" or
+                      (cat == "multi_split_indoor" and _WALL_MULTI_PATH_RE.search(rec["category_path"])) else None)
             if not ranked or ranked[0] == 1:
                 continue
             tier, entry = ranked
-            best = _best_filtration_sets(rec, text)
-            warnings.append(f"zákazník spomenul alergiu, prach, filtráciu alebo kvalitu vzduchu: {entry['name']} má filtráciu "
-                            f"triedy {tier} ({entry['filtration']})"
-                            + (" — alergikom ho neodporúčaj" if tier == 4 else "")
-                            + (f"; triedu 1 v tejto veľkosti majú {', '.join(best)} — ponúkni ich ako prvé a cenu "
-                               "zisti cez quote" if best else ""))
+            best = _best_filtration_sets(rec, text) if cat == "single_split_sets" else [
+                e["name"] for t in FILTRATION["tiers"] if t["tier"] == 1 for e in t["entries"]]
+            reason = ("alergiu, prach, filtráciu alebo kvalitu vzduchu" if allergy else
+                      "že chce najlepšiu klimatizáciu (najlepšia filtrácia a najviac funkcií)")
+            warnings.append(f"zákazník spomenul {reason}: {entry['name']} má filtráciu triedy {tier} ({entry['filtration']})"
+                            + (" — alergikom ho neodporúčaj" if allergy and tier == 4 else "")
+                            + (f"; triedu 1 majú {', '.join(best)} — ponúkni ich ako prvé a cenu zisti cez quote"
+                               if best else ""))
     # A Toshiba multi-split outdoor unit with one indoor unit runs in cooling only ("1 jednotka len pri
     # chladiacej prevádzke", combinations_table) — the scenario's bot sold a home a single cassette on one.
     toshiba_multi = sum(qty for rec, _, qty, cat in fit_lines if cat == "multi_split_outdoor" and rec["brand"] == "Toshiba")
@@ -1410,8 +1436,9 @@ def _cheaper_alternative(fit_lines, total):
     set's capacity), Wi-Fi and a single named brand respected. None for named series, commercial
     places, allergy cases and anything but one single-split set."""
     text = _all_user_text()
-    if _SERIES_NAMED_RE.search(text) or _SERVER_ROOM_RE.search(text) or any(
-            rx.search(text) for rx in _EXPLICIT_COMMERCIAL_RES.values()) or re.search(r"alerg|astm", text, re.I):
+    if (_SERIES_NAMED_RE.search(text) or _SERVER_ROOM_RE.search(text) or any(
+            rx.search(text) for rx in _EXPLICIT_COMMERCIAL_RES.values()) or re.search(r"alerg|astm", text, re.I)
+            or _wished(_BEST_WISH_RE)):  # "the best" wants no cheaper option
         return None
     sets = [(rec, codes) for rec, codes, qty, cat in fit_lines if cat == "single_split_sets"]
     if not sets:
@@ -3694,7 +3721,9 @@ def _hallucinated_model_codes(text):
 # the bot must NOT list (balkón / lodžia / fasáda / strecha) as choices — PM
 # handles placement at obhliadka. Fires if 3+ placement-word stems appear
 # within an 80-char window (typical enumeration size).
-_PLACEMENT_STEMS = ("balkón", "balkon", "lodži", "lodžia", "fasád", "strech", "terasa")
+# "záhrad" / "dvor" / "garáž": the replay of 2026-10-21 put the outdoor unit "v záhrade alebo na streche"
+_PLACEMENT_STEMS = ("balkón", "balkon", "lodži", "lodžia", "fasád", "strech", "terasa", "záhrad", "zahrad", "dvor",
+                    "garáž", "garaz")
 _PLACEMENT_RE = re.compile(
     r"\b(" + "|".join(_PLACEMENT_STEMS) + r")[a-záäčďéíľĺňóôŕšťúýž]*",
     flags=re.IGNORECASE,
@@ -3913,8 +3942,11 @@ def sanitize_reply(text, language="sk"):
     text = _WITH_VAT_AND_FEE_RE.sub(r"s DPH\1, bez recyklačného poplatku", text)  # \1: a closing "**" stays
     # A line listing outdoor placement options ("Umiestnenie vonkajšej jednotky (balkón, fasáda, iné)") is the
     # PM's topic at the site visit: the line goes. It used to be only logged, and kept coming back.
-    text = "\n".join(line for line in text.split("\n")
-                     if len({m.group(1).lower()[:6] for m in _PLACEMENT_RE.finditer(line)}) < 2)
+    # Sentence by sentence: the replay's placement sentence shared its line with the recommendation.
+    placement = lambda s: len({m.group(1).lower()[:6] for m in _PLACEMENT_RE.finditer(s)}) >= 2  # noqa: E731
+    text = "\n".join(" ".join(s for s in _SENTENCE_SPLIT_RE.split(line) if not placement(s))
+                     for line in text.split("\n") if not (placement(line) and all(
+                         placement(s) for s in _SENTENCE_SPLIT_RE.split(line) if s.strip())))
     text = _WITH_VAT_AND_FEE_EN_RE.sub("incl. VAT, excluding the recycling fee", text)
     text = _APPROX_AFTER_AMOUNT_RE.sub(r"\1", text)
     text = _fix_wifi_claims(text, language)
@@ -4443,20 +4475,67 @@ def _series_energy_classes(key):
     return frozenset(classes)
 
 
-def _wrong_energy_classes(text):
-    """Lines giving a series an energy class its price list doesn't. A heading names the series for the list
-    under it; a list line naming another series speaks only for itself."""
-    out, current = [], None
+def _series_fragments(text):
+    """(series key or None, line, fragment): what each part of a reply speaks about. A line naming one series is
+    about it; a heading names the series for the list under it, and a list line naming another series speaks
+    only for itself; a table cell belongs to its column's series from the header row."""
+    current, header = None, None
     for line in text.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("|"):
+            cells = [c.strip() for c in stripped.strip("|").split("|")]
+            if all(set(c) <= set("-: ") for c in cells):
+                continue  # the separator row
+            named = [[k for k, rx in _SERIES_RES.items() if rx.search(c)] for c in cells]
+            if header is None:
+                header = [n[0] if len(n) == 1 else None for n in named]
+                continue
+            for i, cell in enumerate(cells):
+                own = named[i][0] if len(named[i]) == 1 else None
+                yield own or (header[i] if i < len(header) else None), line, cell
+            continue
+        header = None
         named = [k for k, rx in _SERIES_RES.items() if rx.search(line)]
         series = named[0] if len(named) == 1 else (None if named else current)
-        if not _LIST_LINE_RE.match(line) and line.strip():
+        if not _LIST_LINE_RE.match(line) and stripped:
             current = series
+        yield series, line, line
+
+
+def _wrong_energy_classes(text):
+    """Lines (or table rows) giving a series an energy class its price list doesn't."""
+    out = []
+    for series, line, fragment in _series_fragments(text):
         allowed = _series_energy_classes(series) if series else frozenset()
-        for m in _ENERGY_CLASS_RE.finditer(line) if allowed else ():
+        for m in _ENERGY_CLASS_RE.finditer(fragment) if allowed else ():
             if any(t not in allowed for t in re.findall(r"A\+{0,3}|[B-G]", m.group(1) or m.group(2))):
                 out.append(line)
                 break
+    return out
+
+
+# Filtration claims follow filtration_policy.json. The replay of 2026-10-21 gave Avant S2 (tier 1, equal to HAORI)
+# "Štandardný filter" in a comparison table; the live demo called Première+ "najlepšia filtrácia na trhu" next to HAORI.
+_WEAK_FILTER_RE = re.compile(
+    r"\b(?:štandardn|standardn|základn|zakladn|bežn|bezn|slab|obyčajn|obycajn|jednoduch)\w*\s+(?:prachov\w*\s+)?filt\w*|"
+    r"\bfilt\w*\s*[:–-]?\s*(?:je\s+)?(?:iba\s+|len\s+)?(?:štandardn|standardn|základn|zakladn|slab)\w*", re.IGNORECASE)
+_BEST_FILTER_RE = re.compile(r"\bnajlep[šs]\w*\s+(?:možn\w*\s+)?(?:filt\w*|čistot\w*)|\bfilt\w*[^.\n|]{0,25}\bnajlep[šs]\w*",
+                             re.IGNORECASE)
+
+
+def _series_filtration_tier(key):
+    """The best tier filtration_policy.json gives a series key (colour variants are one series)."""
+    tiers = [tier for name, (tier, _) in _FILTRATION_BY_SERIES.items() if name.startswith(key)]
+    return min(tiers) if tiers else None
+
+
+def _wrong_filtration_claims(text):
+    """Lines (or table rows) calling a tier 1–2 series' filter basic, or a tier 2+ series' filter the best."""
+    out = []
+    for series, line, fragment in _series_fragments(text):
+        tier = _series_filtration_tier(series) if series else None
+        if tier and ((tier <= 2 and _WEAK_FILTER_RE.search(fragment)) or (tier >= 2 and _BEST_FILTER_RE.search(fragment))):
+            out.append(line)
     return out
 
 
@@ -4686,6 +4765,13 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
         violations.append(
             f"nepodlozene-udaje: technické údaje alebo úspory bez podkladu ('{figures[0].strip()[:90]}'). SEER, SCOP "
             "a hlučnosť uvádzaj iba z `lookup_product` / `compare_products`; percentá úspor a návratnosť nepíš."
+        )
+    filters = _wrong_filtration_claims(text)
+    if filters:
+        violations.append(
+            f"nepodlozene-udaje: filtráciu radu opisuješ inak, než ju radí poradie filtrácie ('{filters[0].strip()[:100]}'). "
+            "Rady triedy 1 (DAISEIKAI 10, HAORI, WindFree Avant S2, Première) nemajú „štandardný / základný filter“ "
+            "a sú rovnocenné; „najlepšia filtrácia“ patrí iba triede 1. Inak filtráciu vynechaj."
         )
     classes = _wrong_energy_classes(text)
     if classes:
@@ -5177,12 +5263,17 @@ def _drop_hard_sentences(text):
     """Remove every sentence (or table row) with a HARD violation. Returns (text, dropped)."""
     trusted = _trusted_amounts()
     bad_values = {v for _, v in _misattributed_amounts(text) + _vat_mislabeled_amounts(text) + _combination_prices(text)}
-    wrong_class_lines = {line.strip() for line in _wrong_energy_classes(text)}
+    # Claims judged with their heading or table column: the claim's sentence goes, a table row goes whole.
+    bad_lines = {line.strip() for line in _wrong_energy_classes(text) + _wrong_filtration_claims(text)}
     lines, dropped = [], []
     for line in text.split("\n"):
+        if line.strip() in bad_lines and line.strip().startswith("|"):
+            dropped.append(line.strip())
+            continue
         sentences = _SENTENCE_SPLIT_RE.split(line)
         keep = [x for x in sentences if not _sentence_is_hard(x, trusted, bad_values)
-                and not (line.strip() in wrong_class_lines and _ENERGY_CLASS_RE.search(x))]
+                and not (line.strip() in bad_lines and (_ENERGY_CLASS_RE.search(x) or _WEAK_FILTER_RE.search(x)
+                                                        or _BEST_FILTER_RE.search(x)))]
         dropped += [x.strip() for x in sentences if x not in keep]
         if keep or not line.strip():
             lines.append(" ".join(keep))
@@ -5791,8 +5882,10 @@ def build_server_context(note=None):
         status += "\nZákazník píše po anglicky — odpovedaj po anglicky (celá odpoveď)."
     elif _CZECH_CUSTOMER_RE.search(_all_user_text()):
         status += "\nZákazník píše po česky — odpovedaj VÝHRADNE po slovensky (žiadne české slová ani tvary)."
-    if _wished(_ALLERGY_RE):
+    if _wished(_ALLERGY_RE) or _wished(_BEST_WISH_RE) or _QUALITY_QUESTION_RE.search(fold_diacritics(_all_user_text())):
         status += "\n" + _filtration_ranking_text()
+    if _wished(_BEST_WISH_RE):
+        status += "\n" + _best_wish_text()
     if (not S().quotes and _CUSTOMER_M2_RE.search(_all_user_text()) and not _industrial_case()
             and not _preferences_known()):
         last = S().user_inputs[-1] if S().user_inputs else ""
