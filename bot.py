@@ -2467,7 +2467,9 @@ def _iter_message_text_and_tool_results():
 # What matters to the customer, asked before the first offer (the owner's wish, 2026-10-19: a customer asked
 # why the bot quoted a premium series without asking about features first).
 _PREFERENCE_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|dizajn|design|farb\w*|\bciern\w*|\bbiel\w*|\bdrev\w*|"
-                            r"textil|je\s+mi\s+(?:to\s+)?jedno|nezalezi\s+mi|\bfunkci\w*", re.IGNORECASE)
+                            r"textil|je\s+mi\s+(?:to\s+)?jedno|nezalezi\s+mi|\bfunkci\w*|"
+                            # "chcem mať tú najlepšiu" (live demo 2026-10-21: one more question instead of the offer)
+                            r"\bnajleps\w*|\bpremiov\w*|\bspickov\w*|\bkvalitn\w*", re.IGNORECASE)
 _FEATURE_QUESTION_RE = re.compile(
     r"(?:funkci|dôležit|dolezit|požiadav|poziadav|záleží|zalezi)\w*[^?]{0,300}\?", re.IGNORECASE)
 
@@ -4417,6 +4419,47 @@ def _tool_output_text():
     return "\n".join(out)
 
 
+# Energy classes as the price lists give them. The live demo of 2026-10-21 called AR35 "energetická trieda E/D,
+# výrazne horšia"; the price list says A++ / A+. Case-sensitive: "trieda a tichý chod" is no class.
+_CLASS_TOKEN = r"A\+{1,3}|[A-G](?![\w+])"
+_ENERGY_CLASS_RE = re.compile(
+    rf"(?:[Ee]nergetick\w*\s+)?(?:[Tt]ried[auy]|[Cc]lass)\s*:?\s*\**\s*((?:{_CLASS_TOKEN})(?:\s*/\s*(?:{_CLASS_TOKEN}))*)|"
+    rf"((?:{_CLASS_TOKEN})(?:\s*/\s*(?:{_CLASS_TOKEN}))*)\**\s+(?:[Ee]nergetick\w*\s+)?(?:[Tt]ried[auy]|[Cc]lass)\b")
+_LIST_LINE_RE = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s")
+
+
+@functools.lru_cache(maxsize=None)
+def _series_energy_classes(key):
+    """Energy classes (cooling and heating) the price lists give the series `key` (a _SERIES_PATTERNS key)."""
+    classes = set()
+    for rec in _SETS.values():
+        if not _series_key(rec).startswith(key):
+            continue
+        if rec["source"] not in _SOURCE_CACHE:
+            _SOURCE_CACHE[rec["source"]] = json.loads((BOT_DIR / rec["source"]).read_text(encoding="utf-8"))
+        section = _SOURCE_CACHE[rec["source"]].get(_series_key(rec), {})
+        for field in ("energy_class_cooling", "energy_class_heating"):
+            classes |= set(re.findall(r"A\+{0,3}|[B-G]", str(section.get(field, "") if isinstance(section, dict) else "")))
+    return frozenset(classes)
+
+
+def _wrong_energy_classes(text):
+    """Lines giving a series an energy class its price list doesn't. A heading names the series for the list
+    under it; a list line naming another series speaks only for itself."""
+    out, current = [], None
+    for line in text.split("\n"):
+        named = [k for k, rx in _SERIES_RES.items() if rx.search(line)]
+        series = named[0] if len(named) == 1 else (None if named else current)
+        if not _LIST_LINE_RE.match(line) and line.strip():
+            current = series
+        allowed = _series_energy_classes(series) if series else frozenset()
+        for m in _ENERGY_CLASS_RE.finditer(line) if allowed else ():
+            if any(t not in allowed for t in re.findall(r"A\+{0,3}|[B-G]", m.group(1) or m.group(2))):
+                out.append(line)
+                break
+    return out
+
+
 def _unsupported_figures(text):
     found = []
     source = None
@@ -4643,6 +4686,13 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
         violations.append(
             f"nepodlozene-udaje: technické údaje alebo úspory bez podkladu ('{figures[0].strip()[:90]}'). SEER, SCOP "
             "a hlučnosť uvádzaj iba z `lookup_product` / `compare_products`; percentá úspor a návratnosť nepíš."
+        )
+    classes = _wrong_energy_classes(text)
+    if classes:
+        violations.append(
+            f"nepodlozene-udaje: energetická trieda nesedí s cenníkom ('{classes[0].strip()[:100]}'). Triedu radu "
+            "uveď iba tak, ako ju vráti `lookup_product` / `search_knowledge` (energy_class_cooling / heating), alebo "
+            "ju vynechaj; iný rad nezhadzuj vymyslenými údajmi."
         )
     wall_cassette = _wall_called_cassette(text)
     if wall_cassette:
@@ -5127,10 +5177,12 @@ def _drop_hard_sentences(text):
     """Remove every sentence (or table row) with a HARD violation. Returns (text, dropped)."""
     trusted = _trusted_amounts()
     bad_values = {v for _, v in _misattributed_amounts(text) + _vat_mislabeled_amounts(text) + _combination_prices(text)}
+    wrong_class_lines = {line.strip() for line in _wrong_energy_classes(text)}
     lines, dropped = [], []
     for line in text.split("\n"):
         sentences = _SENTENCE_SPLIT_RE.split(line)
-        keep = [x for x in sentences if not _sentence_is_hard(x, trusted, bad_values)]
+        keep = [x for x in sentences if not _sentence_is_hard(x, trusted, bad_values)
+                and not (line.strip() in wrong_class_lines and _ENERGY_CLASS_RE.search(x))]
         dropped += [x.strip() for x in sentences if x not in keep]
         if keep or not line.strip():
             lines.append(" ".join(keep))

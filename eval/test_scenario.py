@@ -94,6 +94,19 @@ SCENARIOS = {
         "uz som sa s nim stretol a bol na obhliadke ale zabudol som co hovoril",
         "montujem samsung comfort s2, potrebujem vediet ktorym smerom ma byt otocena vonkajsia jednotka k stene",
     ],
+    # Live demo of 2026-10-21 (log 2026-10-21_20-52-16_24f65b, verbatim): "the best AC" got a repeated question
+    # instead of an offer, and AR35 was called "energetická trieda E/D" (the price list: A++ / A+).
+    "najlepsia_klima_dve_poschodia": [
+        "chcem klimu na dve poschodia",
+        "15 m2 na kazdom poschodi. dve miestnosti dokopy. je to dom",
+        "chcem mat tu najlepsiu klimatizaciu",
+        "su opacne orientovane na druhom strane domu",
+        "ktoa je kvalitnejsia?",
+        "toshiba nema kvalitnejsiu klimu ako samsung?",
+        "chcem vedeit canu haori",
+        "chcem samsung",
+        "Nie, nesúhlasím",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",

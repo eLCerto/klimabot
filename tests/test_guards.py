@@ -770,6 +770,20 @@ class QuoteTests(BotTest):
         self.sess.user_inputs.append("chcem aj rezervu na piatu izbu")
         self.assertNotIn("error", self.q([("AJ100TXJ5KG/EU", 1), ("AR60F07C1AWNEU", 4)], **reason))
 
+    def test_energy_classes_follow_the_price_list(self):  # live demo 2026-10-21: AR35 "trieda E/D"
+        reply = ("**WindFree Première+ (tvoja voľba):**\n- **4-in-1 Filter** — iný level ako u AR35\n"
+                 "- **Energetická trieda A+++** — najúspornejšia\n\n**Samsung AR35 WiFi:**\n"
+                 "- **Energetická trieda E/D** — výrazne horšia\n- **Základný filter**")
+        self.assertEqual([line.strip() for line in bot._wrong_energy_classes(reply)],
+                         ["- **Energetická trieda E/D** — výrazne horšia"])
+        for fine in ("**Samsung AR35 WiFi** — energetická trieda A++ pri chladení.",
+                     "Toshiba HAORI má A+++ energetickú triedu.", "Samsung AR35: energetická trieda a tichý chod."):
+            self.assertEqual(bot._wrong_energy_classes(fine), [], fine)
+        cut, dropped = bot._drop_hard_sentences(reply)
+        self.assertNotIn("E/D", cut)
+        self.assertIn("A+++", cut)
+        self.assertTrue(bot._wished(bot._PREFERENCE_RE, "chcem mat tu najlepsiu klimatizaciu"))
+
     def test_installing_own_unit_gets_no_sales_discovery(self):  # live demo 2026-10-21: balcony self-install
         for msg in ("ahoj, chcem namontovat klimu na balkon, vies mi poradit na co si davat pri montazi pozor?",
                     "mam klimu a montujem ju na balkon. ako ju mam nainstalovat?",
