@@ -31,6 +31,7 @@ Toto je index pravidiel, ktoré bot nájde cez `search_knowledge`. Pravidlo = `f
 
 ### Inštalačné a regulačné
 - [umiestnenie-vonkajsej-jednotky](feedback_umiestnenie_outdoor.md) — Bot sa nepýta, kam pôjde outdoor, a nerieši povolenia, súhlasy, konzoly ani statiku — posúdi PM pri obhliadke
+- [vlastna-montaz](feedback_vlastna_montaz.md) — Zákazník montuje sám / pýta sa, ako namontovať: žiadne rady ani discovery, iba odkaz na projektového manažéra
 - [3-fazove-kedy-treba](feedback_3_fazove_kedy_potrebne.md) — 3f len pri 3f prípojke alebo výkone >9 kW; default 1f
 - [chladivo-r32-r410a](feedback_chladivo_r32_r410a.md) — Preferuj R32; R410a len špecifický dôvod (Samsung HSP, Floor Standing)
 

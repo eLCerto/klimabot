@@ -3941,7 +3941,9 @@ def sanitize_reply(text, language="sk"):
 # the US "HOA") are for the project manager at the site visit. The bot never
 # raises them, so any mention in a reply is a violation.
 _PERMIT_TOPIC_RE = re.compile(
-    r"\b(spoločenstv\w*\s+vlastník\w*|správc\w*\s+(?:domu|budovy)|SVB|HOA|homeowners?\s+association)\b",
+    # "povolenia alebo súhlasy od správy domu" passed (live demo 2026-10-21)
+    r"\b(spoločenstv\w*\s+vlastník\w*|správc\w*\s+(?:domu|budovy)|správ[ay]\s+(?:domu|budovy)|SVB|HOA|"
+    r"homeowners?\s+association)\b",
     flags=re.IGNORECASE,
 )
 
@@ -4861,7 +4863,7 @@ def _offer_due(user_input):
     """The customer has just said what matters (quietness, filtration, Wi-Fi, design, a low price), the size
     is known and no offer exists yet: the offer with a price comes now (the owner's order, 2026-10-19 — ask
     what matters, then offer; the bot kept asking "which variant?" instead)."""
-    if S().quotes or _industrial_case():
+    if S().quotes or _industrial_case() or _wished(_OWN_INSTALL_RE, user_input):  # a how-to-install question
         return False
     if not (_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)):
         return False
@@ -5705,6 +5707,16 @@ def build_system_blocks():
     ]
 
 
+# The customer installs a unit they already have, or asks how to install one (matched on folded text).
+_OWN_INSTALL_RE = re.compile(
+    r"\bmontujem\b|\binstalujem\b|\bnamontujem\b|\bnainstalujem\b|\bsvojpomocn\w*|"
+    r"\bsam\w*\s+(?:si\s+)?(?:namontovat|nainstalovat|zapojit|montovat)|"
+    r"\b(?:ako|kam|ktorym\s+smerom)\b[^.?!\n]{0,40}\b(?:namontovat|nainstalovat|montovat|instalovat|otocen\w*)|"
+    r"\b(?:na\s+co\s+si\s+dav\w*\s+pozor|pozor)\b[^.?!\n]{0,30}\bmontaz\w*|\bpri\s+montazi\b[^.?!\n]{0,30}\bpozor|"
+    r"\bmam\s+(?:uz\s+)?(?:klim\w*|jednotk\w*)\b[^.?!\n]{0,30}\b(?:montuj|instaluj|namontovat|nainstalovat)\w*|"
+    r"\bhow\s+(?:do\s+I|to)\s+(?:install|mount)\b|\bI'?m\s+installing\b", re.IGNORECASE)
+
+
 # The customer picks an offer: the price card's button text, or their own words.
 _OFFER_CHOSEN_RE = re.compile(
     r"^\s*(?:chcem\s+túto\s+ponuku|i\s+want\s+this\s+offer)|"
@@ -5751,6 +5763,15 @@ def build_server_context(note=None):
                    "„odovzdám“ ani „potom sa vám ozve“; ďalší krok iba ako podmienku („Ak mi necháte meno a "
                    "telefón a odsúhlasíte otázku nižšie, projektový manažér sa vám ozve.“). Otázku na súhlas "
                    "pripojí server sám.")
+    if _wished(_OWN_INSTALL_RE):
+        # The live demo of 2026-10-21: a customer mounting his own Comfort S2 on a balcony asked how to install it
+        # and got m² / rooms / features questions three times.
+        # The owner (2026-10-21): no advice at all, just point the customer to the project manager.
+        status += ("\nZákazník sa pýta na montáž klimatizácie, ktorú už má alebo montuje sám. Nedávaj žiadne rady "
+                   "ani návod (umiestnenie, smer, potrubie, chladivo, záruka, montážny návod) a nepýtaj sa na m², "
+                   "izby ani funkcie, kým sa sám nepýta na kúpu. Krátko povedz, že otázky k montáži rieši projektový "
+                   "manažér: ak už bol na obhliadke, nech sa obráti priamo naňho, inak "
+                   f"{_contact_offer()}.")
     if _industrial_case():
         status += (
             "\nZákazník chce chladiť priemyselný priestor (hala, výroba, továreň). Tento chatbot ho nerieši: "

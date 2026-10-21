@@ -770,6 +770,18 @@ class QuoteTests(BotTest):
         self.sess.user_inputs.append("chcem aj rezervu na piatu izbu")
         self.assertNotIn("error", self.q([("AJ100TXJ5KG/EU", 1), ("AR60F07C1AWNEU", 4)], **reason))
 
+    def test_installing_own_unit_gets_no_sales_discovery(self):  # live demo 2026-10-21: balcony self-install
+        for msg in ("ahoj, chcem namontovat klimu na balkon, vies mi poradit na co si davat pri montazi pozor?",
+                    "mam klimu a montujem ju na balkon. ako ju mam nainstalovat?",
+                    "montujem samsung comfort s2, potrebujem vediet ktorym smerom ma byt otocena vonkajsia jednotka"):
+            self.assertTrue(bot._wished(bot._OWN_INSTALL_RE, msg), msg)
+        for msg in ("Chcem klímu do spálne 14 m2.", "Koľko stojí montáž?", "Je montáž v cene?"):
+            self.assertFalse(bot._wished(bot._OWN_INSTALL_RE, msg), msg)
+        self.sess.user_inputs.append("montujem samsung comfort s2 do izby 20 m2, ktorym smerom ju otocit?")
+        self.assertIn("montuje sám", bot.build_server_context())
+        self.assertFalse(bot._offer_due(self.sess.user_inputs[-1]), "an installation question is no offer")
+        self.assertTrue(bot._PERMIT_TOPIC_RE.search("Všetky povolenia alebo súhlasy od správy domu, ak sú potrebné"))
+
     def test_choosing_an_offer_gets_a_note_against_premature_promises(self):  # replay 2026-10-21: two regens
         self.sess.user_inputs.append("ahoj, chcem klimu do styroch izieb multisplit samsung comfort")
         self.assertFalse(bot._offer_due(self.sess.user_inputs[-1]), "no size yet")

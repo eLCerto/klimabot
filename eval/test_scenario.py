@@ -86,6 +86,14 @@ SCENARIOS = {
         "Áno, súhlasím",
         "nevyplnim",
     ],
+    # Live demo of 2026-10-21 (log 2026-10-21_19-45-30_206d55, verbatim): a customer mounting his own unit got
+    # m² / rooms / features questions three times and a mention of the building manager's consent.
+    "vlastna_montaz_balkon": [
+        "ahoj, chcem namontovat klimu na balkon, vies mi poradit na co si davat pri montazi pozor?",
+        "mam klimu a montujem ju na balkon. ako ju mam nainstalovat?",
+        "uz som sa s nim stretol a bol na obhliadke ale zabudol som co hovoril",
+        "montujem samsung comfort s2, potrebujem vediet ktorym smerom ma byt otocena vonkajsia jednotka k stene",
+    ],
     "ambulancia_alergia": [
         "dobry den, chcem klimu do ambulancie, mam alergiu",
         "asi 40 m2, dve miestnosti",
