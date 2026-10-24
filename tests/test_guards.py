@@ -795,6 +795,38 @@ class QuoteTests(BotTest):
         self.assertIn("A+++", cut)
         self.assertTrue(bot._wished(bot._PREFERENCE_RE, "chcem mat tu najlepsiu klimatizaciu"))
 
+    def test_features_stay_with_their_series(self):  # live demo 2026-10-24: SEIYA with HAORI's filters
+        reply = ("**2. Toshiba SEIYA 2,5 kW** — Wi-Fi iba voliteľne\n"
+                 "Bohatšia výbava (prachový filter, plazmový ionizátor, filter Ultra Pure).")
+        self.assertEqual(len(bot._wrong_feature_claims(reply)), 1)
+        self.assertNotIn("Ultra Pure", bot._drop_hard_sentences(reply)[0])
+        for fine in ("**Toshiba HAORI** — plazmový ionizátor, filter Ultra Pure, textilný kryt.",
+                     "**Toshiba SEIYA** — prachový filter a filter Ultra Fresh.", "SEIYA nemá plazmový ionizátor.",
+                     "**Toshiba SHORAI CURVE** — prachový filter a plazmový ionizátor, voliteľná funkcia SILENT."):
+            self.assertEqual(bot._wrong_feature_claims(fine), [], fine)
+
+    def test_stock_brand_question_and_unpriced_multi(self):  # live demo 2026-10-24
+        self.q([("AR40H09C1AMNEU", 1), ("AR40H09C1AMXEU", 1)])
+        self.assertTrue(bot._false_stock_claims("**Samsung AR35 WIFI 2,6 kW** — lacnejšia voľba. Štandardne dostupný."))
+        self.assertTrue(bot._forbidden_questions("Ktorá značka vám je bližšia — Samsung alebo Toshiba?"),
+                        "the brand question is forbidden after an offer too")
+        for bad in ("Multi-split by mohol byť ešte výhodnejší — mám ju naceňovanú tiež.",
+                    "Multi-split je zvyčajne lacnejší ako 3 samostatné sety."):
+            self.assertTrue(bot._unpriced_multi_claims(bad), bad)
+        self.assertFalse(bot._unpriced_multi_claims("Chcete, aby som nacenil aj multi-split?"))
+        self.q([("AJ040TXJ2KG/EU", 1), ("AR60F07C1AWNEU", 2)])
+        self.assertFalse(bot._unpriced_multi_claims("Multi-split je o 200 € lacnejší."), "once quoted, the numbers decide")
+
+    def test_a_name_typed_after_the_request_is_saved(self):  # live demo 2026-10-24: "Samo samo" → "neuvedené"
+        self.sess.conversation.append({"role": "assistant", "content": "Potrebujem vaše meno, telefón, e-mail a obec."})
+        self.assertEqual(bot._auto_extract_lead_info("Samo samo"), ["lead_name"])
+        self.assertEqual(self.sess.customer_state["lead_name"], "Samo samo")
+        self.sess.customer_state.pop("lead_name")
+        for not_a_name in ("nemám čas", "Áno, súhlasím", "Bratislava", "Prečo to potrebujete?"):
+            self.assertEqual(bot._auto_extract_lead_info(not_a_name), [], not_a_name)
+        self.assertEqual(set(bot._auto_extract_lead_info("Jozef Mráz 0908123123")), {"lead_name", "lead_phone"})
+        self.assertEqual(self.sess.customer_state["lead_name"], "Jozef Mráz")
+
     def test_no_colours_the_price_list_lacks(self):  # live demo 2026-10-24: "rôzne farby vrátane ružovej"
         for bad in ("Klimy sú dostupné v rôznych farbách vrátane ružovej.", "Ružová a Wi-Fi ovládanie — to viem zaradiť.",
                     "Ukážem ti, čo máme dostupné s ružovou farbou."):
@@ -945,7 +977,7 @@ class QuoteTests(BotTest):
         self.assertEqual(len(bot._forbidden_questions(asks)), 2, "the budget question too once the size is known")
         self.assertEqual(bot._forbidden_questions("Čo je pre vás dôležité — tichý chod alebo Wi-Fi?"), [])
         self.q([(c, 1) for c in AR30_SET])
-        self.assertEqual(bot._forbidden_questions(asks), [], "after an offer the gate leaves it to the rule")
+        self.assertEqual(len(bot._forbidden_questions(asks)), 1, "after an offer: the brand question still, the budget not")
 
     def test_a_wall_series_is_never_a_cassette(self):  # scenario pracovna_kazeta
         self.assertTrue(bot._wall_called_cassette("Rezidenčná **Toshiba SHORAI CURVE** (2,5 kW, kazetová):"))

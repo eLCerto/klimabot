@@ -4579,6 +4579,46 @@ def _wrong_energy_classes(text):
     return out
 
 
+# Features that only some series have, as the price lists list them. The live demo of 2026-10-24 gave SEIYA (a dust
+# filter and Ultra Fresh) HAORI's "plazmový ionizátor, filter Ultra Pure". brand-funkcia only caught the other brand.
+_SERIES_FEATURE_TERMS = {
+    "plazmový ionizátor": r"plazm\w*\s+ioniz\w*|plasma\s+ioni[sz]\w*", "Ultra Pure": r"ultra[\s-]*pure",
+    "Ultra Fresh": r"ultra[\s-]*fresh", "HADA careflow": r"\bhada\b|careflow", "Smart Sensing": r"smart\s+sensing",
+    "textilný kryt": r"textiln\w*\s+kryt\w*|textile\s+cover", "Freeze Wash": r"freeze\s*wash",
+    "4-in-1 filter": r"4[\s-]*in[\s-]*1", "Easy Filter Plus": r"easy\s*filter", "Motion Wings": r"motion\s*wings|ai\s+motion",
+    "radarový senzor": r"radar\w*", "SILENT": r"\bsilent\b",
+}
+_SERIES_FEATURE_RES = {name: re.compile(rx, re.IGNORECASE) for name, rx in _SERIES_FEATURE_TERMS.items()}
+_FEATURE_LINE_NEGATION_RE = re.compile(r"\bbez\b|\bwithout\b|\bno\b|\bnemá\w*", re.IGNORECASE)
+_ANY_SERIES_FEATURE_RE = re.compile("|".join(f"(?:{rx})" for rx in _SERIES_FEATURE_TERMS.values()), re.IGNORECASE)
+
+
+@functools.lru_cache(maxsize=None)
+def _series_has_feature(key, name):
+    """True when a price-list feature line of series `key` names the feature (and doesn't negate it)."""
+    rx = _SERIES_FEATURE_RES[name]
+    for section in _series_sections(key):
+        for line in (section.get("key_features") or section.get("features") or []):
+            if isinstance(line, str) and rx.search(line) and not _FEATURE_LINE_NEGATION_RE.search(line):
+                return True
+    return False
+
+
+def _wrong_feature_claims(text):
+    """Lines (or table rows) giving a series a feature its price list doesn't — only for features some series
+    have (a feature no series lists is left to the other checks), and not when the line negates it."""
+    out = []
+    for series, line, fragment in _series_fragments(text):
+        if not series or not _series_sections(series) or _BRAND_NEGATION_RE.search(fragment):
+            continue
+        for name, rx in _SERIES_FEATURE_RES.items():
+            if rx.search(fragment) and not _series_has_feature(series, name) and any(
+                    _series_has_feature(k, name) for k in _SERIES_RES):
+                out.append(line)
+                break
+    return out
+
+
 # Colours: only those the price lists have. The live demo of 2026-10-24 promised "rôzne farby vrátane ružovej";
 # the customer came back with "odrbal si ma, že máte ružovú klimu".
 _UNAVAILABLE_COLOR_RE = re.compile(
@@ -4620,6 +4660,20 @@ _REFERENCE_BEFORE_RE = {"brands": re.compile(_REFERENCE_WORDS + r"$", re.IGNOREC
                         "series": re.compile(_REFERENCE_WORDS + r"(?:(?:samsung|toshib)\w*\s+)?\**\s*$", re.IGNORECASE)}
 _CHEAPER_AFTER_RE = re.compile(r"^\s*\**\s*(?:\w+\s+){0,2}?(?:lacnej\w*|menej|cheaper|less)\b", re.IGNORECASE)
 _DEARER_AFTER_RE = re.compile(r"^\s*\**\s*(?:\w+\s+){0,2}?(?:drahš\w*|drahs\w*|viac|more\s+expensive)\b", re.IGNORECASE)
+
+
+# A multi-split's price talked about before one was quoted: "mám ju naceňovanú tiež", "multi-split je zvyčajne
+# lacnejší" (live demo 2026-10-24; the multi-split rule says the direction is never guessed).
+_MULTI_TEXT_RE = re.compile(r"multi[\s-]*split\w*|multisplit\w*", re.IGNORECASE)
+_PRICE_TALK_RE = re.compile(r"nacenen\w*|naceňovan\w*|nacenovan\w*|lacnej\w*|výhodnejš\w*|vyhodnejs\w*|drahš\w*|"
+                            r"drahs\w*|cheaper|more\s+expensive", re.IGNORECASE)
+
+
+def _unpriced_multi_claims(text):
+    """Statements about a multi-split's price while no multi-split was quoted this session (questions pass)."""
+    if any(line.get("discount_category") == "multi_split_outdoor" for q in S().quotes for line in q["lines"]):
+        return []
+    return [s for s in _sentences(text) if "?" not in s and _MULTI_TEXT_RE.search(s) and _PRICE_TALK_RE.search(s)]
 
 
 def _wrong_comparisons(text):
@@ -4936,6 +4990,19 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
             "4-in-1, Easy Filter Plus, Freeze Wash a SmartThings sú iba Samsung; HADA careflow, Smart Sensing, "
             "plazmový ionizátor, Ultra Pure a Bi-Flow iba Toshiba."
         )
+    features = _wrong_feature_claims(text)
+    if features:
+        violations.append(
+            f"funkcia-radu: radu pripisuješ funkciu, ktorú v cenníku nemá ('{features[0].strip()[:100]}'). Funkcie "
+            "uvádzaj iba zo `series_features` daného radu (lookup_product); napr. plazmový ionizátor a Ultra Pure má "
+            "HAORI a DAISEIKAI 10, nie SEIYA."
+        )
+    unpriced = _unpriced_multi_claims(text)
+    if unpriced:
+        violations.append(
+            f"nenacenene: tvrdíš niečo o cene multi-splitu, ktorý si nenacenil ('{unpriced[0].strip()[:100]}'). Buď ho "
+            "naceň cez `quote` a porovnaj čísla, alebo o jeho cene nič netvrď (ani „zvyčajne lacnejší“)."
+        )
     colors = _color_claims(text)
     if colors:
         violations.append(
@@ -5082,7 +5149,7 @@ _HARD_RULES = ("cena-z-nastroja", "aplikacia-rabatov", "model-code-verifikacia",
                "povolenia-instalacia", "umiestnenie-otazka", "rozpocet-tvrdenie",
                "interne-info", "slub-bez-suhlasu", "termin-slub", "cena-iny-produkt", "dph-zamena",
                "mimo-katalogu", "nepodlozene-udaje", "reklamacia-kontakt", "ai-identita", "brand-funkcia", "typ-jednotky",
-               "sklad-tvrdenie", "farba", "porovnanie-smer")
+               "sklad-tvrdenie", "farba", "porovnanie-smer", "funkcia-radu", "nenacenene")
 # The bot is an AI assistant and says so when asked (EU AI Act transparency): a sentence claiming
 # to be a person is regenerated or cut. "Nie som človek" / "I'm not a human" are fine.
 _HUMAN_CLAIM_RE = re.compile(
@@ -5245,6 +5312,8 @@ def _internal_leak_sentences(text):
 _STOCK_CLAIM_RE = re.compile(
     r"\bskladom\b|\bna\s+sklade\b|\bskladov[ýáé]\s+(?:tovar|model|polož)\w*|\bje\s+skladov[ýáé]\b|\bskladn[ýáé]\b|"
     r"\b(?:hneď|ihneď|okamžite)\s+(?:k\s+dispozícii|dostupn\w*|k\s+dodaniu)|\bin\s+stock\b|"
+    # "Samsung AR35 … Štandardne dostupný" (live demo 2026-10-24)
+    r"\bštandardne\s+(?:dostupn\w*|k\s+dispozícii)|\bdostupn\w*\s+(?:zo\s+skladu|ihneď|hneď|okamžite)|"
     r"\bavailable\s+(?:now|immediately|right\s+away)", re.IGNORECASE)
 _STOCK_NEGATION_RE = re.compile(
     r"\bnie\s+(?:je|sú|su)\b[^.?!\n]{0,25}(?:sklad|dostupn)|\bnie\s+skladov|\bneskladov|\bnot\s+(?:in\s+stock|available)|"
@@ -5297,11 +5366,13 @@ _BUDGET_QUESTION_RE = re.compile(r"rozpo[čc]\w*|\bbudget\b", re.IGNORECASE)
 
 
 def _forbidden_questions(reply):
-    if S().quotes or _industrial_case() or _support_case():
+    """The brand question at any time (live demo 2026-10-24 asked it after the first offer); the budget
+    question before the first quote once the size is known."""
+    if _industrial_case() or _support_case():
         return []
-    size_known = _customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)
+    budget_too = not S().quotes and (_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE))
     return [s for s in _sentences(reply) if "?" in s and (
-        _BRAND_QUESTION_RE.search(s) or (size_known and _BUDGET_QUESTION_RE.search(s)))]
+        _BRAND_QUESTION_RE.search(s) or (budget_too and _BUDGET_QUESTION_RE.search(s)))]
 
 
 # Brand trademarks (knowledge/rules/feedback_brand_specificke_funkcie.md): a Samsung-only term in a
@@ -5408,7 +5479,7 @@ def _sentence_is_hard(sentence, trusted, bad_values=()):
                 or _not_in_catalog_claims(sentence) or _unsupported_figures(sentence)
                 or _support_contact_requests(sentence) or _HUMAN_CLAIM_RE.search(sentence)
                 or _brand_term_mixups(sentence) or _wall_called_cassette(sentence) or _false_stock_claims(sentence)
-                or _color_claims(sentence) or _wrong_comparisons(sentence))
+                or _color_claims(sentence) or _wrong_comparisons(sentence) or _unpriced_multi_claims(sentence))
 
 
 def _approx_amount(text):
@@ -5422,7 +5493,8 @@ def _drop_hard_sentences(text):
     trusted = _trusted_amounts()
     bad_values = {v for _, v in _misattributed_amounts(text) + _vat_mislabeled_amounts(text) + _combination_prices(text)}
     # Claims judged with their heading or table column: the claim's sentence goes, a table row goes whole.
-    bad_lines = {line.strip() for line in _wrong_energy_classes(text) + _wrong_filtration_claims(text)}
+    bad_lines = {line.strip() for line in _wrong_energy_classes(text) + _wrong_filtration_claims(text)
+                 + _wrong_feature_claims(text)}
     lines, dropped = [], []
     for line in text.split("\n"):
         if line.strip() in bad_lines and line.strip().startswith("|"):
@@ -5431,7 +5503,7 @@ def _drop_hard_sentences(text):
         sentences = _SENTENCE_SPLIT_RE.split(line)
         keep = [x for x in sentences if not _sentence_is_hard(x, trusted, bad_values)
                 and not (line.strip() in bad_lines and (_ENERGY_CLASS_RE.search(x) or _WEAK_FILTER_RE.search(x)
-                                                        or _BEST_FILTER_RE.search(x)))]
+                                                        or _BEST_FILTER_RE.search(x) or _ANY_SERIES_FEATURE_RE.search(x)))]
         dropped += [x.strip() for x in sentences if x not in keep]
         if keep or not line.strip():
             lines.append(" ".join(keep))
@@ -5555,6 +5627,8 @@ def _regen_note(violations):
         "brand-funkcia": "Každú technológiu pripíš iba jej značke (WindFree a Tri-care sú Samsung, HADA a plazmový "
                          "ionizátor Toshiba); funkciu, ktorú rad podľa výsledkov hľadania nemá, vynechaj.",
         "sklad-tvrdenie": "Dostupnosť uveď iba z poľa `availability` z `quote` tej ponuky, o ktorej píšeš; inak ju vynechaj.",
+        "funkcia-radu": "Každú funkciu pripíš iba radu, ktorý ju má v `series_features`; inak ju vynechaj.",
+        "nenacenene": "O cene multi-splitu hovor iba s jeho cenou z `quote`; ak ho nemáš nacenený, ponúkni, že ho naceníš.",
         "farba": "Ponúkaj iba farby z cenníka (biela; čierna pri Samsung Première / Avant S2 a Toshiba SHORAI CURVE "
                  "Black; drevo pri DAISEIKAI 10 Wood; textilné kryty HAORI). Inú farbu nesľubuj — povedz, že ju nemáme.",
         "porovnanie-smer": "Ktorý variant je lacnejší, ber z `comparison_with_earlier_quotes` (pole `cheaper`) alebo z "
@@ -6162,6 +6236,26 @@ _NOT_NAME_WORDS = {"dobrý", "deň", "ahoj", "áno", "ano", "súhlasím", "suhla
                    "toshiba", "klimatizácia", "beriem", "chcem"}
 
 
+_NOT_NAME_EXTRA = {"nie", "nemám", "nemam", "nechcem", "neviem", "nevyplním", "nevyplnim", "čas", "cas", "teraz", "neskôr",
+                   "neskor", "potom", "zatiaľ", "ešte", "este", "mám", "mam", "viem", "chcete", "prečo", "preco", "kde",
+                   "kedy", "ako", "aký", "aká", "koľko", "kolko", "cena", "ponuka", "zavolajte", "napíšte", "no", "not"}
+_NAME_REQUEST_RE = re.compile(r"\bmen[oa]\b|\bname\b", re.IGNORECASE)
+_NAME_WORD_RE = re.compile(r"^[A-Za-zÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽáäčďéíĺľňóôŕšťúýž'-]{2,}$")
+
+
+def _last_shown_reply():
+    """The text of the bot's latest reply in the history (called before the new message is appended)."""
+    for msg in reversed(S().conversation):
+        if msg.get("role") != "assistant":
+            continue
+        content = msg.get("content")
+        text = content if isinstance(content, str) else " ".join(
+            b.get("text", "") for b in content or [] if isinstance(b, dict) and b.get("type") == "text")
+        if text.strip():
+            return text
+    return ""
+
+
 def _auto_extract_lead_info(user_input):
     """Copy a phone number or e-mail the customer typed into CUSTOMER_STATE — a safety
     net for when the bot forgets `update_customer_state`. Never overrides the model's
@@ -6178,6 +6272,17 @@ def _auto_extract_lead_info(user_input):
     if email and not state.get("lead_email"):
         state["lead_email"] = email.group(0)
         extracted.append("lead_email")
+    # A name typed right after the bot asked for it ("Samo samo"; live demo 2026-10-24: the lead went to the PM
+    # as "neuvedené"). Only a whole short answer of two or three plain words, or the words in front of the contact.
+    head = text[:min(m.start() for m in (phone, email) if m)] if (phone or email) else text
+    words = [w for w in re.split(r"[\s,;.]+", head.strip()) if w]
+    if (not state.get("lead_name") and 2 <= len(words) <= 3 and _NAME_REQUEST_RE.search(_last_shown_reply())
+            and words[0][0].isupper()
+            and all(_NAME_WORD_RE.match(w) and w.lower() not in _NOT_NAME_WORDS | _NOT_NAME_EXTRA for w in words)
+            and not _CONSENT_YES_RE.search(head) and not _CONSENT_NO_RE.search(head)):
+        state["lead_name"] = " ".join(words)
+        S().pii_seen.update(words)
+        extracted.append("lead_name")
     if phone or email:
         # The name typed next to the contact ("Dobrý deň, Jozef Mráz, 0907…") is masked in the log
         # even when the model never stores it (a02, q03) — remembered for masking, not stored.
@@ -6596,7 +6701,7 @@ def run_user_turn_streaming(user_input):
                 # A price question left without a quote: the next attempt must call a tool (d04 made no
                 # tool call in 7 turns and told the customer real codes weren't in the price list).
                 force_tool = any(v.startswith(("cena-neodpovedana", "dve-moznosti")) for v in regen_worthy) or (
-                    any(v.startswith("zakazana-otazka") for v in regen_worthy)
+                    any(v.startswith("zakazana-otazka") for v in regen_worthy) and not sess.quotes
                     and bool(_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)))
                 log_event("bot_reply_regen_triggered", violations=regen_worthy, bad_reply_excerpt=attempt_text[:200],
                           stop_reason=response.stop_reason)
