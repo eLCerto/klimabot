@@ -1889,6 +1889,34 @@ def _series_sets(text):
             "series_features": features, "note": note}
 
 
+def _brand_size_sets(text):
+    """Wall single-split sets of the named brand(s) in the smallest size that covers the kW asked ("Samsung 1.4 kW"
+    → its smallest sets), cheapest first. The live demo of 2026-10-24 looked up "Samsung 1.4 kW" twice, failed and
+    searched instead — 35 s for the welcome card's example question. None without a brand and a size."""
+    brands = [b for b, rx in _BRAND_RES.items() if rx.search(text)]
+    kw = _SIZE_KW_RE.search(text)
+    if not brands or not kw:
+        return None
+    kw = float(kw.group(1).replace(",", "."))
+    out = []
+    for brand in brands:
+        sets = [(codes, rec) for codes, rec in _SETS.items()
+                if rec["brand"] == brand and "/single_split/" in rec["source"]
+                and not _NON_WALL_PATH_RE.search(rec["category_path"]) and isinstance(rec["raw"].get("cooling_kW"), (int, float))]
+        sizes = sorted({rec["raw"]["cooling_kW"] for _, rec in sets if rec["raw"]["cooling_kW"] >= kw * SIZING["undersize_ratio"]})
+        for codes, rec in sorted(sets, key=lambda s: s[1]["raw"].get("set_price_EUR") or 0):
+            if sizes and rec["raw"]["cooling_kW"] == sizes[0]:
+                rank = _filtration_rank(rec)
+                out.append({"description": _describe(rec, as_set=True), "series": _series_key(rec), "codes": sorted(codes),
+                            "cooling_kW": sizes[0], "wifi_standard": _has_wifi(rec),
+                            "filtration_tier": rank[0] if rank else None})
+    if not out:
+        return None
+    return {"series_sets": out, "note": (
+        "Nástenné sety značky v najmenšej veľkosti, ktorá stačí, od najlacnejšieho (filtration_tier: poradie filtrácie, "
+        "1 = najlepšia). Kódy setu pošli do `quote`; cenu zisti iba cez `quote`.")}
+
+
 def lookup_product(model_code):
     code = model_code.strip().upper()
     rec = PRODUCT_BY_CODE.get(code)
@@ -1905,7 +1933,7 @@ def lookup_product(model_code):
             return lookup_product(inner[0])
         if inner:
             return {"products": [lookup_product(c) for c in inner[:6]]}
-        series = _type_units(model_code) or _series_sets(model_code)
+        series = _type_units(model_code) or _series_sets(model_code) or _brand_size_sets(model_code)
         if series:
             return series
         matches = [c for c in PRODUCT_BY_CODE if c.startswith(code) or code in c]
@@ -2510,6 +2538,23 @@ def _preferences_known():
             or _SERIES_NAMED_RE.search(_all_user_text())):
         return True
     return bool(_FEATURE_QUESTION_RE.search(_recent_assistant_text(n=50)))
+
+
+def _previous_reply():
+    """The text the bot showed before the customer's latest message (this turn's tool rounds skipped)."""
+    passed_customer = False
+    for msg in reversed(S().conversation):
+        content = msg.get("content")
+        if msg.get("role") == "user" and isinstance(content, str):
+            if passed_customer:
+                return ""
+            passed_customer = True
+        elif msg.get("role") == "assistant" and passed_customer:
+            if isinstance(content, str):
+                return content
+            return " ".join(b.get("text", "") if isinstance(b, dict) else getattr(b, "text", "") or ""
+                            for b in content or [] if (b.get("type") if isinstance(b, dict) else getattr(b, "type", None)) == "text")
+    return ""
 
 
 def _recent_assistant_text(n=4):
@@ -4460,19 +4505,27 @@ _ENERGY_CLASS_RE = re.compile(
 _LIST_LINE_RE = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s")
 
 
-@functools.lru_cache(maxsize=None)
-def _series_energy_classes(key):
-    """Energy classes (cooling and heating) the price lists give the series `key` (a _SERIES_PATTERNS key)."""
-    classes = set()
+def _series_sections(key):
+    """The price-list sections (dicts) of the single-split sets of a series key."""
+    out = []
     for rec in _SETS.values():
-        if not _series_key(rec).startswith(key):
-            continue
-        if rec["source"] not in _SOURCE_CACHE:
-            _SOURCE_CACHE[rec["source"]] = json.loads((BOT_DIR / rec["source"]).read_text(encoding="utf-8"))
-        section = _SOURCE_CACHE[rec["source"]].get(_series_key(rec), {})
-        for field in ("energy_class_cooling", "energy_class_heating"):
-            classes |= set(re.findall(r"A\+{0,3}|[B-G]", str(section.get(field, "") if isinstance(section, dict) else "")))
-    return frozenset(classes)
+        if _series_key(rec).startswith(key):
+            if rec["source"] not in _SOURCE_CACHE:
+                _SOURCE_CACHE[rec["source"]] = json.loads((BOT_DIR / rec["source"]).read_text(encoding="utf-8"))
+            section = _SOURCE_CACHE[rec["source"]].get(_series_key(rec), {})
+            if isinstance(section, dict):
+                out.append(section)
+    return out
+
+
+@functools.lru_cache(maxsize=None)
+def _series_energy_classes(key, mode=None):
+    """Energy classes the price lists give the series `key` (a _SERIES_PATTERNS key): "cooling", "heating", or
+    either (None)."""
+    fields = {"cooling": ("energy_class_cooling",), "heating": ("energy_class_heating",)}.get(
+        mode, ("energy_class_cooling", "energy_class_heating"))
+    return frozenset(c for section in _series_sections(key) for f in fields
+                     for c in re.findall(r"A\+{0,3}|[B-G]", str(section.get(f, ""))))
 
 
 def _series_fragments(text):
@@ -4502,14 +4555,103 @@ def _series_fragments(text):
         yield series, line, line
 
 
+_COOLING_WORD_RE = re.compile(r"chlad|cooling", re.IGNORECASE)
+_HEATING_WORD_RE = re.compile(r"vykur|kúren|kuren|ohrev|heating", re.IGNORECASE)
+
+
 def _wrong_energy_classes(text):
-    """Lines (or table rows) giving a series an energy class its price list doesn't."""
+    """Lines (or table rows) giving a series an energy class its price list doesn't. One class "na chladenie aj
+    vykurovanie" must hold for both (live demo 2026-10-24: AR35 "A++ na chladenie aj vykurovanie", heating is A+)."""
     out = []
     for series, line, fragment in _series_fragments(text):
-        allowed = _series_energy_classes(series) if series else frozenset()
-        for m in _ENERGY_CLASS_RE.finditer(fragment) if allowed else ():
-            if any(t not in allowed for t in re.findall(r"A\+{0,3}|[B-G]", m.group(1) or m.group(2))):
+        known = _series_energy_classes(series) if series else frozenset()
+        if not known:
+            continue
+        allowed = known
+        if _COOLING_WORD_RE.search(fragment) and _HEATING_WORD_RE.search(fragment):
+            allowed = _series_energy_classes(series, "cooling") & _series_energy_classes(series, "heating")
+        for m in _ENERGY_CLASS_RE.finditer(fragment):
+            tokens = re.findall(r"A\+{0,3}|[B-G]", m.group(1) or m.group(2))
+            # "A+++ / A++" names both modes: each class only has to exist
+            if any(t not in (known if len(tokens) > 1 else allowed) for t in tokens):
                 out.append(line)
+                break
+    return out
+
+
+# Colours: only those the price lists have. The live demo of 2026-10-24 promised "rôzne farby vrátane ružovej";
+# the customer came back with "odrbal si ma, že máte ružovú klimu".
+_UNAVAILABLE_COLOR_RE = re.compile(
+    r"\b(?:ru[žz]ov|fialov|oran[žz]ov|purpurov|pink|purple)\w*|"
+    r"\b(?:[čc]erven|zelen|[žz]lt|zlat|strieborn|red|green|yellow|gold|silver)\w*\s+"
+    r"(?:farb|prevede|kryt|klim|jednotk|model|variant|colou?r)\w*|"
+    r"\bfarb\w*[^.\n]{0,30}\b(?:[čc]erven|zelen|[žz]lt|zlat|strieborn)\w*", re.IGNORECASE)
+_COLOR_NEGATION_RE = re.compile(
+    r"\b(?:nie|nemá\w*|nemam\w*|neexistuj\w*|nedostupn\w*|neponúk\w*|neponuk\w*|nevyráb\w*|bohužiaľ|žiaľ|niestety|ani|"
+    r"not|no|isn'?t|aren'?t|unavailable)\b", re.IGNORECASE)
+
+
+def _color_claims(text):
+    """Sentences offering a colour no price list has."""
+    return [s for s in _sentences(text) if _UNAVAILABLE_COLOR_RE.search(s) and not _COLOR_NEGATION_RE.search(s)]
+
+
+@functools.lru_cache(maxsize=1)
+def _colors_text():
+    """The colour variants the price lists have, for the server context."""
+    names = {"White": "biela", "Black": "čierna", "Wood": "drevo"}
+    variants = {}
+    for rec in _SETS.values():
+        section = _series_key(rec)
+        m = re.search(r"_(White|Black|Wood)$", section)
+        if m and "/single_split/" in rec["source"]:
+            variants.setdefault(section[:m.start()].replace("_", " "), set()).add(names[m.group(1)])
+    covers = sorted({c.get("color") for s in _series_sections("HAORI") for c in s.get("textile_covers", []) if c.get("color")})
+    parts = [f"{base}: {', '.join(sorted(colors))}" for base, colors in sorted(variants.items())]
+    return ("Farby podľa cenníka: " + "; ".join(parts) + (f"; HAORI: textilné kryty {', '.join(covers)}" if covers else "")
+            + ". Ostatné rady majú jednu štandardnú (bielu) farbu. Ružovú, červenú ani inú farbu, ktorá tu nie je, "
+            "nesľubuj — povedz, že ju nemáme, a ponúkni farby zo zoznamu.")
+
+
+# "Oproti Samsung Toshiba vyjde o 1 021,76 € lacnejšie" when Toshiba was the dearer one (live demo 2026-10-24).
+_REFERENCE_WORDS = r"\b(?:oproti|ako|než|nez|v\s+porovnaní\s+s|v\s+porovnani\s+s|than|compared\s+to|vs\.?)\s*\**\s*"
+_REFERENCE_BEFORE_RE = {"brands": re.compile(_REFERENCE_WORDS + r"$", re.IGNORECASE),
+                        # a series may follow its brand: "ako Samsung AR35"
+                        "series": re.compile(_REFERENCE_WORDS + r"(?:(?:samsung|toshib)\w*\s+)?\**\s*$", re.IGNORECASE)}
+_CHEAPER_AFTER_RE = re.compile(r"^\s*\**\s*(?:\w+\s+){0,2}?(?:lacnej\w*|menej|cheaper|less)\b", re.IGNORECASE)
+_DEARER_AFTER_RE = re.compile(r"^\s*\**\s*(?:\w+\s+){0,2}?(?:drahš\w*|drahs\w*|viac|more\s+expensive)\b", re.IGNORECASE)
+
+
+def _wrong_comparisons(text):
+    """Sentences saying "A je o X € lacnejší ako B" (or "oproti B … A") when A's quote is the dearer one, or the
+    reverse. The product after "ako / oproti / než" is the reference; the other one is the subject."""
+    quotes = S().quotes
+    if len(quotes) < 2:
+        return []
+    idents = [_quote_identity(q) for q in quotes]
+    out = []
+    for s in _sentences(text):
+        found, kind = [(m.start(), k) for k, rx in _SERIES_RES.items() for m in rx.finditer(s)], "series"
+        if len({k for _, k in found}) < 2:
+            found, kind = [(m.start(), b) for b, rx in _BRAND_RES.items() for m in rx.finditer(s)], "brands"
+        if len({k for _, k in found}) != 2:
+            continue
+        refs = {k for pos, k in found if _REFERENCE_BEFORE_RE[kind].search(s[:pos])}
+        if len(refs) != 1:
+            continue
+        ref = refs.pop()
+        subject = next(k for _, k in found if k != ref)
+
+        def total(key):
+            match = [q for q, i in zip(quotes, idents) if key in i[kind]]
+            return match[-1]["total_with_DPH_23pct_eur"] if match else None
+        a, b = total(subject), total(ref)
+        if a is None or b is None or a == b:
+            continue
+        for m in _REPLY_EUR_RE.finditer(s):
+            after = re.sub(r"^\s*(?:€|eur\w*)", "", s[m.end():])
+            if (_CHEAPER_AFTER_RE.search(after) and a > b) or (_DEARER_AFTER_RE.search(after) and a < b):
+                out.append(s)
                 break
     return out
 
@@ -4794,6 +4936,18 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
             "4-in-1, Easy Filter Plus, Freeze Wash a SmartThings sú iba Samsung; HADA careflow, Smart Sensing, "
             "plazmový ionizátor, Ultra Pure a Bi-Flow iba Toshiba."
         )
+    colors = _color_claims(text)
+    if colors:
+        violations.append(
+            f"farba: ponúkaš farbu, ktorú cenník nemá ('{colors[0].strip()[:100]}'). Farby sú iba tie zo servera "
+            "(biela, čierna, drevo, textilné kryty HAORI); inú farbu nesľubuj ani nenaznačuj."
+        )
+    comparisons = _wrong_comparisons(text)
+    if comparisons:
+        violations.append(
+            f"porovnanie-smer: smer porovnania nesedí s cenami z `quote` ('{comparisons[0].strip()[:100]}'). "
+            "Lacnejší je variant s nižšou sumou — pozri `comparison_with_earlier_quotes`."
+        )
     stock_claims = _false_stock_claims(text)
     if stock_claims:
         violations.append(
@@ -4928,7 +5082,7 @@ _HARD_RULES = ("cena-z-nastroja", "aplikacia-rabatov", "model-code-verifikacia",
                "povolenia-instalacia", "umiestnenie-otazka", "rozpocet-tvrdenie",
                "interne-info", "slub-bez-suhlasu", "termin-slub", "cena-iny-produkt", "dph-zamena",
                "mimo-katalogu", "nepodlozene-udaje", "reklamacia-kontakt", "ai-identita", "brand-funkcia", "typ-jednotky",
-               "sklad-tvrdenie")
+               "sklad-tvrdenie", "farba", "porovnanie-smer")
 # The bot is an AI assistant and says so when asked (EU AI Act transparency): a sentence claiming
 # to be a person is regenerated or cut. "Nie som človek" / "I'm not a human" are fine.
 _HUMAN_CLAIM_RE = re.compile(
@@ -4951,7 +5105,7 @@ _DATE_PROMISE_RE = re.compile(
     re.IGNORECASE)
 # Whole-reply problems: worth a regeneration, but there is no sentence to cut.
 _REGEN_ONLY_RULES = ("jazyk-odpovede", "cena-neodpovedana", "kontakt-pred-ponukou", "prazdna-odpoved", "dve-moznosti",
-                     "zakazana-otazka")
+                     "zakazana-otazka", "cena-nezobrazena")
 _PRICE_QUESTION_RE = re.compile(
     r"\b(?:koľko|kolko|kolik)\b[^?\n]{0,60}(?:stoj|stál|stal|stát|bude|vyjde|zaplat|cen)|\bak[áa]\s+(?:je\s+)?cena\b|"
     r"\bcenu\b|\bhow\s+much\b|\bwhat\s+(?:would|does|will)\b[^?\n]{0,40}\bcost\b|\bprice\b|"
@@ -5008,7 +5162,10 @@ def _offer_due(user_input):
                 # a series named now, or named earlier with the size just given
                 or _SERIES_NAMED_RE.search(user_input)
                 or (_SERIES_NAMED_RE.search(_all_user_text())
-                    and (_CUSTOMER_M2_RE.search(user_input) or _CUSTOMER_KW_RE.search(user_input))))
+                    and (_CUSTOMER_M2_RE.search(user_input) or _CUSTOMER_KW_RE.search(user_input)))
+                # the bot asked what matters and this is the answer, whatever it says (live demo 2026-10-24: a second
+                # round of questions about which room is which instead of the offer)
+                or _FEATURE_QUESTION_RE.search(_previous_reply()))
 
 
 # The customer can be asked for contact details once there's a price (K7: town, phone and the
@@ -5250,7 +5407,8 @@ def _sentence_is_hard(sentence, trusted, bad_values=()):
                 or _premature_promise_sentences(sentence) or _DATE_PROMISE_RE.search(sentence)
                 or _not_in_catalog_claims(sentence) or _unsupported_figures(sentence)
                 or _support_contact_requests(sentence) or _HUMAN_CLAIM_RE.search(sentence)
-                or _brand_term_mixups(sentence) or _wall_called_cassette(sentence) or _false_stock_claims(sentence))
+                or _brand_term_mixups(sentence) or _wall_called_cassette(sentence) or _false_stock_claims(sentence)
+                or _color_claims(sentence) or _wrong_comparisons(sentence))
 
 
 def _approx_amount(text):
@@ -5397,6 +5555,10 @@ def _regen_note(violations):
         "brand-funkcia": "Každú technológiu pripíš iba jej značke (WindFree a Tri-care sú Samsung, HADA a plazmový "
                          "ionizátor Toshiba); funkciu, ktorú rad podľa výsledkov hľadania nemá, vynechaj.",
         "sklad-tvrdenie": "Dostupnosť uveď iba z poľa `availability` z `quote` tej ponuky, o ktorej píšeš; inak ju vynechaj.",
+        "farba": "Ponúkaj iba farby z cenníka (biela; čierna pri Samsung Première / Avant S2 a Toshiba SHORAI CURVE "
+                 "Black; drevo pri DAISEIKAI 10 Wood; textilné kryty HAORI). Inú farbu nesľubuj — povedz, že ju nemáme.",
+        "porovnanie-smer": "Ktorý variant je lacnejší, ber z `comparison_with_earlier_quotes` (pole `cheaper`) alebo z "
+                           "celkových súm; lacnejší je ten s nižšou sumou.",
         "zakazana-otazka": "Na značku ani rozpočet sa nepýtaj: naceň dve možnosti (obe značky, alebo lacnejšiu a lepšiu) "
                            "cez `quote`; kódy nájdeš cez `lookup_product` ('<značka> multi-split <výkon v kW>' alebo "
                            "'<značka> <rad> <výkon v kW>').",
@@ -5860,6 +6022,13 @@ _OWN_INSTALL_RE = re.compile(
     r"\bhow\s+(?:do\s+I|to)\s+(?:install|mount)\b|\bI'?m\s+installing\b", re.IGNORECASE)
 
 
+# Colour and sun/heat words in the customer's (folded) text, for the server context.
+_COLOR_WISH_RE = re.compile(r"\bfarb\w*|\bruzov\w*|\bcerven\w*|\bciern\w*|\bbiel\w*|\bdrev\w*|\bfialov\w*|\bzelen\w*|"
+                            r"\bzlt\w*|\bmodr\w*|\bsiv\w*|\bbezov\w*|\bcolou?r\w*|\bpink\b", re.IGNORECASE)
+_SUN_HEAT_RE = re.compile(r"\bna\s+juh|\bjuzn\w*|\bslnk\w*|\bslnecn\w*|\bprehrie\w*|\bizolac\w*|\bpodkrov\w*|"
+                          r"\bsouth[\s-]facing\b|\binsulation\b", re.IGNORECASE)
+
+
 # The customer picks an offer: the price card's button text, or their own words.
 _OFFER_CHOSEN_RE = re.compile(
     r"^\s*(?:chcem\s+túto\s+ponuku|i\s+want\s+this\s+offer)|"
@@ -5886,6 +6055,14 @@ def build_server_context(note=None):
         status += "\n" + _filtration_ranking_text()
     if _wished(_BEST_WISH_RE):
         status += "\n" + _best_wish_text()
+    folded_text = fold_diacritics(_all_user_text())
+    if _COLOR_WISH_RE.search(folded_text):
+        status += "\n" + _colors_text()
+    if _SUN_HEAT_RE.search(folded_text):
+        # 2ef94e: "slnečná strana bez izolácie — 1 kW na 10 m² nebude stačiť, cena sa zvýši"
+        status += ("\nZákazník spomenul slnko, prehrievanie, izoláciu alebo podkrovie. Dimenzuj podľa pravidla na m² "
+                   "(sizing_policy); netvrď, že výkon nestačí ani že cena stúpne, a na izoláciu sa nepýtaj — "
+                   "podmienky na mieste posúdi projektový manažér pri obhliadke.")
     if (not S().quotes and _CUSTOMER_M2_RE.search(_all_user_text()) and not _industrial_case()
             and not _preferences_known()):
         last = S().user_inputs[-1] if S().user_inputs else ""
@@ -6381,6 +6558,16 @@ def run_user_turn_streaming(user_input):
                     "dve-moznosti: ukazuješ iba jednu nacenenú možnosť. Pri prvej ponuke ukáž dve, obe nacenené "
                     "(každú vlastným volaním `quote`): odporúčanú a druhú — lacnejšiu alebo inú značku, ak zákazník "
                     "značku nevybral (`cheaper_alternative` z quote ti ju ponúka). Pri každej uveď cenu s DPH."
+                )
+            # A price question, a quote made this turn, and the reply states no price from it (live demo 2026-10-24:
+            # "Koľko by stála?" got a SEIYA quote and a question about quietness instead of the price).
+            if (answering and not force_final and attempt_text.strip() and _PRICE_QUESTION_RE.search(user_input)
+                    and len(sess.quotes) > quotes_before
+                    and not _quotes_in_reply(sess.quotes[quotes_before:], attempt_text)):
+                violations.append(
+                    "cena-nezobrazena: zákazník sa pýta na cenu a `quote` si už zavolal, ale v odpovedi cenu nemáš. "
+                    "Uveď cenu s DPH z výsledku `quote` (a pri prvej ponuke dve možnosti); otázku na preferencie "
+                    "polož až za cenou."
                 )
             if answering and attempt_text.strip() and _contact_before_price(attempt_text) and not _industrial_case():
                 violations.append(

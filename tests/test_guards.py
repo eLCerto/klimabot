@@ -50,6 +50,16 @@ bot.BREAKER_PATH = TMP / "spend_breaker.json"
 SALES_Q = bot.CONSENT_QUESTIONS["sales"]["sk"]
 SUPPORT_Q = bot.CONSENT_PHRASES["previous_questions"]["support"][0]  # retired: complaints get no consent question
 AR30_SET = ["AR40H09C1BMNEU", "AR40H09C1BMXEU"]
+
+
+def priced(codes):
+    """A set's total with DPH as quote() returns it, computed in a throwaway session (for scripted replies)."""
+    current = bot.S()
+    bot.use_session(bot.Session())
+    try:
+        return bot._eur(bot.quote([{"code": c} for c in codes])["total_with_DPH_23pct_eur"])
+    finally:
+        bot.use_session(current)
 SEIYA_SET = ["RAS-10E2AVG-E", "RAS-B10E2KVG-E"]
 _ids = itertools.count()
 
@@ -392,7 +402,8 @@ class GateTests(BotTest):
             "Spálňa 14 m2, koľko by to stálo aj s montážou?",
             resp(text("Akú značku preferujete, Samsung alebo Toshiba?")),
             resp(tool("quote", items=[{"code": c} for c in AR30_SET])),
-            resp(text("Toto je najlacnejší set; ak chcete inú značku, povedzte.")))
+            resp(text(f"Najlacnejší set stojí {priced(AR30_SET)} s DPH; ak chcete inú značku, povedzte.")),
+            resp(text(f"Najlacnejší set stojí {priced(AR30_SET)} s DPH; ak chcete inú značku, povedzte.")))
         self.assertTrue(any("cena-neodpovedana" in d["text"] for e, d in events if e == "notice"))
         self.assertEqual(len(self.sess.quotes), 1)
         self.assertEqual(bot.client.calls[1]["tool_choice"], {"type": "any"}, "the regeneration must call a tool (d04)")
@@ -783,6 +794,60 @@ class QuoteTests(BotTest):
         self.assertNotIn("E/D", cut)
         self.assertIn("A+++", cut)
         self.assertTrue(bot._wished(bot._PREFERENCE_RE, "chcem mat tu najlepsiu klimatizaciu"))
+
+    def test_no_colours_the_price_list_lacks(self):  # live demo 2026-10-24: "rôzne farby vrátane ružovej"
+        for bad in ("Klimy sú dostupné v rôznych farbách vrátane ružovej.", "Ružová a Wi-Fi ovládanie — to viem zaradiť.",
+                    "Ukážem ti, čo máme dostupné s ružovou farbou."):
+            self.assertTrue(bot._color_claims(bad), bad)
+        for fine in ("Ružová farba bohužiaľ nie je dostupná v žiadnom modeli.", "Máme bielu, čiernu aj drevo.",
+                     "Zelená energia z tepelného čerpadla."):
+            self.assertFalse(bot._color_claims(fine), fine)
+        self.assertIn("farba", [v.split(":")[0] for v in bot.validate_assistant_reply("Máme aj ružovú klimu.")])
+        self.sess.user_inputs.append("Chcem ružovú klimu do obývačky")
+        context = bot.build_server_context()
+        self.assertIn("Farby podľa cenníka", context)
+        self.assertIn("DAISEIKAI 10: biela, drevo", context)
+        self.assertIn("Emerald Blue", context)
+
+    def test_price_comparisons_point_the_right_way(self):  # live demo 2026-10-24: "Toshiba vyjde lacnejšie"
+        shorai = self.q([("RAS-13P2AVSG-E", 1), ("RAS-B13P2KVSG-E", 1)])
+        ar35 = self.q([("AR40H12C1AMNEU", 1), ("AR40H12C1AMXEU", 1)])
+        diff = bot._eur(shorai["total_with_DPH_23pct_eur"] - ar35["total_with_DPH_23pct_eur"])
+        self.assertTrue(bot._wrong_comparisons(f"Oproti Samsung Toshiba vyjde o {diff} lacnejšie."))
+        self.assertTrue(bot._wrong_comparisons(f"Toshiba SHORAI CURVE je o {diff} lacnejšia ako Samsung AR35."))
+        for fine in (f"Oproti Samsung Toshiba vyjde o {diff} drahšie.", f"Samsung je o {diff} lacnejší ako Toshiba.",
+                     f"Samsung je o {diff} lacnejší."):
+            self.assertFalse(bot._wrong_comparisons(fine), fine)
+
+    def test_one_energy_class_for_both_modes_must_hold_for_both(self):  # AR35: A++ cooling, A+ heating
+        self.assertTrue(bot._wrong_energy_classes("**Samsung AR35 WIFI** — trieda A++ na chladenie aj vykurovanie"))
+        for fine in ("**Samsung AR35 WIFI** — trieda A++ pri chladení", "**Samsung AR35 WIFI** — trieda A++ / A+",
+                     "**Toshiba HAORI** — trieda A+++ na chladenie aj vykurovanie"):
+            self.assertEqual(bot._wrong_energy_classes(fine), [], fine)
+
+    def test_brand_and_size_lookup_and_offer_after_the_feature_question(self):  # live demo 2026-10-24
+        samsung = bot.lookup_product("Samsung 1.4 kW")["series_sets"]
+        self.assertTrue(samsung and all(s["codes"] for s in samsung))
+        self.assertEqual(len({s["cooling_kW"] for s in samsung}), 1, "one size: the smallest that covers it")
+        self.assertIn("filtration_tier", samsung[0])
+        self.assertTrue(bot.lookup_product("Toshiba 1,4 kW")["series_sets"])
+        self.sess.conversation += [{"role": "user", "content": "Dom, 3 izby 12, 15 a 20 m²."},
+                                   {"role": "assistant", "content": "Čo je pre vás najdôležitejšie — tichý chod, filtrácia?"}]
+        self.sess.user_inputs.append("Dom, 3 izby 12, 15 a 20 m².")
+        self.sess.user_inputs.append("Kuchyňa a spálňa na juh sa prehrievajú")
+        self.sess.conversation.append({"role": "user", "content": "Kuchyňa a spálňa na juh sa prehrievajú"})
+        self.assertTrue(bot._offer_due(self.sess.user_inputs[-1]), "the feature question was answered: offer now")
+        self.assertIn("netvrď, že výkon nestačí", bot.build_server_context())
+
+    def test_a_quote_made_but_not_shown_is_regenerated(self):  # live demo 2026-10-24: "Koľko by stála?"
+        price = priced(AR30_SET)
+        events, shown = self.turn(
+            "Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?",
+            resp(tool("quote", items=[{"code": c} for c in AR30_SET])),
+            resp(text("Je pre vás dôležitý tichý chod? Podľa toho vám odporučím model.")),
+            resp(text(f"Set stojí {price} s DPH.")), resp(text(f"Set stojí {price} s DPH.")))
+        self.assertTrue(any("cena-nezobrazena" in d["text"] for e, d in events if e == "notice"), events)
+        self.assertIn(price, shown)
 
     def test_filtration_claims_follow_the_ranking(self):  # replay 2026-10-21: Avant S2 "Štandardný filter"
         table = ("| | **Toshiba HAORI** | **Samsung Avant S2** |\n|---|---|---|\n"
