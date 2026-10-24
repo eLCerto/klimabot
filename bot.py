@@ -929,9 +929,9 @@ def _industrial_case():
 
 def _industrial_contact_text(language):
     if language == "en":
-        return (f"Industrial spaces are designed individually by our project manager — please {_contact_offer('en')}. "
+        return (f"Industrial and agricultural spaces are designed individually by our project manager — please {_contact_offer('en')}. "
                 "If you leave your name and phone or e-mail here, the project manager will get back to you.")
-    return (f"Priemyselné priestory navrhuje individuálne náš projektový manažér — {_contact_offer('sk')}. "
+    return (f"Priemyselné a poľnohospodárske priestory navrhuje individuálne náš projektový manažér — {_contact_offer('sk')}. "
             "Ak nám tu necháte meno a telefón či e-mail, projektový manažér sa vám ozve.")
 _OFFICE_RE = _stems_re(SIZING["office_words"])
 _WIFI_WANTED_RE = _stems_re(SIZING["wifi_triggers"])
@@ -939,6 +939,9 @@ _CUSTOMER_KW_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*kW\b", re.IGNORECASE)
 # "20mm2" is a typo for 20 m² (live demo 2026-10-20: the size went unread, so no offer was forced).
 _CUSTOMER_M2_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m{1,2}²|m\^2|metrov\s+štvorcov|štvorcov|sq\.?\s*m|"
                              r"square\s+met)", re.IGNORECASE)
+# "spolu 40 m²", "celkom 54 m2": a total, not a room
+_M2_TOTAL_RE = re.compile(r"(?:spolu|celkom|dokopy|celkov\w*|total\w*|together|in\s+total)\s*(?:je\s+|má\s+|ma\s+|to\s+je\s+)?"
+                          r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m²)", re.IGNORECASE)
 _NO_CEILING_RE = re.compile(
     r"(?:nemáme|nemám|nie\s+je|bez)\s+(?:žiadn\w+\s+)?podhľad|podhľad\w*\s+(?:nemáme|nemám|nie\s+je)|"
     r"betónov\w*\s+strop|no\s+(?:suspended|false)\s+ceiling|without\s+(?:a\s+)?(?:suspended|false)\s+ceiling",
@@ -1002,7 +1005,10 @@ _CHEAP_WISH_RE = re.compile(
     r"\bnajlacn\w*|\blacn\w*|\bcheap\w*|\blowest\s+price|\bzakladn\w*\s+(?:rad|model|verzi)\w*|"
     r"\bobycajn\w*|\bbasic\b|\bentry[\s-]level\b|\bbudget\s+(?:option|model)|"
     # "najlepší pomer cena/výkon" got the premium HAORI in the live demo of 2026-10-20
-    r"\bpomer\w*\s+(?:cena|ceny|cien)\w*|\bvalue\s+for\s+money\b|\bprice[\s/-]+performance\b", re.IGNORECASE)
+    r"\bpomer\w*\s+(?:cena|ceny|cien)\w*|\bvalue\s+for\s+money\b|\bprice[\s/-]+performance\b|"
+    # "finančne menej náročné" got the top-line DAISEIKAI 10 multi-split (live demo 2026-10-24)
+    r"\bmenej\s+narocn\w*|\bfinancne\s+(?:menej|nenarocn|dostupn|vyhodn)\w*|\bnenarocn\w*\s+na\s+(?:cen|financ|peniaz)\w*|"
+    r"\b(?:nizk|nizs|dostupn|prijateln|rozumn)\w*\s+cen\w*|\bmaly\s+rozpoc\w*|\bcheaper\b", re.IGNORECASE)
 _BRAND_RES = {"Samsung": re.compile(r"\bsamsung", re.IGNORECASE), "Toshiba": re.compile(r"\btoshib", re.IGNORECASE)}
 _ANY_BRAND_RE = re.compile(
     r"znack\w*\s+(?:mi\s+|nam\s+)?(?:je\s+)?(?:jedno|jedna|nezalezi)|nezalezi\s+(?:mi\s+)?na\s+znack|"
@@ -1288,6 +1294,18 @@ def _fit_check(fit_lines, override_reason=None):
             if smaller:  # an error, not a warning: the bot ignored the warning and quoted 3.5 kW twice
                 errors.append(f"naddimenzované: na {max(m2):g} m² stačí ten istý rad vo veľkosti {smaller[0]:g} kW "
                               f"(tento má {kw:g} kW) — naceň menšiu, je lacnejšia")
+        # Rooms named one by one ("kuchyňa 30, spálňa 24 m²"): the largest one needs a unit that covers it (live demo
+        # 2026-10-24: 3× 2.5 kW with a 30 m² kitchen). A total next to the rooms ("spolu 54 m²") is not a room.
+        totals = {float(t.replace(",", ".")) for t in _M2_TOTAL_RE.findall(_all_user_text())}
+        rooms = sorted(set(m2) - totals)
+        if len(rooms) >= 2 and abs(rooms[-1] - sum(rooms[:-1])) <= 1:
+            rooms = rooms[:-1]
+        units = [r["raw"].get("cooling_kW") or 0 for r, _, _, c in fit_lines if c == "multi_split_indoor"]
+        room_need = rooms[-1] * SIZING["kw_per_m2"] if len(rooms) >= 2 else 0
+        if units and room_need and max(units) < room_need * SIZING["undersize_ratio"]:
+            errors.append(f"poddimenzované: najväčšia miestnosť, ktorú zákazník uviedol, má {rooms[-1]:g} m² a "
+                          f"potrebuje približne {room_need:g} kW, najväčšia vnútorná jednotka má {max(units):g} kW — "
+                          "do nej daj väčšiu jednotku")
         # A multi-split wall unit bigger than the largest room the customer named needs (scenario
         # dom_multisplit_wifi: 2× 4.2 kW for two 20 m² rooms).
         for rec, codes, _, cat in fit_lines:
@@ -4631,9 +4649,17 @@ _COLOR_NEGATION_RE = re.compile(
     r"not|no|isn'?t|aren'?t|unavailable)\b", re.IGNORECASE)
 
 
+# "Všimol som si, že chceš červenú klimatizáciu" restates the customer's wish (live demo 2026-10-24: rejected three
+# times before the bot could say there is no red).
+_RESTATED_WISH_RE = re.compile(
+    r"\b(?:chceš|chcete|chcel\w*|chcela|chceli|želáš|želáte|zelas|zelate|pýtaš|pýtate|pytas|pytate|hľadáš|hľadáte|"
+    r"hladas|hladate|spomínaš|spomínate|spominas|spominate|you\s+want|you'?d\s+like|you\s+asked)\b", re.IGNORECASE)
+
+
 def _color_claims(text):
-    """Sentences offering a colour no price list has."""
-    return [s for s in _sentences(text) if _UNAVAILABLE_COLOR_RE.search(s) and not _COLOR_NEGATION_RE.search(s)]
+    """Sentences offering a colour no price list has (a restated wish or a negation passes)."""
+    return [s for s in _sentences(text) if _UNAVAILABLE_COLOR_RE.search(s) and not _COLOR_NEGATION_RE.search(s)
+            and not _RESTATED_WISH_RE.search(s)]
 
 
 @functools.lru_cache(maxsize=1)
@@ -4645,10 +4671,12 @@ def _colors_text():
         section = _series_key(rec)
         m = re.search(r"_(White|Black|Wood)$", section)
         if m and "/single_split/" in rec["source"]:
-            variants.setdefault(section[:m.start()].replace("_", " "), set()).add(names[m.group(1)])
+            # with the brand: without it the bot wrote "drevo (Samsung DAISEIKAI 10)" (live demo 2026-10-24)
+            base = f"{rec['brand']} {section[:m.start()].replace('_', ' ')}"
+            variants.setdefault(base, set()).add(names[m.group(1)])
     covers = sorted({c.get("color") for s in _series_sections("HAORI") for c in s.get("textile_covers", []) if c.get("color")})
     parts = [f"{base}: {', '.join(sorted(colors))}" for base, colors in sorted(variants.items())]
-    return ("Farby podľa cenníka: " + "; ".join(parts) + (f"; HAORI: textilné kryty {', '.join(covers)}" if covers else "")
+    return ("Farby podľa cenníka: " + "; ".join(parts) + (f"; Toshiba HAORI: textilné kryty {', '.join(covers)}" if covers else "")
             + ". Ostatné rady majú jednu štandardnú (bielu) farbu. Ružovú, červenú ani inú farbu, ktorá tu nie je, "
             "nesľubuj — povedz, že ju nemáme, a ponúkni farby zo zoznamu.")
 
@@ -5401,9 +5429,29 @@ def _wall_called_cassette(text):
             and not _BRAND_NEGATION_RE.search(s) and not re.search(r"n[aá]stenn|wall", s, re.I)]
 
 
+_BRAND_BEFORE_SERIES_RE = re.compile(r"\b(samsung|toshib\w*)\s*\**\s*$", re.IGNORECASE)
+
+
+def _brand_series_mismatch(sentence):
+    """A brand written right before the other brand's series ("Samsung DAISEIKAI 10", live demo 2026-10-24)."""
+    brands = _series_brands()
+    for key, rx in _SERIES_RES.items():
+        if key == "Parapetna_jednotka":  # both brands sell a console unit
+            continue
+        for m in rx.finditer(sentence):
+            before = _BRAND_BEFORE_SERIES_RE.search(sentence[:m.start()])
+            owner = brands.get(key)
+            if before and owner and not before.group(1).lower().startswith(owner.lower()[:6]):
+                return True
+    return False
+
+
 def _brand_term_mixups(text):
     out = []
     for s in _sentences(text):
+        if _brand_series_mismatch(s):
+            out.append(s)
+            continue
         if _BRAND_NEGATION_RE.search(s):
             continue
         toshiba, samsung = _TOSHIBA_CTX_RE.search(s), _SAMSUNG_CTX_RE.search(s)
@@ -6026,7 +6074,8 @@ CRITICAL_RULES_TEXT = (
     "kozmetika, obchod, predajňa, butik, reštaurácia, kaviareň, fitness, "
     "open-space kancelária >25 m². Komerčné rady majú vyššiu životnosť "
     "kompresora a vhodnú filtráciu pre 24/7 prevádzku.\n"
-    "- **Priemyselné priestory (hala, výroba, továreň) nerieš.** Nenavrhuj systém ani výkon, nenaceňuj; "
+    "- **Priemyselné a poľnohospodárske priestory (hala, výroba, továreň, chliev, maštaľ, farma) nerieš.** "
+    "Nenavrhuj systém ani výkon, nenaceňuj; "
     "daj kontakt na firmu alebo ponúkni, že ak zákazník nechá meno a telefón či e-mail, projektový manažér "
     "sa mu ozve.\n"
     "- **Alergia / astma / prach / 'kvalita vzduchu' → najlepšia filtrácia.** "
@@ -6170,9 +6219,10 @@ def build_server_context(note=None):
                    f"{_contact_offer()}.")
     if _industrial_case():
         status += (
-            "\nZákazník chce chladiť priemyselný priestor (hala, výroba, továreň). Tento chatbot ho nerieši: "
+            "\nZákazník chce chladiť priemyselný alebo poľnohospodársky priestor (hala, výroba, továreň, chliev, "
+            "maštaľ, farma, skleník). Tento chatbot ho nerieši: "
             "nenavrhuj systém, výkon ani modely, nehľadaj a nenaceňuj, nepýtaj sa na plochu ani zóny. Krátko "
-            "napíš, že priemyselné priestory navrhuje individuálne projektový manažér, a ponúkni dve možnosti: "
+            "napíš, že také priestory navrhuje individuálne projektový manažér, a ponúkni dve možnosti: "
             f"kontakt ({_contact_offer()}), alebo nech nechá meno a telefón či e-mail — napíš to ako podmienku: "
             "„Ak mi necháte meno a telefón či e-mail, projektový manažér sa vám ozve.“")
     parts.append(status)

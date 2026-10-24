@@ -795,6 +795,34 @@ class QuoteTests(BotTest):
         self.assertIn("A+++", cut)
         self.assertTrue(bot._wished(bot._PREFERENCE_RE, "chcem mat tu najlepsiu klimatizaciu"))
 
+    def test_agricultural_buildings_go_to_the_pm(self):  # the owner, 2026-10-24: a pigsty, a barn…
+        for msg in ("klimatizácia do chlieva pre ošípané, 3 prasce", "Chcem chladiť maštaľ", "máme kurín na farme",
+                    "skleník na paradajky"):
+            self.sess.user_inputs[:] = [msg]
+            self.assertTrue(bot._industrial_case(), msg)
+        for msg in ("Chcem klímu do lekárne, je to farmácia", "spálňa 14 m2, stabilná teplota"):
+            self.sess.user_inputs[:] = [msg]
+            self.assertFalse(bot._industrial_case(), msg)
+        self.sess.user_inputs[:] = ["klimatizácia do chlieva pre 3 prasce"]
+        self.assertIn("error", self.q([(c, 1) for c in AR30_SET]))
+        self.assertIn("poľnohospodársk", bot.build_server_context())
+
+    def test_brand_series_colours_room_size_and_cheap_wording(self):  # live demo 2026-10-24
+        self.assertTrue(bot._brand_term_mixups("Drevo (Samsung DAISEIKAI 10) a čierna (Toshiba Avant S2)."))
+        for fine in ("Toshiba DAISEIKAI 10 Wood a Samsung WindFree Avant S2 Black.", "Samsung parapetná jednotka."):
+            self.assertFalse(bot._brand_term_mixups(fine), fine)
+        self.assertFalse(bot._color_claims("Všimol som si, že chceš červenú klimatizáciu."), "a restated wish")
+        self.sess.user_inputs.append("Chcem ružovú klimu")
+        self.assertIn("Toshiba DAISEIKAI 10: biela, drevo", bot.build_server_context())
+        self.sess.user_inputs[:] = ["Kuchyňa 30m2, spálňa 24m2 a podkrovie, finančne menej náročné"]
+        self.assertTrue(bot._wished(bot._CHEAP_WISH_RE))
+        small = self.q([("RAS-3M18G3AVG-E", 1), ("RAS-B10B2KVG-E2", 3)])
+        self.assertIn("najväčšia miestnosť", small["error"])
+        self.assertNotIn("error", self.q([("RAS-3M26G3AVG-E", 1), ("RAS-B13B2KVG-E2", 1), ("RAS-B10B2KVG-E2", 2)]))
+        self.sess.user_inputs[:] = ["Dve izby, 20 a 20 m2, spolu 40 m2"]
+        self.assertNotIn("najväčšia miestnosť", str(self.q([("RAS-2M18G3AVG-E", 1), ("RAS-B10B2KVG-E2", 2)])),
+                         "the total is no room")
+
     def test_features_stay_with_their_series(self):  # live demo 2026-10-24: SEIYA with HAORI's filters
         reply = ("**2. Toshiba SEIYA 2,5 kW** — Wi-Fi iba voliteľne\n"
                  "Bohatšia výbava (prachový filter, plazmový ionizátor, filter Ultra Pure).")
@@ -1942,7 +1970,7 @@ class BoundaryTests(BotTest):
         self.assertTrue(bot._industrial_case())
         self.assertIn(bot._industrial_contact_text("sk"), shown, "code adds the contact the model left out")
         self.assertIn("error", bot.quote([{"code": c, "qty": 1} for c in AR30_SET]))
-        self.assertIn("priemyselný priestor", bot.build_server_context())
+        self.assertIn("priemyselný alebo poľnohospodársky priestor", bot.build_server_context())
         # Asking for the contact before any price is right here, not a reason to regenerate.
         _, shown = self.turn("dobre", resp(text("Ak mi necháte meno a telefón alebo e-mail, projektový manažér sa vám ozve.")))
         self.assertIn("projektový manažér sa vám ozve", shown)

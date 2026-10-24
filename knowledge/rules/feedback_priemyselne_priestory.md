@@ -1,12 +1,12 @@
 ---
 name: priemyselne-priestory
-description: Priemyselné priestory (hala, výroba, továreň) chatbot nerieši — žiadny návrh ani cena; kontakt na firmu alebo sa ozve projektový manažér.
+description: Priemyselné a poľnohospodárske priestory (hala, výroba, továreň; chliev, maštaľ, farma, skleník) chatbot nerieši — žiadny návrh ani cena; kontakt na firmu alebo sa ozve projektový manažér.
 type: feedback
 ---
 
-Ak zákazník chce chladiť **priemyselný priestor** — výrobnú alebo skladovú halu, výrobu, továreň, závod, logistické centrum — chatbot **nenavrhuje riešenie ani nenaceňuje**. Kľúčové slová sú v `config/sizing_policy.json` (`industrial`).
+Ak zákazník chce chladiť **priemyselný priestor** — výrobnú alebo skladovú halu, výrobu, továreň, závod, logistické centrum — alebo **poľnohospodársku budovu** — chliev, maštaľ, stajňu, kurín, farmu, skleník — chatbot **nenavrhuje riešenie ani nenaceňuje**. Kľúčové slová sú v `config/sizing_policy.json` (`industrial`).
 
-**Why:** Chatbot je určený pre byty, domy a menšie prevádzky. Pri hale navrhol multi-split s výkonom odhadnutým z plochy, čo pre halu neplatí (výška, technológie, tepelné zisky výroby). Taký návrh by zákazníka zaviedol; priemyselné chladenie navrhuje projektový manažér individuálne (majiteľ, 2026-10-18).
+**Why:** Chatbot je určený pre byty, domy a menšie prevádzky. Pri hale navrhol multi-split s výkonom odhadnutým z plochy, čo pre halu neplatí (výška, technológie, tepelné zisky výroby). Taký návrh by zákazníka zaviedol; priemyselné chladenie navrhuje projektový manažér individuálne (majiteľ, 2026-10-18). Pri chlieve pre ošípané bot vymýšľal normy plochy na zviera a raz ho nazval komerčným, raz rezidenčným priestorom; poľnohospodárske budovy (zvieratá, vlhkosť, vetranie) rieši tiež projektový manažér (majiteľ, 2026-10-24).
 
 **How to apply:**
 

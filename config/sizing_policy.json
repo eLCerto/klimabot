@@ -18,8 +18,9 @@
   },
   "inferred_commercial": ["obchod", "predajň", "predajn", "butik", "showroom", "reštaurác", "restaurac", "kaviar", "cukrár", "fitness", "posilňov", "posilnov", "telocvič", "open space", "open-space", "openspace", "kancelári", "kancelari", "coworking"],
   "industrial": {
-    "note": "Priemyselné priestory (hala, výroba, továreň) chatbot nerieši: nenavrhuje ani nenaceňuje, dá kontakt na projektového manažéra alebo ponúkne, že sa PM ozve. Kmene slov sa porovnávajú od začiatku slova, s diakritikou aj bez.",
-    "triggers": ["priemysel", "industri", "hala", "haly", "halu", "hale", "halou", "výrobn", "vyrobn", "továr", "tovaren", "tovarn", "fabrik", "závod", "zavod", "logistick", "factory", "warehouse", "production hall"]
+    "note": "Priemyselné a poľnohospodárske priestory (hala, výroba, továreň; chliev, maštaľ, stajňa, kurín, farma, skleník) chatbot nerieši: nenavrhuje ani nenaceňuje, dá kontakt na projektového manažéra alebo ponúkne, že sa PM ozve (majiteľ: priemysel 2026-10-18, poľnohospodárstvo 2026-10-24). Kmene slov sa porovnávajú od začiatku slova, s diakritikou aj bez; samotné „farma“ chýba zámerne (zachytilo by „farmácia“).",
+    "triggers": ["priemysel", "industri", "hala", "haly", "halu", "hale", "halou", "výrobn", "vyrobn", "továr", "tovaren", "tovarn", "fabrik", "závod", "zavod", "logistick", "factory", "warehouse", "production hall",
+                 "chliev", "mašta", "masta", "stajň", "stajn", "kurín", "kurin", "kravín", "kravin", "ovčín", "ovcin", "farmu", "farme", "farmy", "farmou", "farmár", "farmar", "hydin", "ošípan", "osipan", "prasa", "prasat", "prasiat", "prasc", "dobyt", "poľnohospod", "polnohospod", "agro", "skleník", "sklenik", "stodol", "senník", "sennik", "barn", "pigsty", "livestock", "greenhouse"]
   },
   "office_words": ["kancelári", "kancelari", "coworking"],
   "office_residential_ok_up_to_m2": 25,
