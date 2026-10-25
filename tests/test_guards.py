@@ -795,6 +795,34 @@ class QuoteTests(BotTest):
         self.assertIn("A+++", cut)
         self.assertTrue(bot._wished(bot._PREFERENCE_RE, "chcem mat tu najlepsiu klimatizaciu"))
 
+    def test_the_first_offer_is_picked_by_code(self):  # 19 of 30 demo regenerations were the first offer
+        cases = {
+            "Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?": {},
+            "Spálňa 14 m2, musí mať wifi, koľko to stojí?": {"wifi": True},
+            "Obývačka 30 m2, chcem tú najlepšiu klimatizáciu": {"tier1": True},
+            "Spálňa 20 m2, chcem Toshibu, koľko stojí?": {"brand": "Toshiba"},
+        }
+        for message, expect in cases.items():
+            self.setUp()
+            self.sess.user_inputs.append(message)
+            picks = bot._suggested_sets()
+            self.assertEqual(len(picks or []), 2, message)
+            brands = {rec["brand"] for rec, _ in picks}
+            self.assertEqual(brands, {expect["brand"]} if "brand" in expect else {"Samsung", "Toshiba"}, message)
+            self.assertIn("Server vybral dve možnosti", bot.build_server_context(), message)
+            for rec, codes in picks:
+                if expect.get("wifi"):
+                    self.assertTrue(bot._has_wifi(rec), message)
+                if expect.get("tier1"):
+                    self.assertEqual(bot._filtration_rank(rec)[0], 1, message)
+                self.assertNotIn("error", self.q([(c, 1) for c in codes]), f"{message}: {codes} passes the fit check")
+            self.assertNotIn("Server vybral dve možnosti", bot.build_server_context(), "only the first offer")
+        self.setUp()
+        for message in ("Dve izby po 15 m2", "Spálňa 14 m2, chcem kazetovú", "Spálňa 14 m2, chcem HAORI",
+                        "Spálňa 14 m2, hlavne nech je tichá"):
+            self.sess.user_inputs[:] = [message]
+            self.assertIsNone(bot._suggested_sets(), message)
+
     def test_agricultural_buildings_go_to_the_pm(self):  # the owner, 2026-10-24: a pigsty, a barn…
         for msg in ("klimatizácia do chlieva pre ošípané, 3 prasce", "Chcem chladiť maštaľ", "máme kurín na farme",
                     "skleník na paradajky"):

@@ -40,9 +40,16 @@ COPY . .
 # Embed the knowledge base now (a few minutes on CPU) instead of at every container start.
 # Importing bot does it. The key is a dummy (the import makes no API call), and the session
 # the import opens is logged to a throwaway data dir.
-RUN ANTHROPIC_API_KEY=build-time-dummy KLIMABOT_DATA_DIR=/tmp/build-data \
-    KLIMABOT_KB_CACHE_DIR=/app/.kb_cache LEAD_MAIL_TO= SMTP_HOST= \
+# The vectors live in a BuildKit cache mount that survives between builds: "COPY . ." above
+# makes every code change rerun this step, and the cache's fingerprint (the final chunk texts
+# and the embedding model, kb_fingerprint) lets import bot reuse them unless the knowledge base
+# itself changed — a deploy took 15–20 minutes, almost all of it re-embedding the same chunks.
+RUN --mount=type=cache,id=klimabot-kb,target=/kb-build-cache \
+    ANTHROPIC_API_KEY=build-time-dummy KLIMABOT_DATA_DIR=/tmp/build-data \
+    KLIMABOT_KB_CACHE_DIR=/kb-build-cache LEAD_MAIL_TO= SMTP_HOST= \
     python -c "import bot" \
+ && mkdir -p /app/.kb_cache \
+ && cp /kb-build-cache/.kb_vecs.npy /kb-build-cache/.kb_hash.txt /app/.kb_cache/ \
  && rm -rf /tmp/build-data
 
 USER app

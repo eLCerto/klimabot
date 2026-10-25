@@ -6152,6 +6152,69 @@ _SUN_HEAT_RE = re.compile(r"\bna\s+juh|\bjuzn\w*|\bslnk\w*|\bslnecn\w*|\bprehrie
                           r"\bsouth[\s-]facing\b|\binsulation\b", re.IGNORECASE)
 
 
+# The first offer's two options, picked by code. In the demo logs 19 of 30 regenerations were the first offer
+# (no price, `cena-neodpovedana`, or one option, `dve-moznosti`), and the bot often searched (9 s) only to find
+# codes for the second option. Single-room, wall-unit requests whose wishes code can read; otherwise None.
+_ROOMS_COUNT_RE = re.compile(r"\b(?:[2-9]|dve|dva|tri|styri|pat)\s+(?:izb|izieb|miestnost|priestor)\w*", re.IGNORECASE)
+_TASTE_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|dizajn|design|\bfarb\w*|\bciern\w*|\bdrev\w*|textil", re.IGNORECASE)
+
+
+def _suggested_sets():
+    """Two (record, codes) sets for the first offer: one per brand (two series when the customer named one
+    brand), the smallest size that covers the m², white, cheapest first — tier-1 filtration for "the best" or an
+    allergy, Wi-Fi as standard when wished. None when code can't read the request well enough."""
+    sess = S()
+    text = _all_user_text()
+    folded = fold_diacritics(text)
+    if (sess.quotes or _industrial_case() or _support_case() or _wished(_OWN_INSTALL_RE)
+            or _SERIES_NAMED_RE.search(text) or _MULTI_TEXT_RE.search(text) or _ROOMS_COUNT_RE.search(folded)
+            or _wished(_INDOOR_TYPE_WISH_RE) or _TASTE_WISH_RE.search(folded)):
+        return None
+    m2 = _customer_numbers(_CUSTOMER_M2_RE)
+    if not m2 or len(set(m2)) > 1:
+        return None
+    min_kw = m2[0] * SIZING["kw_per_m2"] * SIZING["undersize_ratio"]
+    wifi = _wished(_WIFI_WANTED_FOLDED_RE)
+    premium = _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE)
+    brands = [] if _ANY_BRAND_RE.search(folded) else [b for b, rx in _BRAND_RES.items() if rx.search(text)]
+    candidates = []
+    for codes, rec in _SETS.items():
+        kw = rec["raw"].get("cooling_kW")
+        rank = _filtration_rank(rec)
+        if ("/single_split/" not in rec["source"] or _NON_WALL_PATH_RE.search(rec["category_path"])
+                or re.search(r"_(?:Black|Wood)$", _series_key(rec)) or not isinstance(kw, (int, float)) or kw < min_kw
+                or (wifi and not _has_wifi(rec)) or (premium and not (rank and rank[0] == 1))
+                or (len(brands) == 1 and rec["brand"] != brands[0])):
+            continue
+        candidates.append((rec["raw"]["set_price_EUR"], kw, rec, sorted(codes)))
+    picks = []
+    for _, _, rec, codes in sorted(candidates, key=lambda c: (c[0], c[1])):
+        series = re.sub(r"_(?:White|Black|Wood)$", "", _series_key(rec))
+        if any(series == s or (len(brands) != 1 and rec["brand"] == r["brand"]) for r, _, s in picks):
+            continue
+        picks.append((rec, codes, series))
+        if len(picks) == 2:
+            return [(rec, codes) for rec, codes, _ in picks]
+    return None
+
+
+def _suggestion_text():
+    """The server note naming the first offer's two sets, when the offer is due now."""
+    latest = S().user_inputs[-1] if S().user_inputs else ""
+    if not (_offer_due(latest) or (_PRICE_QUESTION_RE.search(latest) and _customer_numbers(_CUSTOMER_M2_RE))):
+        return ""
+    picks = _suggested_sets()
+    if not picks:
+        return ""
+    why = ("trieda 1 filtrácie" if _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE) else "najlacnejší vhodný set")
+    why += ", Wi-Fi v základe" if _wished(_WIFI_WANTED_FOLDED_RE) else ""
+    options = "; ".join(f"{i}) {_describe(rec, as_set=True)} {codes}" for i, (rec, codes) in enumerate(picks, 1))
+    return (f"\nPonuka je na rade. Server vybral dve možnosti podľa plochy a želaní zákazníka ({why}): {options}. "
+            "Naceň každú vlastným `quote` a ukáž obe s cenou s DPH. Funkcie radu zistíš cez `lookup_product` "
+            "('<rad> <výkon v kW>', series_features); na kódy ani funkcie nehľadaj cez `search_knowledge`. Iný rad "
+            "iba vtedy, keď zákazník chce niečo, čo tieto nemajú.")
+
+
 # The customer picks an offer: the price card's button text, or their own words.
 _OFFER_CHOSEN_RE = re.compile(
     r"^\s*(?:chcem\s+túto\s+ponuku|i\s+want\s+this\s+offer)|"
@@ -6199,6 +6262,7 @@ def build_server_context(note=None):
         else:
             status += ("\nPred prvou cenovou ponukou sa zákazníka opýtaj, čo je preň dôležité (tichý chod, filtrácia "
                        "vzduchu, Wi-Fi ovládanie z mobilu, dizajn, čo najnižšia cena), a podľa toho vyber rad.")
+    status += _suggestion_text()
     latest = S().user_inputs[-1] if S().user_inputs else ""
     if S().quotes and S().consent is None and not _support_case() and _OFFER_CHOSEN_RE.search(latest):
         # The "Toto chcem" button: every first draft said "zaznamenal som" or "ozve sa" and was regenerated
