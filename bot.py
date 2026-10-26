@@ -934,7 +934,6 @@ def _industrial_contact_text(language):
     return (f"Priemyselné a poľnohospodárske priestory navrhuje individuálne náš projektový manažér — {_contact_offer('sk')}. "
             "Ak nám tu necháte meno a telefón či e-mail, projektový manažér sa vám ozve.")
 _OFFICE_RE = _stems_re(SIZING["office_words"])
-_WIFI_WANTED_RE = _stems_re(SIZING["wifi_triggers"])
 _CUSTOMER_KW_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*kW\b", re.IGNORECASE)
 # "20mm2" is a typo for 20 m² (live demo 2026-10-20: the size went unread, so no offer was forced).
 _CUSTOMER_M2_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m{1,2}²|m\^2|metrov\s+štvorcov|štvorcov|sq\.?\s*m|"
@@ -3490,7 +3489,8 @@ def authority_bonus(source):
 
 def rerank(query, candidate_indices, top_k):
     pairs = [(query, KB[i][0]) for i in candidate_indices]
-    scores = get_reranker().predict(pairs)
+    # Small batches: a batch is padded to its longest pair, so 8 at a time is faster with the same scores.
+    scores = get_reranker().predict(pairs, batch_size=8, show_progress_bar=False)
     adjusted = [s + authority_bonus(KB[i][1]) for s, i in zip(scores, candidate_indices)]
     order = np.argsort(-np.array(adjusted))
     return [candidate_indices[int(i)] for i in order[:top_k]]
@@ -3509,6 +3509,7 @@ def format_context(indices):
     pieces, sources, used = [], [], 0
     for i in indices:
         text, source = KB[i]
+        text = text.rsplit("\n\nSynonymá: ", 1)[0]
         piece = f"[{source}]\n{text}"
         if pieces and used + len(piece) > CONTEXT_CHAR_BUDGET:
             break
@@ -3565,7 +3566,7 @@ def dispatch_tool(name, inp):
         if name == "search_knowledge":
             # No default k here: search_knowledge picks it per query (dynamic_k) when k is None.
             result = search_knowledge(inp["query"], inp.get("k"))
-            return json.dumps(result, ensure_ascii=False), False
+            return result["results"] or "Znalostná báza k tomuto dotazu nič nenašla.", False
         if name == "lookup_product":
             result = lookup_product(inp["model_code"])
             return json.dumps(result, ensure_ascii=False), "error" in result
@@ -4114,11 +4115,6 @@ def _reply_amounts(text):
         if value is not None:
             out.append((raw, value))
     return out
-
-
-def _amounts_in(text):
-    """Every reading of every number in `text`."""
-    return {v for m in _CUSTOMER_NUMBER_RE.finditer(text) for v in _number_readings(m.group(1))}
 
 
 def _customer_amounts():

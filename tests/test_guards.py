@@ -1082,6 +1082,18 @@ class QuoteTests(BotTest):
             bot.rerank = real_rerank
             bot._SEARCH_CACHE.clear()
 
+    def test_search_result_is_plain_text_without_synonyms(self):
+        q = "silentblok antivibračná konzola pre vonkajšiu jednotku na stenu"
+        self.assertTrue(any("Synonymá: " in text for text, _ in bot.KB))
+        try:
+            content, is_error = bot.dispatch_tool("search_knowledge", {"query": q})
+        finally:
+            bot._SEARCH_CACHE.clear()
+        self.assertFalse(is_error)
+        self.assertTrue(content.startswith("[knowledge/"), content[:80])
+        self.assertNotIn("Synonymá: ", content)
+        self.assertNotIn('\\"', content)
+
     def test_a_wrong_revision_suffix_still_quotes(self):  # live demo 2026-10-15: HAORI 10 is -E2, not -E1
         q = self.q([("RAS-B10N4KVRG-E1", 1), ("RAS-10P2AVSG-E", 1)])
         self.assertNotIn("error", q)
