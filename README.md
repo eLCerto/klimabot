@@ -1,8 +1,8 @@
 # Klimabot — AI sales assistant for air conditioning
 
-A Slovak-language chatbot that sells air conditioning the way a good salesperson does. It asks about the space first, recommends a specific Samsung or Toshiba model, quotes an exact price, and hands a structured brief to the project manager once the customer agrees.
+A Slovak-language chatbot that sells air conditioning the way a good salesperson does. It asks about the space first, recommends two specific Samsung or Toshiba options, quotes exact prices, and hands a structured brief to the project manager once the customer agrees.
 
-**Live demo:** _link coming soon_ (the bot speaks Slovak; use made-up contact details)
+**Live demo:** [klimabot-malisek.duckdns.org](https://klimabot-malisek.duckdns.org) (the bot speaks Slovak; use made-up contact details)
 
 ![Klimabot web UI: the chat with a price card and the consent question, and the brief for the project manager](docs/screenshot.png)
 
@@ -10,7 +10,7 @@ On the left, the conversation: the recommendation, a price card computed by the 
 
 ## Why
 
-I wasn't happy with the chatbots on Slovak AC retailers' websites, so I built my own. It's built around the discovery questions a salesperson would ask: type of space, m², number of rooms, and budget last.
+I wasn't happy with the chatbots on Slovak AC retailers' websites, so I built my own. It's built around the discovery questions a salesperson would ask: type of space, m², number of rooms, the indoor unit type (wall-mounted is the standard) and what matters to the customer (quiet, filtration, Wi-Fi, design, a low price). Then it shows two priced options to choose from, and asks about the budget last.
 
 ## Keeping an LLM honest about prices
 
@@ -18,11 +18,12 @@ Most of the work went into stopping the model from making things up. In early te
 
 - **The model never touches a price.** It calls a `quote` tool with model codes and quantities only. Python looks up the catalog prices, pairs indoor and outdoor units into sets, checks multi-split compatibility, applies the discount policy (one discount per product category, the same for both brands, plus customer segment and promotion), and returns line items with stock availability ([`stock_policy.json`](config/stock_policy.json)), totals, VAT, the recycling fee, the comparison with the customer's budget (on their basis: with VAT unless they said without), the difference to earlier quotes and a cheaper suitable set when there is one. Ambiguous codes return an error instead of a guess.
 - **No installation price.** Installation depends on the site, so the bot never states a figure: the project manager prices it after the free site visit. When the customer's budget includes installation, the bot can only say whether the units fit.
-- **`quote` also checks that the set fits the space.** If the customer named a server room, salon or medical practice, residential units are refused; a server room needs two independent systems, each sized for the stated heat load with a margin, plus the failover controller. The thresholds live in [`sizing_policy.json`](config/sizing_policy.json). Softer mismatches (undersizing, a Wi-Fi wish on a model without Wi-Fi) come back as warnings, with the cheapest set that does have Wi-Fi.
+- **`quote` also checks that the set fits the space.** If the customer named a server room, salon or medical practice, residential units are refused; a server room needs two independent systems, each sized for the stated heat load with a margin, plus the failover controller. A unit bigger than the room needs, a multi-split whose largest unit is too small for the largest room, two outdoor units where one would take every room, or a cassette without its panel and controller are refused too. Unless the customer insists for a reason the code accepts, the bot has to fix the set. The thresholds live in [`sizing_policy.json`](config/sizing_policy.json). Softer mismatches (undersizing, a Wi-Fi wish on a model without Wi-Fi, a basic filter for an allergy) come back as warnings that name a better set.
+- **The first offer is picked by code.** For a single room, code chooses the two sets to price: one per brand, in the smallest size that covers the room, the cheapest by default, Wi-Fi models when Wi-Fi is wished, and the best filtration ([`filtration_policy.json`](config/filtration_policy.json)) when the customer wants "the best" or mentions an allergy. The model only prices and presents them, which cut the slowest and most-regenerated replies.
 - **Every euro amount in a reply must come from `quote`.** The validator compares each amount in the bot's answer with what `quote` returned, the euro amounts the customer typed, and differences between quote totals. A number from anywhere else, like an estimate, a self-computed discount or a catalog price copied from search results, gets the reply regenerated (at most twice per turn); if it is still there, the sentence is cut out before the customer sees it. The pricing policy isn't even in the prompt, so there are no percentages to apply by hand.
-- **Every response is checked server-side before the customer sees it.** Text the model writes next to a tool call ("let me check…") isn't shown at all; the answer comes after the tool. Mechanical issues (headings, emoji spam, Czech words) are fixed in place; content issues that sit in one sentence (a price under the wrong product or with the wrong VAT label, invented model codes or spec figures, savings claims, permit promises, delivery dates, asking where the outdoor unit goes) are regenerated or cut out; the rest is logged. The conversation history keeps exactly what was shown.
+- **Every response is checked server-side before the customer sees it.** Text the model writes next to a tool call ("let me check…") isn't shown at all; the answer comes after the tool. Mechanical issues (headings, emoji spam, Czech words) are fixed in place; content issues that sit in one sentence (a price under the wrong product or with the wrong VAT label, "A is cheaper than B" when the quotes say otherwise, invented model codes or spec figures, savings claims, permit promises, delivery dates, asking where the outdoor unit goes) are regenerated or cut out; the rest is logged. Product claims are checked against the price lists too: an energy class, a filter or a feature written next to a series must be that series' own, a colour must exist, and "in stock" must match the quote's availability. The conversation history keeps exactly what was shown.
 - **Consent is decided by code, not by the model.** When the bot asks for contact details, code appends the GDPR question in its approved wording ([`consent_phrases.json`](config/consent_phrases.json)). The bot asks for contact details (name, phone, e-mail, town) only after it has given a price. Only an explicit yes in the customer's very next message counts; "OK", "beriem" or "súhlasím s cenou" don't, and the question is asked again (at most twice). The bot doesn't handle complaints: it collects no personal data and gives the company's e-mail and phone instead. Until consent, phone numbers, e-mails and known names are masked in every log event; after a refusal, the whole session log is scrubbed.
-- **It stays in its lane.** Off-topic questions (medicine, law, homework, recipes) get one polite sentence and a way back to air conditioning, and the bot says it's an AI when asked. When a customer reports smoke, sparks or a burning smell, the reply opens with "switch it off at the breaker, call 112 if something is burning" — code adds it if the model doesn't. Diagnoses like asthma never reach the project manager's brief.
+- **It stays in its lane.** Off-topic questions (medicine, law, homework, recipes) get one polite sentence and a way back to air conditioning, and the bot says it's an AI when asked. Industrial halls and agricultural buildings get no design or price, only the project manager's contact; questions about installing a unit the customer already has get no advice, only a pointer to the project manager. When a customer reports smoke, sparks or a burning smell, the reply opens with "switch it off at the breaker, call 112 if something is burning" — code adds it if the model doesn't. Diagnoses like asthma never reach the project manager's brief.
 - **Leads are guarded.** `capture_lead` refuses to save anything without recorded sales consent, and refuses model codes that never came up in the conversation. If the customer consents but the bot forgets to close, code captures the lead itself. The audit in `cost_report.py` checks the order question → yes → lead independently of the bot.
 - **Tested.** [`tests/`](tests/) covers these guarantees with a fake model client; [`eval/`](eval/) runs scripted customer conversations end to end and checks every quoted price against the raw price lists.
 
@@ -40,7 +41,7 @@ Most of the work went into stopping the model from making things up. In early te
 bot.py            the whole bot in one file (also the CLI: python bot.py)
 main.py           starts the web app
 cost_report.py    cost, conversion and GDPR-audit report over the logs (also at /admin)
-config/           pricing policy, consent wording, sizing thresholds, stock rules, model prices
+config/           pricing policy, consent wording, sizing thresholds, stock rules, filtration ranking, model prices
 knowledge/        what the bot searches: samsung/, toshiba/, montaz/ (price lists), rules/ (behavior rules)
 web/              the web app: web.py and static/ (one HTML file + pinned marked and DOMPurify)
 tests/            unit tests with a fake model client
@@ -111,7 +112,7 @@ make down                             # stop it (the data volume stays)
 
 Without `make`, run the `docker compose` commands from the [`Makefile`](Makefile) directly.
 
-The build installs the CPU-only PyTorch, puts both HuggingFace models into the image and embeds the knowledge base, so a new container is ready in about 20 seconds instead of downloading and embedding first. The first build takes about 20 minutes (most of it installing PyTorch), the image is about 4.7 GB and the container needs 2–3 GB of RAM.
+The build installs the CPU-only PyTorch, puts both HuggingFace models into the image and embeds the knowledge base, so a new container is ready in about 20 seconds instead of downloading and embedding first. The first build takes about 20 minutes (most of it installing PyTorch and embedding), the image is about 4.7 GB and the container needs 2–3 GB of RAM. The embeddings are kept in a BuildKit cache between builds, so a later build that doesn't change `knowledge/` reuses them and takes a few minutes.
 
 - Everything the bot writes (logs, leads, sessions, the spend and mail ledgers) goes to the `klimabot-data` volume at `/data` (`KLIMABOT_DATA_DIR`), so a restart or redeploy keeps the daily budgets and the leads. The cost report runs inside: `docker compose exec klimabot python cost_report.py`.
 - Secrets come from `.env` when the container starts; `.dockerignore` keeps the file out of the image.
@@ -128,7 +129,7 @@ The recommended public setup: one Linux VPS with 2+ vCPU and 4+ GB RAM (the imag
 3. On the server, `git clone` the repo, `cp .env.example .env` and set `ANTHROPIC_API_KEY`, `COMPOSE_PROFILES=https`, `KLIMABOT_DOMAIN`, `COMPANY_EMAIL`, `KLIMABOT_ADMIN_TOKEN`, and for lead e-mails the `SMTP_*` / `LEAD_MAIL_TO` settings (optional; without them leads stay in the data volume and `/admin`). Use SMTP port 587: many hosts block 25 and 465.
 4. `make build`, then `make web`. The site is at `https://<KLIMABOT_DOMAIN>` once Caddy has the certificate (a few seconds); `/admin` shows the spend and the leads.
 
-To deploy a change: `git pull`, `make build`, `make web` (the app restarts; Caddy answers "starting" for about a minute). Certificates are kept in the `caddy-data` volume. Logs: `docker compose logs -f klimabot caddy`.
+To deploy a change: `git pull`, `make build`, `make web` (the app restarts; Caddy answers "starting" for about a minute). The old container keeps serving while the image builds, but the restart ends every open conversation, because sessions live in memory: check `/admin` (open conversations) before `make web`. Certificates are kept in the `caddy-data` volume. Logs: `docker compose logs -f klimabot caddy`.
 
 #### On a Hugging Face Space
 
