@@ -2058,6 +2058,59 @@ class BoundaryTests(BotTest):
         self.assertNotIn("astm", self.sess.lead_record["summary"])
 
 
+class LiveCheckTests(BotTest):
+    """The live API check of 2026-10-26."""
+
+    def rules(self, reply):
+        return [v.split(":")[0] for v in bot.validate_assistant_reply(reply)]
+
+    def test_a_feature_question_answered_without_a_source_must_search(self):
+        found = "[knowledge/samsung/glossary.json]\nWindFree™ technológia: chladenie bez priameho prievanu."
+        real = bot.search_knowledge
+        bot.search_knowledge = lambda query, k=None: {"results": found, "sources": []}
+        try:
+            _, shown = self.turn("Dobrý deň, čo presne robí technológia WindFree?",
+                                 resp(text("WindFree je revolučná sústava, ktorá chladí potichu a šetrí vaše zdravie.")),
+                                 resp(tool("search_knowledge", query="WindFree")),
+                                 resp(text("WindFree chladí bez priameho prievanu cez tisíce malých otvorov.")))
+        finally:
+            bot.search_knowledge = real
+        self.assertEqual(bot.client.calls[1].get("tool_choice"), {"type": "any"})
+        self.assertIn("bez priameho prievanu", shown)
+        # Once a tool result names it, the answer may come from the history.
+        self.assertEqual(bot._unsourced_features("A WindFree je aj v Avant S2?", "WindFree má aj Avant S2."), [])
+        self.assertEqual(bot._unsourced_features("Čo je HADA?", "Akú plochu máte?"), [], "the reply describes nothing")
+
+    def test_tykanie_with_a_customer_who_doesnt_tykat_is_regenerated(self):
+        _, shown = self.turn("Aká je záruka na klimatizácie Toshiba?",
+                             resp(text("Toshiba má 5 rokov na jednotky. Pomôžem ti s výberom?")),
+                             resp(text("Toshiba má 5 rokov na jednotky. Pomôžem vám s výberom?")))
+        self.assertIn("Pomôžem vám", shown)
+        for live in ("Ak si už vybral klimatizáciu, projektový manažér to objasní.",
+                     "Podmienky si overíš pri podpise zmluvy, on ti zadá všetky detaily."):
+            self.assertIn("vykanie", self.rules(live), live)
+        self.assertNotIn("vykanie", self.rules("Ak ste si už vybrali, vyberte si farbu. Chcete Wi-Fi?"))
+        self.sess.user_inputs.append("Ahoj, máš niečo lacnejšie?")
+        self.assertNotIn("vykanie", self.rules("Jasné, pomôžem ti nájsť lacnejší set."))
+
+    def test_health_effects_and_free_repairs_are_cut(self):
+        for live in ("Osoby sa nevystavia chladnému prúdu (tuhý krk, bolesť svalov).",
+                     "Ak by jednotka zlyhala, náhrada alebo oprava je bezplatná.",
+                     "Zadá ti detaily záruky a bezplatného servisu."):
+            self.assertTrue(set(self.rules(live)) & {"zdravie-tvrdenie", "zaruka-slub"}, live)
+        for fine in ("WindFree chladí bez priameho prievanu.", "Ak vás bolí hlava, poraďte sa s lekárom.",
+                     "Po bezplatnej obhliadke vám projektový manažér pripraví ponuku.",
+                     "Servis a bezplatná obhliadka sú na projektovom manažérovi.",
+                     "Filter zachytáva jemné častice PM2.5."):
+            self.assertFalse(set(self.rules(fine)) & {"zdravie-tvrdenie", "zaruka-slub"}, fine)
+        cut, dropped = bot._drop_hard_sentences("Toshiba má 5 rokov na jednotky. Oprava je potom bezplatná.")
+        self.assertEqual(cut, "Toshiba má 5 rokov na jednotky.")
+
+    def test_czech_words_from_the_live_reply_are_fixed(self):
+        fixed = bot.sanitize_reply("**Pohodlí:** bez prievanu. **Zájem máte o klimatizáciu?** Škody kryjú pojistky.")[0]
+        self.assertEqual(fixed, "**Pohodlie:** bez prievanu. **Záujem máte o klimatizáciu?** Škody kryjú poistky.")
+
+
 class DataDirTests(unittest.TestCase):
     """The Docker image: runtime files under KLIMABOT_DATA_DIR, the KB cache built into the image."""
 

@@ -3800,11 +3800,46 @@ _PLACEMENT_RE = re.compile(
 # Words like "si" / "ste" (auxiliaries) are EXCLUDED because they collide
 # with too many other contexts.
 _TYKANIE_RE = re.compile(
-    r"\b(ťa|tebe|tvoj|tvoja|tvoju|tvoje|tvoji|tvojej|tvojom|tvojich|"
-    r"chceš|máš|môžeš|vieš|musíš|potrebuješ|odporúčam\s+ti|pomôžem\s+ti|"
-    r"povedz\s+mi|daj\s+mi|ozvi\s+sa|napíš\s+mi)\b",
+    r"\b(ťa|tebe|teba|tebou|ti|tvoj|tvoja|tvoju|tvoje|tvoji|tvojej|tvojom|tvojich|"
+    r"chceš|máš|nemáš|môžeš|vieš|musíš|potrebuješ|overíš|zistíš|dostaneš|nájdeš|vyberieš|uvidíš|budeš|"
+    r"odporúčam\s+ti|pomôžem\s+ti|povedz\s+mi|daj\s+mi|ozvi\s+sa|napíš\s+mi|"
+    r"(?:ak|keď|či|že|kým)\s+si\s+(?:už\s+)?\w+la?)\b",
     flags=re.IGNORECASE,
 )
+_CUSTOMER_TYKA_RE = re.compile(r"\b(?:ahoj|čau|čaute|čus|nazdar|servus|poraď|pošli|ukáž)\b", re.IGNORECASE)
+
+
+def _customer_tyka():
+    return any(_TYKANIE_RE.search(m) or _CUSTOMER_TYKA_RE.search(m) for m in S().user_inputs)
+
+
+# Health effects (knowledge/rules/feedback_schvalene_tvrdenia.md): what the unit does, not what it does to the
+# customer's health. "Poraďte sa s lekárom" passes.
+_HEALTH_CLAIM_RE = re.compile(
+    r"\bboles\w*|\bbolí\b|\bstuhnut\w*|\btuh\w*\s+krk|\bprechladn\w*|\bnádch\w*|\bangín\w*|\bimunit\w*|"
+    r"\bvylieč\w*|\blieč\w*|\bzmierň\w*\s+(?:astm|alergi|príznak)\w*|\bzabrán\w*\s+(?:astm|alergi|chorob|ochoren)\w*|"
+    r"\bzdravš\w*|\blekársk\w*\s+odporúč\w*|\bzdravotn\w*\s+(?:účin|prínos|benefit|problém)\w*|"
+    r"\b(?:chráni|prospieva)\s+(?:vášmu\s+|vaše\s+)?zdrav\w*|\bodstráni\s+(?:všetky\s+)?alergén\w*",
+    re.IGNORECASE)
+_HEALTH_CLAIM_OK_RE = re.compile(r"\blekár(?!sk)\w*|\bnesľub\w*|\bnetvrd\w*|\bnemôž\w*|\bneporad\w*|\bdoctor\b|\bcan'?t\b",
+                                 re.IGNORECASE)
+
+
+def _health_claim_sentences(text):
+    return [s for s in _sentences(text) if _HEALTH_CLAIM_RE.search(s) and not _HEALTH_CLAIM_OK_RE.search(s)]
+
+
+_FREE_REPAIR_RE = re.compile(
+    r"\bbezplatn\w*\s+(?:oprav|výmen|náhrad|servis)\w*|"
+    r"\b(?:oprav|výmen|náhrad|servis)\w*\s+(?:je|bude|sú|budú)\s+(?:\w+\s+){0,2}(?:bezplatn\w*|zadarmo|zdarma)|"
+    r"\b(?:oprav|výmen|náhrad|servis)\w*\s+(?:zadarmo|zdarma)|"
+    r"\bfree\s+(?:of\s+charge\s+)?(?:repairs?|replacements?|servic\w*)|"
+    r"\b(?:repairs?|replacements?|servic\w*)\s+(?:is|are|will\s+be)\s+(?:free|at\s+no\s+cost)",
+    re.IGNORECASE)
+
+
+def _free_repair_promises(text):
+    return [s for s in _sentences(text) if _FREE_REPAIR_RE.search(s)]
 _VYKANIE_RE = re.compile(
     r"\b(vám|vás|vaša|vaše|vašu|vaši|vašej|vašom|vaších|vašich|"
     r"chcete|máte|môžete|viete|musíte|potrebujete|"
@@ -3880,6 +3915,13 @@ _CZECH_TO_SLOVAK = {
     "domluva": "dohoda",
     "domluvit": "dohodnúť",
     "chápu": "chápem",
+    "pohodlí": "pohodlie",
+    "zájem": "záujem",
+    "zájmu": "záujmu",
+    "pojistka": "poistka",
+    "pojistky": "poistky",
+    "pojistku": "poistku",
+    "pojištění": "poistenie",
 }
 # Longest first so multi-word entries beat single-word substrings.
 _CZECH_TOKEN_PAT = re.compile(
@@ -4606,6 +4648,30 @@ _SERIES_FEATURE_RES = {name: re.compile(rx, re.IGNORECASE) for name, rx in _SERI
 _FEATURE_LINE_NEGATION_RE = re.compile(r"\bbez\b|\bwithout\b|\bno\b|\bnemá\w*", re.IGNORECASE)
 _ANY_SERIES_FEATURE_RE = re.compile("|".join(f"(?:{rx})" for rx in _SERIES_FEATURE_TERMS.values()), re.IGNORECASE)
 
+# Technologies a customer asks about by name. The answer must come from a tool result that names them.
+_TECH_TERM_RES = {name: re.compile(rx, re.IGNORECASE) for name, rx in {
+    **_SERIES_FEATURE_TERMS, "WindFree": r"wind[\s-]*free", "Tri-care": r"tri[\s-]*care", "SmartThings": r"smart\s*things",
+    "Bixby": r"\bbixby\b", "Bi-flow": r"\bbi[\s-]?flow\b", "Magic Coil": r"magic\s+coil", "katechínový filter": r"katech[ií]n\w*",
+}.items()}
+_TECH_QUESTION_RE = re.compile(r"\?|\b(?:čo|co|ako|aký|aká|aké|aky|aka|ake|rozdiel\w*|líši|lisi|funguj\w*|znamen\w*|"
+                               r"what|how|difference)\b", re.IGNORECASE)
+
+
+def _tool_results_text():
+    return "\n".join(b["content"] for m in S().conversation
+                     if m.get("role") == "user" and isinstance(m.get("content"), list)
+                     for b in m["content"]
+                     if isinstance(b, dict) and b.get("type") == "tool_result" and isinstance(b.get("content"), str))
+
+
+def _unsourced_features(user_input, reply):
+    """Technologies the customer asks about and the reply describes, while no tool result names them."""
+    if not _TECH_QUESTION_RE.search(user_input):
+        return []
+    sources = _tool_results_text()
+    return [name for name, rx in _TECH_TERM_RES.items()
+            if rx.search(user_input) and rx.search(reply) and not rx.search(sources)]
+
 
 @functools.lru_cache(maxsize=None)
 def _series_has_feature(key, name):
@@ -4870,8 +4936,13 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
     # "Súhlasíte so spracovaním osobných údajov" uses vykanie by convention,
     # so we suppress this check on replies that contain it — otherwise the
     # mandatory consent ask would always trip the mix-detector.
-    if "súhlasíte so spracovaním" not in text.lower():
-        ty_hits = _TYKANIE_RE.findall(text)
+    ty_hits = _TYKANIE_RE.findall(text)
+    if ty_hits and _session_language() != "en" and not _customer_tyka():
+        violations.append(
+            f"vykanie: tykáš zákazníkovi, ktorý ti netyká ({sorted({h.lower() for h in ty_hits})[:3]}). "
+            "Celú odpoveď napíš vykaním (vám, vás, chcete, máte)."
+        )
+    elif "súhlasíte so spracovaním" not in text.lower():
         vy_hits = _VYKANIE_RE.findall(text)
         if ty_hits and vy_hits:
             ty_sample = sorted({h.lower() for h in ty_hits if isinstance(h, str)})[:3]
@@ -5058,6 +5129,18 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
             f"reklamacia-kontakt: pri reklamácii si pýtaš kontakt ('{support_asks[0].strip()[:80]}'). Reklamácie bot "
             f"nerieši ani si na ne nepýta údaje — zákazníkovi povedz, nech {_contact_offer()}."
         )
+    health = _health_claim_sentences(text)
+    if health:
+        violations.append(
+            f"zdravie-tvrdenie: sľubuješ zdravotný účinok ('{health[0].strip()[:100]}'). Opíš iba, čo zariadenie "
+            "technicky robí; zdravotný účinok posúdi zákazníkov lekár."
+        )
+    free_repair = _free_repair_promises(text)
+    if free_repair:
+        violations.append(
+            f"zaruka-slub: sľubuješ bezplatnú opravu, výmenu alebo servis ('{free_repair[0].strip()[:100]}'), čo "
+            "podklady neuvádzajú. Záruku uveď iba tak, ako je v podkladoch k danej značke."
+        )
 
     # Commercial-space detector. Per [[komercne-priestory-cac-rav]] the bot must
     # recommend Samsung CAC or Toshiba RAV for ambulancia / serverovňa / salón /
@@ -5173,7 +5256,8 @@ _HARD_RULES = ("cena-z-nastroja", "aplikacia-rabatov", "model-code-verifikacia",
                "povolenia-instalacia", "umiestnenie-otazka", "rozpocet-tvrdenie",
                "interne-info", "slub-bez-suhlasu", "termin-slub", "cena-iny-produkt", "dph-zamena",
                "mimo-katalogu", "nepodlozene-udaje", "reklamacia-kontakt", "ai-identita", "brand-funkcia", "typ-jednotky",
-               "sklad-tvrdenie", "farba", "porovnanie-smer", "funkcia-radu", "nenacenene")
+               "sklad-tvrdenie", "farba", "porovnanie-smer", "funkcia-radu", "nenacenene", "zdravie-tvrdenie",
+               "zaruka-slub")
 # The bot is an AI assistant and says so when asked (EU AI Act transparency): a sentence claiming
 # to be a person is regenerated or cut. "Nie som človek" / "I'm not a human" are fine.
 _HUMAN_CLAIM_RE = re.compile(
@@ -5196,7 +5280,7 @@ _DATE_PROMISE_RE = re.compile(
     re.IGNORECASE)
 # Whole-reply problems: worth a regeneration, but there is no sentence to cut.
 _REGEN_ONLY_RULES = ("jazyk-odpovede", "cena-neodpovedana", "kontakt-pred-ponukou", "prazdna-odpoved", "dve-moznosti",
-                     "zakazana-otazka", "cena-nezobrazena")
+                     "zakazana-otazka", "cena-nezobrazena", "vykanie", "funkcia-bez-podkladu")
 _PRICE_QUESTION_RE = re.compile(
     r"\b(?:koľko|kolko|kolik)\b[^?\n]{0,60}(?:stoj|stál|stal|stát|bude|vyjde|zaplat|cen)|\bak[áa]\s+(?:je\s+)?cena\b|"
     r"\bcenu\b|\bhow\s+much\b|\bwhat\s+(?:would|does|will)\b[^?\n]{0,40}\bcost\b|\bprice\b|"
@@ -5523,7 +5607,8 @@ def _sentence_is_hard(sentence, trusted, bad_values=()):
                 or _not_in_catalog_claims(sentence) or _unsupported_figures(sentence)
                 or _support_contact_requests(sentence) or _HUMAN_CLAIM_RE.search(sentence)
                 or _brand_term_mixups(sentence) or _wall_called_cassette(sentence) or _false_stock_claims(sentence)
-                or _color_claims(sentence) or _wrong_comparisons(sentence) or _unpriced_multi_claims(sentence))
+                or _color_claims(sentence) or _wrong_comparisons(sentence) or _unpriced_multi_claims(sentence)
+                or _health_claim_sentences(sentence) or _free_repair_promises(sentence))
 
 
 def _approx_amount(text):
@@ -5682,6 +5767,13 @@ def _regen_note(violations):
                            "'<značka> <rad> <výkon v kW>').",
         "kontakt-pred-ponukou": "Najprv odporuč konkrétny set a zavolaj `quote`; o kontakt (meno, telefón, e-mail, "
                                 "obec) požiadaj až po cene. Na cenu obec ani kontakt nepotrebuješ.",
+        "zdravie-tvrdenie": "Opíš, čo zariadenie technicky robí (napr. chladí bez priameho prievanu, filter zachytáva "
+                            "častice); bolesť, prechladnutie, astmu ani iný zdravotný účinok nesľubuj.",
+        "zaruka-slub": "Uveď iba záručnú dobu z podkladov; či je oprava alebo servis bezplatný, nesľubuj — podmienky "
+                       "potvrdí projektový manažér v ponuke.",
+        "vykanie": "Zákazník ti netyká: celú odpoveď napíš vykaním (vám, vás, chcete, máte, ak ste si vybrali).",
+        "funkcia-bez-podkladu": "Zavolaj `search_knowledge` (alebo `lookup_product` s názvom radu a výkonom) a funkciu "
+                                "opíš iba podľa výsledku.",
     }
     lines = [f"  - {v}\n    → {howto.get(v.split(':', 1)[0].strip(), '')}" for v in violations]
     return {"type": "text", "text": (
@@ -6763,6 +6855,13 @@ def run_user_turn_streaming(user_input):
                         "manažér po bezplatnej obhliadke. Doplňujúcu otázku polož až potom. Lacnejší variant "
                         "naceň cez `quote` — netvrď, že je lacnejší, kým to `quote` neukáže."
                     )
+            unsourced = (_unsourced_features(user_input, attempt_text)
+                         if answering and not force_final and attempt_text.strip() else [])
+            if unsourced:
+                violations.append(
+                    f"funkcia-bez-podkladu: zákazník sa pýta na {', '.join(unsourced)} a odpovedáš bez podkladu z "
+                    "nástrojov. Zavolaj `search_knowledge` a funkciu opíš iba podľa výsledku."
+                )
             # An empty final reply (text written next to the tools is hidden, so this would leave the
             # customer with nothing): one retry with a note, then the fallback line below.
             if answering and not force_final and not attempt_text.strip() and not shown_this_turn:
@@ -6810,7 +6909,8 @@ def run_user_turn_streaming(user_input):
                 regens_used += 1
                 # A price question left without a quote: the next attempt must call a tool (d04 made no
                 # tool call in 7 turns and told the customer real codes weren't in the price list).
-                force_tool = any(v.startswith(("cena-neodpovedana", "dve-moznosti")) for v in regen_worthy) or (
+                force_tool = any(v.startswith(("cena-neodpovedana", "dve-moznosti", "funkcia-bez-podkladu"))
+                                 for v in regen_worthy) or (
                     any(v.startswith("zakazana-otazka") for v in regen_worthy) and not sess.quotes
                     and bool(_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)))
                 log_event("bot_reply_regen_triggered", violations=regen_worthy, bad_reply_excerpt=attempt_text[:200],
