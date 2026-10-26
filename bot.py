@@ -3816,7 +3816,7 @@ def _customer_tyka():
 # Health effects (knowledge/rules/feedback_schvalene_tvrdenia.md): what the unit does, not what it does to the
 # customer's health. "Poraďte sa s lekárom" passes.
 _HEALTH_CLAIM_RE = re.compile(
-    r"\bboles\w*|\bbolí\b|\bstuhnut\w*|\btuh\w*\s+krk|\bprechladn\w*|\bnádch\w*|\bangín\w*|\bimunit\w*|"
+    r"\bboles\w*|\bbolí\b|\bstuhnut\w*|\bpodchlad\w*\b(?!\s+chladiv)|\btuh\w*\s+krk|\bprechladn\w*|\bnádch\w*|\bangín\w*|\bimunit\w*|"
     r"\bvylieč\w*|\blieč\w*|\bzmierň\w*\s+(?:astm|alergi|príznak)\w*|\bzabrán\w*\s+(?:astm|alergi|chorob|ochoren)\w*|"
     r"\bzdravš\w*|\blekársk\w*\s+odporúč\w*|\bzdravotn\w*\s+(?:účin|prínos|benefit|problém)\w*|"
     r"\b(?:chráni|prospieva)\s+(?:vášmu\s+|vaše\s+)?zdrav\w*|\bodstráni\s+(?:všetky\s+)?alergén\w*",
@@ -3922,6 +3922,12 @@ _CZECH_TO_SLOVAK = {
     "pojistky": "poistky",
     "pojistku": "poistku",
     "pojištění": "poistenie",
+    "doporučí": "odporučí",
+    "doporučím": "odporučím",
+    "doporučuji": "odporúčam",
+    "doporučuje": "odporúča",
+    "doporučujeme": "odporúčame",
+    "doporučení": "odporúčanie",
 }
 # Longest first so multi-word entries beat single-word substrings.
 _CZECH_TOKEN_PAT = re.compile(

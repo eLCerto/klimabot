@@ -2096,12 +2096,14 @@ class LiveCheckTests(BotTest):
     def test_health_effects_and_free_repairs_are_cut(self):
         for live in ("Osoby sa nevystavia chladnému prúdu (tuhý krk, bolesť svalov).",
                      "Ak by jednotka zlyhala, náhrada alebo oprava je bezplatná.",
-                     "Zadá ti detaily záruky a bezplatného servisu."):
+                     "Zadá ti detaily záruky a bezplatného servisu.",
+                     "Priamy prúd môže spôsobovať podchladenie jednotlivých častí tela."):
             self.assertTrue(set(self.rules(live)) & {"zdravie-tvrdenie", "zaruka-slub"}, live)
         for fine in ("WindFree chladí bez priameho prievanu.", "Ak vás bolí hlava, poraďte sa s lekárom.",
                      "Po bezplatnej obhliadke vám projektový manažér pripraví ponuku.",
                      "Servis a bezplatná obhliadka sú na projektovom manažérovi.",
-                     "Filter zachytáva jemné častice PM2.5."):
+                     "Filter zachytáva jemné častice PM2.5.",
+                     "Jednotka sleduje podchladenie chladiva."):
             self.assertFalse(set(self.rules(fine)) & {"zdravie-tvrdenie", "zaruka-slub"}, fine)
         cut, dropped = bot._drop_hard_sentences("Toshiba má 5 rokov na jednotky. Oprava je potom bezplatná.")
         self.assertEqual(cut, "Toshiba má 5 rokov na jednotky.")
@@ -2109,6 +2111,8 @@ class LiveCheckTests(BotTest):
     def test_czech_words_from_the_live_reply_are_fixed(self):
         fixed = bot.sanitize_reply("**Pohodlí:** bez prievanu. **Zájem máte o klimatizáciu?** Škody kryjú pojistky.")[0]
         self.assertEqual(fixed, "**Pohodlie:** bez prievanu. **Záujem máte o klimatizáciu?** Škody kryjú poistky.")
+        self.assertEqual(bot.sanitize_reply("Typ vám doporučí projektový manažér.")[0],
+                         "Typ vám odporučí projektový manažér.")
 
 
 class DataDirTests(unittest.TestCase):
