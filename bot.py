@@ -168,6 +168,16 @@ use_session(Session())  # default session for the CLI and for startup logging
 CONTEXT_CHAR_BUDGET = 8000
 RETRIEVE_CANDIDATES = 25
 RETRIEVE_TOP_K = 5
+# A search whose best reranker score (raw, without the authority bonus) is below this found nothing that
+# answers it: its results go out under _WEAK_MATCH_NOTE. Calibrated on 2026-10-27 on 374 real queries from the
+# demo and eval logs and tests/retrieval_golden.json: 7 of its 8 questions the knowledge base doesn't answer
+# score below, and 3 of the 374 real queries (vague product searches). Rule chunks (Slovak prose) score low
+# for this cross-encoder — a correct rule hit can sit at -0.1 — so the cut can't go higher. Every search logs
+# its best_score for recalibration.
+SEARCH_MIN_SCORE = -0.5
+# Sampling for the customer-facing turn: the default 1.0 varies the wording, and with it the drafts the output
+# gate rejects (support bots built on the same pattern run at 0).
+TURN_TEMPERATURE = 0.3
 HISTORY_MAX_USER_TURNS = 15
 HISTORY_KEEP_TAIL = 14
 
@@ -3494,12 +3504,13 @@ def authority_bonus(source):
 
 
 def rerank(query, candidate_indices, top_k):
+    """(the top_k indices, the best raw reranker score) — the score decides the weak-match note."""
     pairs = [(query, KB[i][0]) for i in candidate_indices]
     # Small batches: a batch is padded to its longest pair, so 8 at a time is faster with the same scores.
     scores = get_reranker().predict(pairs, batch_size=8, show_progress_bar=False)
     adjusted = [s + authority_bonus(KB[i][1]) for s, i in zip(scores, candidate_indices)]
     order = np.argsort(-np.array(adjusted))
-    return [candidate_indices[int(i)] for i in order[:top_k]]
+    return [candidate_indices[int(i)] for i in order[:top_k]], float(max(scores, default=0.0))
 
 
 def dynamic_k(query):
@@ -3531,6 +3542,14 @@ def format_context(indices):
 _SEARCH_CACHE = OrderedDict()
 _SEARCH_CACHE_MAX = 500
 
+# Put in front of the results of a search nothing answers (SEARCH_MIN_SCORE): the model used to fill the gap
+# from general knowledge, which the output gate then caught as funkcia-bez-podkladu at the cost of a regeneration.
+_WEAK_MATCH_NOTE = (
+    "[server] Slabá zhoda: znalostná báza na tento dotaz priamu odpoveď nemá — výsledky nižšie s ním súvisia "
+    "len okrajovo. Zákazníkovi uveď iba to, čo je v nich výslovne napísané; funkciu, službu ani technológiu, "
+    "ktorá v nich nie je, netvrď a neopisuj z vlastných vedomostí. Povedz, že to v podkladoch nemáš, a ak je to "
+    "preňho dôležité, nech to preverí projektový manažér. Kódy a sady hľadaj cez `lookup_product`.")
+
 
 def search_knowledge(query, k=None):
     k = max(1, min(int(k or dynamic_k(query)), 10))
@@ -3541,24 +3560,27 @@ def search_knowledge(query, k=None):
             _SEARCH_CACHE.move_to_end(key)
         except KeyError:  # another visitor's search evicted it meanwhile; the entry we hold is still valid
             pass
-        expansion, context, sources = cached
+        expansion, context, sources, best = cached
         log_event("search_knowledge", query=query, expansion=expansion, sources=sources, k=k, chars=len(context),
-                  cached=True)
+                  best_score=round(best, 2), weak=best < SEARCH_MIN_SCORE, cached=True)
         return {"results": context, "sources": sources}
     expansion = expand_query(query)
     full_query = f"{query}\n{expansion}".strip() if expansion else query
     candidates = hybrid_search(full_query)
-    top = rerank(full_query, candidates, top_k=k)
+    top, best = rerank(full_query, candidates, top_k=k)
     context, sources = format_context(top)
+    if best < SEARCH_MIN_SCORE:
+        context = f"{_WEAK_MATCH_NOTE}\n\n{context}"
     # Only a normal expansion is shared: one skipped for a conversation's budget or an API error isn't.
     if query in _HYDE_CACHE:
-        _SEARCH_CACHE[key] = (expansion, context, sources)
+        _SEARCH_CACHE[key] = (expansion, context, sources, best)
         while len(_SEARCH_CACHE) > _SEARCH_CACHE_MAX:
             try:
                 _SEARCH_CACHE.popitem(last=False)
             except KeyError:
                 break
-    log_event("search_knowledge", query=query, expansion=expansion, sources=sources, k=k, chars=len(context))
+    log_event("search_knowledge", query=query, expansion=expansion, sources=sources, k=k, chars=len(context),
+              best_score=round(best, 2), weak=best < SEARCH_MIN_SCORE)
     return {"results": context, "sources": sources}
 
 
@@ -6819,6 +6841,7 @@ def run_user_turn_streaming(user_input):
                     "turn",
                     model=MODEL,
                     max_tokens=max_tokens,
+                    temperature=TURN_TEMPERATURE,
                     system=build_system_blocks(),
                     tools=tools,
                     messages=_messages_for_api(sess.conversation, server_context),

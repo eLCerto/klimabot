@@ -2179,5 +2179,58 @@ class DataDirTests(unittest.TestCase):
             self.assertEqual(bot.load_or_compute_embeddings([("text", "knowledge/rules/a.md")]).tolist(), vecs.tolist())
 
 
+# ---------- retrieval quality ----------
+
+class RetrievalTests(BotTest):
+    """tests/retrieval_golden.json through the real hybrid search and reranker (without HyDE, which needs the API).
+    On 2026-10-27: hit@k 36/36, MRR 0.844; 7 of 8 out-of-KB questions and 1 labelled question below
+    SEARCH_MIN_SCORE. The limits leave room for a knowledge-base edit, not for a broken retrieval."""
+
+    @classmethod
+    def setUpClass(cls):
+        gold = json.loads((REPO / "tests" / "retrieval_golden.json").read_text(encoding="utf-8"))
+        cls.queries, cls.out_of_kb = gold["queries"], gold["out_of_kb"]
+        cls.results = {}
+        for q in [item["q"] for item in cls.queries] + cls.out_of_kb:
+            top, best = bot.rerank(q, bot.hybrid_search(q), top_k=bot.dynamic_k(q))
+            cls.results[q] = ([bot.KB[i][1] for i in top], best)
+
+    def test_labelled_questions_find_their_files(self):
+        ranks = []
+        for item in self.queries:
+            sources = self.results[item["q"]][0]
+            ranks.append(next((n for n, s in enumerate(sources, 1) if s in item["expect"]), None))
+        missed = [item["q"] for item, rank in zip(self.queries, ranks) if not rank]
+        self.assertGreaterEqual(1 - len(missed) / len(ranks), 0.9, f"missed: {missed}")
+        self.assertGreaterEqual(sum(1 / r for r in ranks if r) / len(ranks), 0.75, "MRR")
+        for item in self.queries:
+            for path in item["expect"]:
+                self.assertTrue((REPO / path).exists(), f"{path} no longer exists")
+
+    def test_weak_matches_are_flagged(self):
+        flagged = [q for q in self.out_of_kb if self.results[q][1] < bot.SEARCH_MIN_SCORE]
+        self.assertGreaterEqual(len(flagged), 6, f"not flagged: {set(self.out_of_kb) - set(flagged)}")
+        wrong = [item["q"] for item in self.queries if self.results[item["q"]][1] < bot.SEARCH_MIN_SCORE]
+        self.assertLessEqual(len(wrong), 2, f"answerable questions flagged: {wrong}")
+
+    def test_the_weak_match_note_leads_the_result(self):
+        real_expand = bot.expand_query
+        bot.expand_query = lambda query: ""  # as when HyDE is skipped; also keeps the result out of the cache
+        try:
+            weak, _ = bot.dispatch_tool("search_knowledge", {"query": "otváracie hodiny predajne a adresa prevádzky"})
+            good, _ = bot.dispatch_tool("search_knowledge", {"query": "chladivo R32 alebo R410A rozdiel"})
+        finally:
+            bot.expand_query = real_expand
+        self.assertTrue(weak.startswith("[server] Slabá zhoda"), weak[:80])
+        self.assertTrue(good.startswith("[knowledge/"), good[:80])
+        self.assertIn('"weak": true', self.log_text())
+        self.assertIn('"best_score"', self.log_text())
+
+    def test_the_turn_runs_at_a_low_temperature(self):
+        self.turn("Dobrý deň", resp(text("Dobrý deň, s čím vám pomôžem pri výbere klimatizácie?")))
+        self.assertEqual(bot.client.calls[0]["temperature"], bot.TURN_TEMPERATURE)
+        self.assertLess(bot.TURN_TEMPERATURE, 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()
