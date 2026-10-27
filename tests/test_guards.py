@@ -2335,6 +2335,36 @@ class PolicyTests(BotTest):
         self.assertIn("ĎALŠÍ KROK", json.dumps(bot.client.calls[0]["messages"][-1], ensure_ascii=False))
 
 
+class ContentRegenTests(BotTest):
+    """What still regenerated in the A/B of 2026-10-27 once the policy fixed the direction."""
+
+    def test_one_class_per_mode_is_fine(self):  # SEIYA Classic 2 in lookup_product's own words
+        for fine in ("**2. Toshiba SEIYA Classic 2** (2,5 kW)\n- Energetická trieda A++ na chladenie / A+ na vykurovanie",
+                     "**Toshiba SEIYA Classic 2 2,5 kW** — Trieda A++ chladenie, A+ vykurovanie"):
+            self.assertEqual(bot._wrong_energy_classes(fine), [], fine)
+        # One class claimed for both modes still has to hold for both (AR35: heating is A+).
+        self.assertTrue(bot._wrong_energy_classes("**Samsung AR35 WIFI** — energetická trieda A++ na chladenie aj vykurovanie"))
+
+    def test_the_fee_for_all_units_comes_from_quote(self):
+        self.sess.user_inputs[:] = ["Dve izby po 20 m2, multi-split"]
+        q = bot.quote([{"code": "RAS-2M10G3AVG-E"}, {"code": "RAS-B10B2KVG-E2", "qty": 2}])
+        fee = q["recycling_fee_per_unit"]
+        self.assertEqual((fee["units"], fee["total_min_eur"], fee["total_max_eur"]), (2, 10, 30))
+        self.assertEqual(bot._untrusted_amounts("Recyklačný poplatok za obe jednotky: 10 – 30 €."), [])
+
+    def test_the_form_of_address_is_said_up_front(self):
+        self.sess.user_inputs[:] = ["Dobrý deň, spálňa 14 m2."]
+        self.assertIn("Oslovenie: vykaj", bot.build_server_context())
+        self.sess.user_inputs[:] = ["Ahoj, spálňa 14 m2."]
+        self.assertIn("Oslovenie: zákazník ti tyká", bot.build_server_context())
+        self.sess.user_inputs[:] = ["Hello, I need AC for a 14 m2 bedroom."]
+        self.assertNotIn("Oslovenie", bot.build_server_context())
+
+    def test_offer_moves_carry_the_exact_amount_rule(self):
+        self.sess.user_inputs[:] = ["Spálňa 14 m2, koľko stojí?"]
+        self.assertIn("Sumy prepíš presne", bot.next_move().directive)
+
+
 # ---------- Slovak spelling ----------
 
 class SpellingTests(BotTest):

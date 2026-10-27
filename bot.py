@@ -1745,7 +1745,10 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
     if ac_count:
         result["recycling_fee_per_unit"] = {
             "min_eur": RECYCLING_FEE_EUR["min"], "max_eur": RECYCLING_FEE_EUR["max"], "units": ac_count,
-            "note": "Recyklačný poplatok (HEEE) za každú klimatizáciu, presná suma pri objednávke.",
+            # for all units: the bot multiplied the fee itself and the gate rejected "10 €" / "30 €" (2026-10-27)
+            "total_min_eur": RECYCLING_FEE_EUR["min"] * ac_count, "total_max_eur": RECYCLING_FEE_EUR["max"] * ac_count,
+            "note": "Recyklačný poplatok (HEEE) za každú klimatizáciu, presná suma pri objednávke; total_* je za "
+                    "všetky kusy.",
         }
         result["installation"] = INSTALLATION_NOTE
     if promo_note:
@@ -4713,15 +4716,20 @@ def _wrong_energy_classes(text):
         known = _series_energy_classes(series) if series else frozenset()
         if not known:
             continue
-        allowed = known
-        if _COOLING_WORD_RE.search(fragment) and _HEATING_WORD_RE.search(fragment):
+        tokens = [t for m in _ENERGY_CLASS_RE.finditer(fragment) for t in re.findall(r"A\+{0,3}|[B-G]", m.group(1) or m.group(2))]
+        if not tokens:
+            continue
+        tokens += re.findall(r"(?<![\w+])A\+{1,3}(?!\+)", fragment)  # "trieda A++ na chladenie / A+ na vykurovanie"
+        if len(set(tokens)) > 1:
+            # One class per mode ("A+++ / A++", "A++ na chladenie / A+ na vykurovanie" — SEIYA Classic 2's own wording
+            # in lookup_product, rejected as wrong until 2026-10-28): each class only has to exist.
+            allowed = known
+        elif _COOLING_WORD_RE.search(fragment) and _HEATING_WORD_RE.search(fragment):
             allowed = _series_energy_classes(series, "cooling") & _series_energy_classes(series, "heating")
-        for m in _ENERGY_CLASS_RE.finditer(fragment):
-            tokens = re.findall(r"A\+{0,3}|[B-G]", m.group(1) or m.group(2))
-            # "A+++ / A++" names both modes: each class only has to exist
-            if any(t not in (known if len(tokens) > 1 else allowed) for t in tokens):
-                out.append(line)
-                break
+        else:
+            allowed = known
+        if any(t not in allowed for t in tokens):
+            out.append(line)
     return out
 
 
@@ -6550,6 +6558,11 @@ _OFFER_CHOSEN_TEXT = (
     "vám ozve.“). Otázku na súhlas pripojí server sám.")
 
 
+# The offer moves' rule for figures: amounts not from quote (rounded, summed, the fee multiplied) and claims
+# not in series_features were the content regenerations left after the A/B of 2026-10-27.
+_EXACT_AMOUNTS = (" Sumy prepíš presne, ako ich vrátil `quote` (aj s centami): nezaokrúhľuj, nesčítavaj ani nenásob; recyklačný poplatok ber z `recycling_fee_per_unit` (za všetky kusy `total_min_eur`–`total_max_eur`). Pri každej možnosti uveď iba funkcie a údaje zo `series_features` (`lookup_product`) — žiadnu energetickú triedu, hlučnosť ani úsporu, ktorá tam nie je.")
+
+
 def _size_known():
     return bool(_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)
                 or _codes_named(_all_user_text()))
@@ -6589,7 +6602,7 @@ def _sales_move(latest):
                 or _CUSTOMER_M2_RE.search(latest) or _CUSTOMER_KW_RE.search(latest)):
             return Move("nova-ponuka", "Zákazník chce iný variant (lacnejší, iný rad, inú veľkosť alebo konkrétny kód): "
                         "naceň ho cez `quote` (kódy z `lookup_product`) a uveď cenu s DPH; ktorý je lacnejší, ber z "
-                        "`comparison_with_earlier_quotes`. Na nič, čo už povedal, sa znova nepýtaj.", "any")
+                        "`comparison_with_earlier_quotes`. Na nič, čo už povedal, sa znova nepýtaj." + _EXACT_AMOUNTS, "any")
         if "?" in latest or _TECH_QUESTION_RE.search(latest):
             return Move("odpoved", "Zákazník sa pýta na podrobnosti: odpovedz iba podľa výsledkov nástrojov (funkcie "
                         "radu z `lookup_product`, pravidlá zo `search_knowledge`); čo v nich nie je, netvrď. Potom "
@@ -6621,7 +6634,7 @@ def _sales_move(latest):
     picks = _suggested_sets()
     if picks:
         directive += _picks_text(picks)
-    return Move("ponuka", directive, "any")
+    return Move("ponuka", directive + _EXACT_AMOUNTS, "any")
 
 
 def next_move():
@@ -6690,6 +6703,11 @@ def build_server_context(note=None):
         status += "\nZákazník píše po anglicky — odpovedaj po anglicky (celá odpoveď)."
     elif _CZECH_CUSTOMER_RE.search(_all_user_text()):
         status += "\nZákazník píše po česky — odpovedaj VÝHRADNE po slovensky (žiadne české slová ani tvary)."
+    if _session_language() != "en":
+        # Said up front, not only checked after: tykanie to a customer who never tykal was the most frequent
+        # regeneration in the A/B of 2026-10-27 once the policy fixed the direction.
+        status += ("\nOslovenie: zákazník ti tyká — tykaj (ty, tebe, chceš, máš)." if _customer_tyka() else
+                   "\nOslovenie: vykaj (vy, vám, vás, chcete, máte, môžete) v celej odpovedi — zákazník ti netyká.")
     if _wished(_ALLERGY_RE) or _wished(_BEST_WISH_RE) or _QUALITY_QUESTION_RE.search(fold_diacritics(_all_user_text())):
         status += "\n" + _filtration_ranking_text()
     if _wished(_BEST_WISH_RE):
