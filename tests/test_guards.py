@@ -2128,20 +2128,35 @@ class LiveCheckTests(BotTest):
         # Once a tool result names it, the answer may come from the history.
         self.assertEqual(bot._unsourced_features("A WindFree je aj v Avant S2?", "WindFree má aj Avant S2."), [])
         self.assertEqual(bot._unsourced_features("Čo je HADA?", "Akú plochu máte?"), [], "the reply describes nothing")
-        # Live check 2026-10-27: answered from general knowledge, not in the price lists.
-        self.assertEqual(bot._unsourced_features(
-            "Dá sa vaša klimatizácia napojiť na fotovoltiku, aby bežala zo solárnych panelov?",
-            "Áno, klimatizácia sa dá napojiť na fotovoltiku, invertor optimalizuje spotrebu."), ["fotovoltika"])
-        self.assertEqual(bot._unsourced_features(
-            "Dobrý deň, má Toshiba HAORI ovládanie hlasom cez Siri alebo Google Home?",
-            "Siri sa dá cez HomeKit hub."), ["Siri"])
         self.assertEqual(bot._unsourced_features("Má Samsung infračervený solárny ovládač?",
                                                  "Áno, solárny ovládač je v balení."), [], "a solar remote is no PV")
+
+    def test_topics_no_search_can_answer_are_answered_by_the_server(self):  # live check 2026-10-27
+        self.assertLessEqual({"Siri", "HomeKit"}, bot._KB_ABSENT_TECH)
+        self.assertNotIn("WindFree", bot._KB_ABSENT_TECH)
+        # Photovoltaics: the owner's "nothing with PV", up front — no regeneration that demands a search.
+        pv = "Dá sa vaša klimatizácia napojiť na fotovoltiku, aby bežala zo solárnych panelov?"
+        self.sess.user_inputs[:] = [pv]
+        self.assertIn("neponúka nič s fotovoltikou", bot.build_server_context())
+        self.assertEqual(bot._unsourced_features(pv, "Fotovoltiku neponúkame."), [])
+        siri = "Dobrý deň, má Toshiba HAORI ovládanie hlasom cez Siri alebo Google Home?"
+        self.sess.user_inputs[:] = [siri]
+        context = bot.build_server_context()
+        self.assertIn("Zákazník sa pýta na Siri: v cenníkoch ani v pravidlách o tom nič nie je", context)
+        self.assertNotIn("fotovolt", context)
+        self.assertEqual(bot._unsourced_features(siri, "Siri v podkladoch nemáme."), [])
+        _, shown = self.turn(pv, resp(text("Nič s fotovoltikou neponúkame. S výberom klimatizácie vám rád pomôžem.")))
+        self.assertIn("Nič s fotovoltikou", shown)
+
+    def test_soft_hyphens_and_inverter_words(self):
+        self.assertEqual(bot.sanitize_reply("Treba ho vykonfigu­rovať.")[0], "Treba ho vykonfigurovať.")
+        self.assertEqual(bot._misspelled_words("Kapacita invertora a invertorom."), [])
 
     def test_no_instalments(self):  # the owner, 2026-10-27
         for message in ("A predávate aj na splátky?", "Dá sa to kúpiť na leasing?", "Ponúkate úver?"):
             self.sess.user_inputs[:] = [message]
             self.assertIn("nepredáva na splátky", bot.build_server_context(), message)
+            self.assertIn("Iné platobné podmienky", bot.build_server_context(), message)
         for message in ("Nepotrebujem splátky, zaplatím naraz.", "Koľko stojí klíma do spálne 14 m2?"):
             self.sess.user_inputs[:] = [message]
             self.assertNotIn("nepredáva na splátky", bot.build_server_context(), message)

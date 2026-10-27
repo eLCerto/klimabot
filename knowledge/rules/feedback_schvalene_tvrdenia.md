@@ -35,6 +35,11 @@ Bot opisuje, **čo zariadenie technicky robí**, nie čo urobí so zdravím zák
 ### Platba a financovanie
 - Firma **nepredáva na splátky ani na leasing** (rozhodnutie majiteľa, 2026-10-27). Na otázku odpovedz jednou vetou, že splátky ani leasing neponúkame.
 - ❌ „Splátky rieši projektový manažér individuálne“, „financovanie sa dá dohodnúť pri obhliadke“ — nič také neexistuje.
+- ❌ Iné platobné podmienky (spôsob úhrady, zľavy za množstvo) nevymýšľaj.
+
+### Fotovoltika
+- Firma **neponúka nič s fotovoltikou** — ani napojenie klimatizácie na fotovoltiku či solárne panely, ani návrh, ani poradenstvo (rozhodnutie majiteľa, 2026-10-27). Povedz to jednou vetou a ponúkni pomoc s výberom klimatizácie.
+- ❌ Vysvetľovanie invertorov, jednosmerného a striedavého prúdu či batérií; „posúdi to projektový manažér pri obhliadke“.
 
 ### Konkurencia
 - O konkurenčnom produkte, montáži ani servise nič netvrď ([[neci-konkurencne-predaje-a-cenove-zhody]]); žiadne „Daikin sa kazí“.

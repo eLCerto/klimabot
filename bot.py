@@ -4101,6 +4101,8 @@ def sanitize_reply(text, language="sk"):
     """
     original = text
 
+    # Invisible soft hyphens and zero-width spaces ("vykonfigu­rovať"): the spelling check saw two words.
+    text = text.replace("­", "").replace("​", "")
     text = _HEADER_PREFIX_RE.sub("", text)
     text = _DIVIDER_LINE_RE.sub("", text)
     # Czech→Slovak auto-fix for the ~20 highest-frequency CZ-only words
@@ -4722,13 +4724,24 @@ _FEATURE_LINE_NEGATION_RE = re.compile(r"\bbez\b|\bwithout\b|\bno\b|\bnemá\w*",
 _ANY_SERIES_FEATURE_RE = re.compile("|".join(f"(?:{rx})" for rx in _SERIES_FEATURE_TERMS.values()), re.IGNORECASE)
 
 # Technologies a customer asks about by name. The answer must come from a tool result that names them.
+# Photovoltaics: the company offers nothing with it (the owner, 2026-10-27).
+_PV_RE = re.compile(r"fotovolt\w*|solárn\w*\s+(?:panel|energi|elektr|systém|zdroj)\w*|\bFVE\b|photovolt\w*|"
+                    r"\bsolar\s+panel\w*", re.IGNORECASE)
 _TECH_TERM_RES = {name: re.compile(rx, re.IGNORECASE) for name, rx in {
     **_SERIES_FEATURE_TERMS, "WindFree": r"wind[\s-]*free", "Tri-care": r"tri[\s-]*care", "SmartThings": r"smart\s*things",
     "Bixby": r"\bbixby\b", "Bi-flow": r"\bbi[\s-]?flow\b", "Magic Coil": r"magic\s+coil", "katechínový filter": r"katech[ií]n\w*",
     # Live check 2026-10-27: photovoltaics answered "áno, invertor optimalizuje spotrebu" without a search, and
     # HAORI got Siri via a HomeKit hub — neither is in the price lists.
-    "fotovoltika": r"fotovolt\w*|solárn\w*\s+panel\w*|\bFVE\b", "Siri": r"\bsiri\b", "HomeKit": r"home\s*kit",
+    "fotovoltika": _PV_RE.pattern, "Siri": r"\bsiri\b", "HomeKit": r"home\s*kit",
 }.items()}
+# Technologies the price lists and rules never mention: no search can name them, so funkcia-bez-podkladu (which
+# wants a tool result) could never be met — the live check regenerated photovoltaics twice and still got a lecture
+# on inverters. The server context answers them up front instead (build_server_context), and so it does for
+# photovoltaics, which the rules now mention as not offered.
+_KB_ABSENT_TECH = {name for name, rx in _TECH_TERM_RES.items()
+                   if not any(rx.search(p.read_text(encoding="utf-8"))
+                              for p in [*KNOWLEDGE_DIR.rglob("*.json"), *KNOWLEDGE_DIR.rglob("*.md")])}
+_TECH_ANSWERED_BY_SERVER = _KB_ABSENT_TECH | {"fotovoltika"}
 _TECH_QUESTION_RE = re.compile(r"\?|\b(?:čo|co|ako|aký|aká|aké|aky|aka|ake|rozdiel\w*|líši|lisi|funguj\w*|znamen\w*|"
                                r"what|how|difference)\b", re.IGNORECASE)
 
@@ -4745,8 +4758,8 @@ def _unsourced_features(user_input, reply):
     if not _TECH_QUESTION_RE.search(user_input):
         return []
     sources = _tool_results_text()
-    return [name for name, rx in _TECH_TERM_RES.items()
-            if rx.search(user_input) and rx.search(reply) and not rx.search(sources)]
+    return [name for name, rx in _TECH_TERM_RES.items() if name not in _TECH_ANSWERED_BY_SERVER
+            and rx.search(user_input) and rx.search(reply) and not rx.search(sources)]
 
 
 # Slovak spelling. The model writes forms that aren't Slovak ("poviedate", "naceením", "Která", "nastenná"): in
@@ -6552,8 +6565,21 @@ def build_server_context(note=None):
     if _wished(_FINANCING_RE, latest):
         # Live check 2026-10-27: "Splátky rieši projektový manažér individuálne". The owner (2026-10-27): no
         # instalments, no leasing.
+        # The first version got the "no" right and then made up payment terms ("úhrada bez DPH… minimálne množstvo").
         status += ("\nZákazník sa pýta na splátky, leasing alebo financovanie. Firma nepredáva na splátky ani na "
-                   "leasing: povedz to jednou vetou a nesľubuj, že to vyrieši projektový manažér.")
+                   "leasing: povedz iba to, jednou vetou. Iné platobné podmienky (spôsob úhrady, DPH, zľavy, "
+                   "množstvá) nevymýšľaj a nesľubuj, že financovanie vyrieši projektový manažér.")
+    if _PV_RE.search(latest):
+        # The owner (2026-10-27): nothing with photovoltaics — no connection, design or advice.
+        status += ("\nZákazník sa pýta na fotovoltiku. Firma neponúka nič s fotovoltikou — ani napojenie "
+                   "klimatizácie na fotovoltiku, ani návrh, ani poradenstvo. Povedz to jednou vetou; nič o "
+                   "fotovoltike, invertoroch, batériách ani napájaní nevysvetľuj a nesľubuj, že to posúdi projektový "
+                   "manažér. Potom ponúkni pomoc s výberom klimatizácie.")
+    absent = [name for name in sorted(_KB_ABSENT_TECH - {"fotovoltika"}) if _TECH_TERM_RES[name].search(latest)]
+    if absent:
+        status += (f"\nZákazník sa pýta na {', '.join(absent)}: v cenníkoch ani v pravidlách o tom nič nie je. Povedz "
+                   "jednou vetou, že to v podkladoch nemáme a nevieš to potvrdiť; nič o tom nevysvetľuj z vlastných "
+                   "vedomostí.")
     if _wished(_OWN_INSTALL_RE):
         # The live demo of 2026-10-21: a customer mounting his own Comfort S2 on a balcony asked how to install it
         # and got m² / rooms / features questions three times.
