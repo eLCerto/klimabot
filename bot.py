@@ -938,8 +938,11 @@ _CUSTOMER_KW_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*kW\b", re.IGNORECASE)
 # "20mm2" is a typo for 20 m² (live demo 2026-10-20: the size went unread, so no offer was forced).
 _CUSTOMER_M2_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m{1,2}²|m\^2|metrov\s+štvorcov|štvorcov|sq\.?\s*m|"
                              r"square\s+met)", re.IGNORECASE)
-# "spolu 40 m²", "celkom 54 m2": a total, not a room
-_M2_TOTAL_RE = re.compile(r"(?:spolu|celkom|dokopy|celkov\w*|total\w*|together|in\s+total)\s*(?:je\s+|má\s+|ma\s+|to\s+je\s+)?"
+# "spolu 40 m²", "celkom 54 m2": a total, not a room. So is the whole flat or house: "Byt má 50 m2" was the
+# largest room on the live demo of 2026-10-27, and two 20 m² rooms got 3.5 kW units.
+_M2_TOTAL_RE = re.compile(r"(?:(?:spolu|celkom|dokopy|celkov\w*|total\w*|together|in\s+total)\s*(?:je\s+|má\s+|ma\s+|to\s+je\s+)?|"
+                          r"\b(?:byt|bytu|dom|domu|apartmán\w*|apartman\w*|flat|apartment|house)\b"
+                          r"(?:\s+(?:má|ma|je|o|s|rozloh\w*|ploch\w*|výmer\w*|vymer\w*|has|is|of|približne|priblizne|asi|cca|okolo))*\s*)"
                           r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m²)", re.IGNORECASE)
 _NO_CEILING_RE = re.compile(
     r"(?:nemáme|nemám|nie\s+je|bez)\s+(?:žiadn\w+\s+)?podhľad|podhľad\w*\s+(?:nemáme|nemám|nie\s+je)|"
@@ -1281,6 +1284,15 @@ def _fit_check(fit_lines, override_reason=None):
         if capacity and capacity < need * SIZING["undersize_ratio"]:
             warnings.append(f"poddimenzované, ak zostava chladí celých {max(m2):g} m²: {capacity:g} kW, "
                             f"potrebné približne {need:g} kW")
+        # Rooms named one by one ("kuchyňa 30, spálňa 24 m²"): the largest one needs a unit that covers it (live demo
+        # 2026-10-24: 3× 2.5 kW with a 30 m² kitchen). A total next to the rooms ("spolu 54 m²") is not a room,
+        # and a single size next to a total is a room's ("Byt má 50 m2", "Každá izba má 20 M2").
+        totals = {float(t.replace(",", ".")) for t in _M2_TOTAL_RE.findall(_all_user_text())}
+        rooms = sorted(set(m2) - totals)
+        if len(rooms) >= 2 and abs(rooms[-1] - sum(rooms[:-1])) <= 1:
+            rooms = rooms[:-1]
+        room_m2 = rooms[-1] if len(rooms) >= 2 or (totals and rooms) else 0
+        largest = room_m2 or max(m2)
         # One set bigger than the room needs, when the same series has a smaller size that still covers it
         # (the live demo of 2026-10-20 sold a 14 m² bedroom 3.5 kW).
         sets = [(rec, qty) for rec, _, qty, cat in fit_lines if cat == "single_split_sets"]
@@ -1289,20 +1301,14 @@ def _fit_check(fit_lines, override_reason=None):
             kw = rec["raw"].get("cooling_kW") or 0
             smaller = sorted(o["raw"]["cooling_kW"] for o in _SETS.values()
                              if _series_key(o) == _series_key(rec) and isinstance(o["raw"].get("cooling_kW"), (int, float))
-                             and need * SIZING["undersize_ratio"] <= o["raw"]["cooling_kW"] < kw)
+                             and largest * SIZING["kw_per_m2"] * SIZING["undersize_ratio"] <= o["raw"]["cooling_kW"] < kw)
             if smaller:  # an error, not a warning: the bot ignored the warning and quoted 3.5 kW twice
-                errors.append(f"naddimenzované: na {max(m2):g} m² stačí ten istý rad vo veľkosti {smaller[0]:g} kW "
+                errors.append(f"naddimenzované: na {largest:g} m² stačí ten istý rad vo veľkosti {smaller[0]:g} kW "
                               f"(tento má {kw:g} kW) — naceň menšiu, je lacnejšia")
-        # Rooms named one by one ("kuchyňa 30, spálňa 24 m²"): the largest one needs a unit that covers it (live demo
-        # 2026-10-24: 3× 2.5 kW with a 30 m² kitchen). A total next to the rooms ("spolu 54 m²") is not a room.
-        totals = {float(t.replace(",", ".")) for t in _M2_TOTAL_RE.findall(_all_user_text())}
-        rooms = sorted(set(m2) - totals)
-        if len(rooms) >= 2 and abs(rooms[-1] - sum(rooms[:-1])) <= 1:
-            rooms = rooms[:-1]
         units = [r["raw"].get("cooling_kW") or 0 for r, _, _, c in fit_lines if c == "multi_split_indoor"]
-        room_need = rooms[-1] * SIZING["kw_per_m2"] if len(rooms) >= 2 else 0
+        room_need = room_m2 * SIZING["kw_per_m2"]
         if units and room_need and max(units) < room_need * SIZING["undersize_ratio"]:
-            errors.append(f"poddimenzované: najväčšia miestnosť, ktorú zákazník uviedol, má {rooms[-1]:g} m² a "
+            errors.append(f"poddimenzované: najväčšia miestnosť, ktorú zákazník uviedol, má {room_m2:g} m² a "
                           f"potrebuje približne {room_need:g} kW, najväčšia vnútorná jednotka má {max(units):g} kW — "
                           "do nej daj väčšiu jednotku")
         # A multi-split wall unit bigger than the largest room the customer named needs (scenario
@@ -1313,9 +1319,9 @@ def _fit_check(fit_lines, override_reason=None):
             kw = rec["raw"].get("cooling_kW") or 0
             smaller = sorted(r["raw"]["cooling_kW"] for r in _wall_multi_units(rec)
                              if r["category_path"] == rec["category_path"]
-                             and need * SIZING["undersize_ratio"] <= r["raw"]["cooling_kW"] < kw)
+                             and largest * SIZING["kw_per_m2"] * SIZING["undersize_ratio"] <= r["raw"]["cooling_kW"] < kw)
             if smaller:
-                errors.append(f"naddimenzované: najväčšia miestnosť, ktorú zákazník uviedol, má {max(m2):g} m² — "
+                errors.append(f"naddimenzované: najväčšia miestnosť, ktorú zákazník uviedol, má {largest:g} m² — "
                               f"stačí vnútorná jednotka {smaller[0]:g} kW toho istého radu ({codes} má {kw:g} kW); "
                               "naceň menšiu, je lacnejšia")
     if _wished(_WIFI_WANTED_FOLDED_RE):
@@ -6280,6 +6286,9 @@ _SUN_HEAT_RE = re.compile(r"\bna\s+juh|\bjuzn\w*|\bslnk\w*|\bslnecn\w*|\bprehrie
 # (no price, `cena-neodpovedana`, or one option, `dve-moznosti`), and the bot often searched (9 s) only to find
 # codes for the second option. Single-room, wall-unit requests whose wishes code can read; otherwise None.
 _ROOMS_COUNT_RE = re.compile(r"\b(?:[2-9]|dve|dva|tri|styri|pat)\s+(?:izb|izieb|miestnost|priestor)\w*", re.IGNORECASE)
+# A flat or house with several rooms, matched on folded text: "dvojizbový byt" got one set for 50 m² (live demo
+# 2026-10-27) until the customer asked why the bot didn't ask how many rooms.
+_FLAT_ROOMS_RE = re.compile(r"\b(?:[2-9]\s*-?\s*|dvoj|troj|stvor|pat)izbov\w*|\b(?:dvoj|troj|stvor)izbak\w*", re.IGNORECASE)
 _TASTE_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|dizajn|design|\bfarb\w*|\bciern\w*|\bdrev\w*|textil", re.IGNORECASE)
 
 
@@ -6292,7 +6301,7 @@ def _suggested_sets():
     folded = fold_diacritics(text)
     if (sess.quotes or _industrial_case() or _support_case() or _wished(_OWN_INSTALL_RE)
             or _SERIES_NAMED_RE.search(text) or _MULTI_TEXT_RE.search(text) or _ROOMS_COUNT_RE.search(folded)
-            or _wished(_INDOOR_TYPE_WISH_RE) or _TASTE_WISH_RE.search(folded)):
+            or _FLAT_ROOMS_RE.search(folded) or _wished(_INDOOR_TYPE_WISH_RE) or _TASTE_WISH_RE.search(folded)):
         return None
     m2 = _customer_numbers(_CUSTOMER_M2_RE)
     if not m2 or len(set(m2)) > 1:
@@ -6386,6 +6395,9 @@ def build_server_context(note=None):
         else:
             status += ("\nPred prvou cenovou ponukou sa zákazníka opýtaj, čo je preň dôležité (tichý chod, filtrácia "
                        "vzduchu, Wi-Fi ovládanie z mobilu, dizajn, čo najnižšia cena), a podľa toho vyber rad.")
+    if not S().quotes and _FLAT_ROOMS_RE.search(folded_text) and not _ROOMS_COUNT_RE.search(folded_text):
+        status += ("\nZákazník má viacizbový byt alebo dom: pred ponukou sa opýtaj, koľko a ktoré izby chce chladiť "
+                   "a koľko m² má každá — od toho závisí, či stačí jeden set, alebo treba multi-split či viac setov.")
     status += _suggestion_text()
     latest = S().user_inputs[-1] if S().user_inputs else ""
     if S().quotes and S().consent is None and not _support_case() and _OFFER_CHOSEN_RE.search(latest):

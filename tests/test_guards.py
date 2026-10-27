@@ -857,6 +857,23 @@ class QuoteTests(BotTest):
         self.assertNotIn("najväčšia miestnosť", str(self.q([("RAS-2M18G3AVG-E", 1), ("RAS-B10B2KVG-E2", 2)])),
                          "the total is no room")
 
+    def test_the_whole_flat_is_no_room(self):  # live demo 2026-10-27: two 20 m² rooms got 3.5 kW units
+        self.sess.user_inputs[:] = ["Ahoj, potrebujem klímu do dvojizbového bytu", "Byt má 50 m2"]
+        self.assertIsNone(bot._suggested_sets(), "a two-room flat is no single-room offer")
+        self.assertIn("koľko a ktoré izby", bot.build_server_context())
+        self.sess.user_inputs += ["Dve izby", "Variant a",
+                                  "Každá izba má 20 M2. Potrebujem aby to malo dobrú filtráciu a nízku cenu"]
+        self.assertNotIn("koľko a ktoré izby", bot.build_server_context())
+        self.assertNotIn("error", self.q([("RAS-2M10G3AVG-E", 1), ("RAS-B10S4KVPG-E", 2)]))
+        for indoor in ("RAS-B13S4KVPG-E", "RAS-B13P2KVSG-E"):
+            big = self.q([("RAS-2M14G3AVG-E", 1), (indoor, 2)])
+            self.assertIn("naddimenzované", big["error"], indoor)
+            self.assertIn("20 m²", big["error"], indoor)
+        for total in ("Byt má 50 m2", "rodinný dom o rozlohe 120 m²", "byt je 50m2"):
+            self.assertTrue(bot._M2_TOTAL_RE.search(total), total)
+        for room in ("v byte máme spálňu 14 m2", "byt, spálňa 14 m2", "obývačka 30 m2"):
+            self.assertFalse(bot._M2_TOTAL_RE.search(room), room)
+
     def test_features_stay_with_their_series(self):  # live demo 2026-10-24: SEIYA with HAORI's filters
         reply = ("**2. Toshiba SEIYA 2,5 kW** — Wi-Fi iba voliteľne\n"
                  "Bohatšia výbava (prachový filter, plazmový ionizátor, filter Ultra Pure).")
