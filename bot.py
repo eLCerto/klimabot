@@ -175,9 +175,6 @@ RETRIEVE_TOP_K = 5
 # for this cross-encoder — a correct rule hit can sit at -0.1 — so the cut can't go higher. Every search logs
 # its best_score for recalibration.
 SEARCH_MIN_SCORE = -0.5
-# Sampling for the customer-facing turn: the default 1.0 varies the wording, and with it the drafts the output
-# gate rejects (support bots built on the same pattern run at 0).
-TURN_TEMPERATURE = 0.3
 HISTORY_MAX_USER_TURNS = 15
 HISTORY_KEEP_TAIL = 14
 
@@ -6841,7 +6838,6 @@ def run_user_turn_streaming(user_input):
                     "turn",
                     model=MODEL,
                     max_tokens=max_tokens,
-                    temperature=TURN_TEMPERATURE,
                     system=build_system_blocks(),
                     tools=tools,
                     messages=_messages_for_api(sess.conversation, server_context),

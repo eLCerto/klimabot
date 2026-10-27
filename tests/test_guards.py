@@ -11,6 +11,7 @@ exist; the first run builds it).
     .venv/bin/python -m unittest discover -s tests -v          (Linux/macOS)
 """
 import importlib.util
+import inspect
 import itertools
 import json
 import base64
@@ -110,6 +111,9 @@ def assert_no_dangling_tool_use(messages):
             raise AssertionError(f"tool_use without tool_result: {ids - answered}")
 
 
+SDK_CREATE_PARAMS = set(inspect.signature(anthropic.resources.messages.Messages.create).parameters) - {"self"}
+
+
 class FakeClient:
     def __init__(self, responses):
         self.responses = list(responses)
@@ -120,6 +124,11 @@ class FakeClient:
         return self
 
     def create(self, **kw):
+        # Only what the real SDK takes: the SDK 1.x create() has no temperature, and a passing test let it
+        # take the live demo down (2026-10-27).
+        unknown = set(kw) - SDK_CREATE_PARAMS
+        if unknown:
+            raise AssertionError(f"Messages.create() of anthropic {anthropic.__version__} doesn't take {unknown}")
         assert_no_dangling_tool_use(kw["messages"])
         self.calls.append(kw)
         if not self.responses:
@@ -2225,11 +2234,6 @@ class RetrievalTests(BotTest):
         self.assertTrue(good.startswith("[knowledge/"), good[:80])
         self.assertIn('"weak": true', self.log_text())
         self.assertIn('"best_score"', self.log_text())
-
-    def test_the_turn_runs_at_a_low_temperature(self):
-        self.turn("Dobrý deň", resp(text("Dobrý deň, s čím vám pomôžem pri výbere klimatizácie?")))
-        self.assertEqual(bot.client.calls[0]["temperature"], bot.TURN_TEMPERATURE)
-        self.assertLess(bot.TURN_TEMPERATURE, 1.0)
 
 
 if __name__ == "__main__":
