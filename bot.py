@@ -1102,22 +1102,28 @@ def _best_wish_text():
             "možnosť nie je lacnejší rad. Rady triedy 1 sú vo filtrácii rovnocenné: netvrď, že jeden filtruje lepšie.")
 
 
-def _best_filtration_sets(rec, text):
-    """Tier-1 sets of about this capacity (a single brand the customer named respected), cheapest first."""
+def _best_filtration_sets(rec, text, room_m2=None):
+    """Tier-1 sets (a single brand the customer named respected), cheapest first: one per series, with its codes —
+    the live demo of 2026-10-27 got only the names, guessed Avant S2's code and quoted Comfort S2's (AR60F… instead
+    of AR70F…). With the room's m² known, each series' smallest set that covers it (a same-size one may be
+    oversized: Avant S2 2.5 kW for 14 m²); else sets of about this one's capacity."""
     kw = rec["raw"].get("cooling_kW") or 0
+    min_kw = room_m2 * SIZING["kw_per_m2"] * SIZING["undersize_ratio"] if room_m2 else None
     brands = [b for b, rx in _BRAND_RES.items() if rx.search(text)]
     brand = brands[0] if len(brands) == 1 and not _ANY_BRAND_RE.search(fold_diacritics(text)) else None
     found = {}
-    for other in _SETS.values():
+    for codes, other in _SETS.items():
         ranked = _FILTRATION_BY_SERIES.get(_series_key(other))
         okw = other["raw"].get("cooling_kW")
-        if (ranked and ranked[0] == 1 and isinstance(okw, (int, float)) and abs(okw - kw) <= 0.3
-                and (not brand or other["brand"] == brand)):
-            name = ranked[1]["name"]
-            price = other["raw"]["set_price_EUR"]
-            if name not in found or price < found[name]:
-                found[name] = price
-    return sorted(found, key=found.get)
+        if not (ranked and ranked[0] == 1 and isinstance(okw, (int, float)) and (not brand or other["brand"] == brand)):
+            continue
+        if (okw < min_kw) if min_kw else abs(okw - kw) > 0.3:
+            continue
+        name = ranked[1]["name"]
+        key = (okw, other["raw"]["set_price_EUR"])  # the smallest size that covers the room, then the cheapest
+        if name not in found or key < found[name][0]:
+            found[name] = (key, f"{name} {okw:g} kW ({' + '.join(sorted(codes))})".replace(".", ","))
+    return [label for _, label in sorted(found.values(), key=lambda v: v[0][1])]
 
 
 def _cheapest_set(min_kw, wifi=False, brand=None):
@@ -1286,6 +1292,7 @@ def _fit_check(fit_lines, override_reason=None):
         small_office = _OFFICE_RE.search(text) and m2 and max(m2) <= SIZING["office_residential_ok_up_to_m2"]
         if not small_office:
             warnings.append("zákazník spomenul komerčný priestor — over, či nepatrí Samsung CAC alebo Toshiba RAV")
+    largest = None  # the room a single set cools, in m² (set below when the customer gave a size)
     if m2 and place != "serverovňa":
         indoor = sum((rec["raw"].get("cooling_kW") or 0) * qty for rec, _, qty, cat in fit_lines
                      if cat in ("single_split_sets", "multi_split_indoor", "commercial_indoor"))
@@ -1398,13 +1405,15 @@ def _fit_check(fit_lines, override_reason=None):
             if not ranked or ranked[0] == 1:
                 continue
             tier, entry = ranked
-            best = _best_filtration_sets(rec, text) if cat == "single_split_sets" else [
+            best = _best_filtration_sets(rec, text, largest) if cat == "single_split_sets" else [
                 e["name"] for t in FILTRATION["tiers"] if t["tier"] == 1 for e in t["entries"]]
             reason = ("alergiu, prach, filtráciu alebo kvalitu vzduchu" if allergy else
                       "že chce najlepšiu klimatizáciu (najlepšia filtrácia a najviac funkcií)")
             warnings.append(f"zákazník spomenul {reason}: {entry['name']} má filtráciu triedy {tier} ({entry['filtration']})"
                             + (" — alergikom ho neodporúčaj" if allergy and tier == 4 else "")
                             + (f"; triedu 1 majú {', '.join(best)} — ponúkni ich ako prvé a cenu zisti cez quote"
+                               + (" s presne týmito kódmi; tento quote je cena radu "
+                                  f"{entry['name']}, nie radu triedy 1" if cat == "single_split_sets" else "")
                                if best else ""))
     # A Toshiba multi-split outdoor unit with one indoor unit runs in cooling only ("1 jednotka len pri
     # chladiacej prevádzke", combinations_table) — the scenario's bot sold a home a single cassette on one.
@@ -4509,8 +4518,13 @@ def _misattributed_amounts(text):
     idents = [_quote_identity(q) for q in quotes]
     values = [{v for _, v in _euro_field_items(q)} for q in quotes]
     out = []
+    previous = (set(), set(), set())
     for block in _blocks(text):
-        series, codes, brands = _named_in(block)
+        named_here = _named_in(block)
+        # A price line on its own belongs to the product of the block above it (live demo 2026-10-27: Comfort S2's
+        # price as its own paragraph under "Samsung WindFree Avant S2 … Má: …").
+        series, codes, brands = named_here if any(named_here) else previous
+        previous = named_here
         if not (series or codes or brands):
             continue
         for raw, value in _reply_amounts(block):

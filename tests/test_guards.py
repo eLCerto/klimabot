@@ -1240,6 +1240,35 @@ class RoundThreeTests(BotTest):
         diff = bot._eur(abs(ar30["total_eur"] - seiya["total_eur"])).replace(" €", "")
         self.assertFalse(bot._misattributed_amounts(f"SEIYA je drahšia ako AR30 o {diff} €."))
 
+    def test_a_price_line_belongs_to_the_product_above_it(self):  # live demo 2026-10-27
+        self.sess.user_inputs.append("spálňa 14 m2, wifi a dobrý filter")
+        comfort = bot.quote([{"code": "AR60F09C1AWNEU"}, {"code": "AR60F09C1AWXEU"}])  # WindFree Comfort S2
+        price = bot._eur(comfort["total_with_DPH_23pct_eur"])
+        shown = ("Odporúčam vám radšej **Samsung WindFree Avant S2** (2,5 kW). Má:\n- **Wi-Fi v základe**\n"
+                 f"- **Prémiovú filtráciu triedy 1**\n\nCena s DPH, bez recyklačného poplatku: **{price}**")
+        self.assertTrue(bot._misattributed_amounts(shown), "Comfort S2's price under Avant S2")
+        self.assertFalse(bot._misattributed_amounts(shown.replace("Avant S2", "Comfort S2")))
+        self.assertFalse(bot._misattributed_amounts(f"Ďakujem za otázku.\n\nCena s DPH: **{price}**"),
+                         "no product named above: nothing to compare")
+
+    def test_the_filtration_warning_gives_the_better_sets_codes(self):  # live demo 2026-10-27: AR60F for AR70F
+        self.sess.user_inputs[:] = ["spálňa 14 m2", "ma tato klima wifi a dobry filter?"]
+        comfort = bot.quote([{"code": "AR60F09C1AWNEU"}, {"code": "AR60F09C1AWXEU"}])
+        warning = next(w for w in comfort["fit_warnings"] if "triedy 3" in w)
+        self.assertIn("tento quote je cena radu Samsung WindFree Comfort S2", warning)
+        named = re.findall(r"(Samsung WindFree Avant S2 [\d,]+ kW) \(([A-Z0-9]+) \+ ([A-Z0-9]+)\)", warning)
+        self.assertEqual(len(named), 1, warning)
+        # The smallest Avant S2 that covers 14 m²: quoting exactly those codes passes the fit check.
+        avant = bot.quote([{"code": named[0][1]}, {"code": named[0][2]}])
+        self.assertNotIn("error", avant)
+        self.assertIn("Avant S2", avant["lines"][0]["description"])
+        self.assertFalse(any("triedy" in w for w in avant.get("fit_warnings", [])), "tier 1: no warning")
+        # Without a size, sets of about the quoted capacity.
+        self.sess.user_inputs[:] = ["ma tato klima wifi a dobry filter?"]
+        warning = next(w for w in bot.quote([{"code": "AR60F09C1AWNEU"}, {"code": "AR60F09C1AWXEU"}])["fit_warnings"]
+                       if "triedy 3" in w)
+        self.assertIn("Samsung WindFree Avant S2 2,5 kW (AR70F09C1AWNEU + AR70F09C1AWXEU)", warning)
+
     def test_dph_label_must_match(self):  # a03, d01
         ar30, _ = self.quotes_ar30_and_seiya()
         net, gross = (bot._eur(ar30[k]).replace(" €", "") for k in ("total_eur", "total_with_DPH_23pct_eur"))
