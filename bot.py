@@ -3786,12 +3786,51 @@ def _hallucinated_model_codes(text):
 # handles placement at obhliadka. Fires if 3+ placement-word stems appear
 # within an 80-char window (typical enumeration size).
 # "záhrad" / "dvor" / "garáž": the replay of 2026-10-21 put the outdoor unit "v záhrade alebo na streche"
-_PLACEMENT_STEMS = ("balkón", "balkon", "lodži", "lodžia", "fasád", "strech", "terasa", "záhrad", "zahrad", "dvor",
+_PLACEMENT_STEMS = ("balkón", "balkon", "lodži", "lodžia", "fasád", "strech", "teras", "záhrad", "zahrad", "dvor",
                     "garáž", "garaz")
 _PLACEMENT_RE = re.compile(
     r"\b(" + "|".join(_PLACEMENT_STEMS) + r")[a-záäčďéíľĺňóôŕšťúýž]*",
     flags=re.IGNORECASE,
 )
+_PAREN_RE = re.compile(r"[ \t]*\(([^()\n]*)\)")
+
+
+def _placement_stems(text):
+    return {m.group(1).lower()[:6] for m in _PLACEMENT_RE.finditer(text)}
+
+
+_PLACEMENT_PM_SENTENCE = {"sk": "Umiestnenie vonkajšej jednotky posúdi projektový manažér pri bezplatnej obhliadke.",
+                          "en": "The project manager will assess where the outdoor unit goes at the free site visit."}
+_PLACEMENT_PM_SAID_RE = re.compile(r"umiestn\w*[^.!?\n]*(?:projektov\w*\s+manažér|\bPM\b)|"
+                                   r"(?:projektov\w*\s+manažér|\bPM\b)[^.!?\n]*umiestn\w*|"
+                                   r"project\s+manager[^.!?\n]*outdoor\s+unit", re.IGNORECASE)
+_LIST_MARKER_RE = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+")
+_PLACEMENT_SPLIT_RE = re.compile(r"(?<=[.!?])(?<!\bnapr\.)(?<!\btzv\.)(?<!\bresp\.)(?<!\bč\.)(?<!\s\d\.)(?<!\s\d\d\.)"
+                                 r"\s+(?=\S)", re.IGNORECASE)
+
+
+def _replace_placement_lists(text, language="sk"):
+    """Each statement listing places for the outdoor unit becomes the PM sentence — once per reply, and not
+    at all when another sentence already says the PM assesses the placement."""
+    def is_list(s):
+        return "?" not in s and len(_placement_stems(s)) >= 2
+    lines = [_PLACEMENT_SPLIT_RE.split(line) for line in text.split("\n")]
+    if not any(is_list(s) for sentences in lines for s in sentences):
+        return text
+    said = any(_PLACEMENT_PM_SAID_RE.search(s) for sentences in lines for s in sentences if not is_list(s))
+    out = []
+    for sentences in lines:
+        kept = []
+        for s in sentences:
+            if not is_list(s):
+                kept.append(s)
+            elif not said:
+                marker = _LIST_MARKER_RE.match(s)
+                kept.append((marker.group(0) if marker else "") + _PLACEMENT_PM_SENTENCE.get(language, _PLACEMENT_PM_SENTENCE["sk"]))
+                said = True
+        if kept or not any(s.strip() for s in sentences):
+            out.append(" ".join(kept))
+    return "\n".join(out)
 
 # Tykanie / vykanie consistency. Slovak distinguishes informal (tykanie:
 # ťa/tebe/tvoj, verbs in -š) from formal (vykanie: vám/vás/váš, verbs in -te).
@@ -4052,13 +4091,11 @@ def sanitize_reply(text, language="sk"):
     # "Cena s DPH a recyklačnými poplatkami: …": the recycling fee is added on top of every total
     # (live demo 2026-10-19). "bez DPH a recyklačných poplatkov" is right and stays.
     text = _WITH_VAT_AND_FEE_RE.sub(r"s DPH\1, bez recyklačného poplatku", text)  # \1: a closing "**" stays
-    # A line listing outdoor placement options ("Umiestnenie vonkajšej jednotky (balkón, fasáda, iné)") is the
-    # PM's topic at the site visit: the line goes. It used to be only logged, and kept coming back.
-    # Sentence by sentence: the replay's placement sentence shared its line with the recommendation.
-    placement = lambda s: len({m.group(1).lower()[:6] for m in _PLACEMENT_RE.finditer(s)}) >= 2  # noqa: E731
-    text = "\n".join(" ".join(s for s in _SENTENCE_SPLIT_RE.split(line) if not placement(s))
-                     for line in text.split("\n") if not (placement(line) and all(
-                         placement(s) for s in _SENTENCE_SPLIT_RE.split(line) if s.strip())))
+    # Outdoor placement options are the PM's topic at the site visit. A list in brackets goes on its own
+    # ("typ upevnenia (fasáda, balkón, strecha)"); any other sentence listing places is replaced by the PM
+    # sentence, because a plain cut left the next sentence ("Na základe toho…") pointing at nothing.
+    text = _PAREN_RE.sub(lambda m: "" if len(_placement_stems(m.group(1))) >= 2 else m.group(0), text)
+    text = _replace_placement_lists(text, language)
     text = _WITH_VAT_AND_FEE_EN_RE.sub("incl. VAT, excluding the recycling fee", text)
     text = _APPROX_AFTER_AMOUNT_RE.sub(r"\1", text)
     text = _fix_wifi_claims(text, language)
@@ -4986,24 +5023,13 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
 
     # Placement-option enumeration — bot is listing balkón/lodžia/fasáda/strecha
     # as choices, which [[umiestnenie-vonkajsej-jednotky]] forbids (PM handles placement).
-    placement_matches = list(_PLACEMENT_RE.finditer(text))
-    distinct_stems = {m.group(1).lower()[:6] for m in placement_matches}
-    if len(distinct_stems) >= 3:
-        # Confirm they're clustered (≤80 chars between first and third match),
-        # otherwise they're scattered across the reply and probably narrative.
-        positions = sorted(m.start() for m in placement_matches)
-        clustered = any(
-            positions[i + 2] - positions[i] <= 80
-            for i in range(len(positions) - 2)
+    placement_lists = _placement_list_sentences(text)
+    if placement_lists:
+        violations.append(
+            f"umiestnenie-zoznam: vymenúvaš miesta pre vonkajšiu jednotku ('{placement_lists[0][:100]}'). "
+            "Bot NEVYMENÚVA placement možnosti (balkón / lodžia / fasáda / strecha) — to rieši PM pri obhliadke. "
+            "V odpovedi placement spomeň iba ak zákazník sám prinesie tému, a aj vtedy iba ten jeden, ktorý uviedol."
         )
-        if clustered:
-            violations.append(
-                "umiestnenie-zoznam: zoznam možností umiestnenia outdoor "
-                f"({sorted(distinct_stems)}). Bot NEVYMENÚVA placement možnosti "
-                "(balkón / lodžia / fasáda / strecha) — to rieši PM pri obhliadke. "
-                "V odpovedi placement spomeň iba ak zákazník sám prinesie tému, "
-                "a aj vtedy iba ten jeden, ktorý uviedol."
-            )
     if _placement_question_sentences(text):
         violations.append(
             "umiestnenie-otazka: pýtaš sa zákazníka, kam pôjde vonkajšia jednotka. Túto otázku nekladieš — "
@@ -5595,10 +5621,15 @@ def _placement_question_sentences(text):
     found = []
     for line in text.split("\n"):
         for s in _SENTENCE_SPLIT_RE.split(line):
-            stems = {m.group(1).lower()[:6] for m in _PLACEMENT_RE.finditer(s)}
-            if "?" in s and (_KAM_OUTDOOR_RE.search(s) or len(stems) >= 2):
+            if "?" in s and (_KAM_OUTDOOR_RE.search(s) or len(_placement_stems(s)) >= 2):
                 found.append(s)
     return found
+
+
+def _placement_list_sentences(text):
+    """Statements naming two or more places for the outdoor unit (a question is umiestnenie-otazka)."""
+    return [s for line in text.split("\n") for s in _SENTENCE_SPLIT_RE.split(line)
+            if "?" not in s and len(_placement_stems(s)) >= 2]
 
 
 def _sentence_is_hard(sentence, trusted, bad_values=()):
@@ -5729,8 +5760,7 @@ def _regen_note(violations):
         "aplikacia-rabatov": "Pred sumou nepíš '~' / 'cca' / 'okolo': uveď presnú sumu z `quote` alebo sumu vynechaj.",
         "model-code-verifikacia": "Kódy, ktoré nie sú v databáze, vynechaj alebo ich over cez `lookup_product`.",
         "povolenia-instalacia": "Vynechaj vetu o povoleniach a súhlasoch k inštalácii.",
-        "umiestnenie-otazka": "Nepýtaj sa, kam pôjde vonkajšia jednotka.",
-        "rozpocet-tvrdenie": "Zavolaj `quote` (rozpočet zákazníka doplní sám) a vzťah k rozpočtu napíš podľa "
+        "umiestnenie-otazka": "Nepýtaj sa, kam pôjde vonkajšia jednotka.",        "rozpocet-tvrdenie": "Zavolaj `quote` (rozpočet zákazníka doplní sám) a vzťah k rozpočtu napíš podľa "
                              "`budget.status`. Ak rozpočet zahŕňa montáž, povedz len, či sa zmestia jednotky; "
                              "cenu montáže určí projektový manažér po obhliadke.",
         "interne-info": "Vynechaj vety o nástrojoch, stave, serveri a o tom, na čo čakáš — píš iba zákazníkovi.",

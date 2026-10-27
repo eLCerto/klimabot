@@ -618,7 +618,13 @@ class QuoteTests(BotTest):
 
     def test_placement_lists_are_removed(self):  # "Umiestnenie vonkajšej jednotky (balkón, fasáda, iné)"
         text = "Pri obhliadke posúdi:\n- Umiestnenie vonkajšej jednotky (balkón, fasáda, iné)\n- Dĺžku potrubia"
-        self.assertEqual(bot.sanitize_reply(text)[0], "Pri obhliadke posúdi:\n- Dĺžku potrubia")
+        self.assertEqual(bot.sanitize_reply(text)[0],
+                         "Pri obhliadke posúdi:\n- Umiestnenie vonkajšej jednotky\n- Dĺžku potrubia")
+        live = ("Počas obhliadky PM posúdi umiestnenie vonkajšej jednotky, nosnosť konštrukcie, typ upevnenia "
+                "(fasáda, balkón, terasa, strecha) a potrebu protivibračných opatrení. Na základe toho vyberie "
+                "vhodný typ držiaka.")
+        self.assertEqual(bot.sanitize_reply(live)[0], live.replace(" (fasáda, balkón, terasa, strecha)", ""))
+        self.assertEqual(bot.sanitize_reply("Kompresor (inverter) beží ticho.")[0], "Kompresor (inverter) beží ticho.")
 
     def test_features_are_asked_before_the_first_offer(self):  # the owner's wish, 2026-10-19
         self.sess.user_inputs.append("Obývačka 30 m2, jedna izba.")
@@ -963,13 +969,24 @@ class QuoteTests(BotTest):
         self.assertNotIn("najlepšiu klimatizáciu", " ".join(
             self.q([("RAS-10P2AVSG-E", 1), ("RAS-B10N4KVRG-E2", 1)]).get("fit_warnings", [])), "HAORI is tier 1")
 
-    def test_placement_sentence_goes_and_its_line_stays(self):  # replay 2026-10-21
+    def test_placement_sentence_becomes_the_pm_sentence(self):  # replay 2026-10-21, live demo 2026-10-26
         line = ("Multi-split je ideálny pre váš dom. Jedna vonkajšia jednotka môže byť napr. v záhrade alebo na "
                 "streche. Z nej idú potrubia do oboch izieb.")
-        fixed = bot.sanitize_reply(line)[0]
-        self.assertNotIn("záhrade", fixed)
-        self.assertIn("Multi-split je ideálny", fixed)
-        self.assertIn("Z nej idú potrubia", fixed)
+        self.assertEqual(bot.sanitize_reply(line)[0],
+                         "Multi-split je ideálny pre váš dom. Umiestnenie vonkajšej jednotky posúdi projektový "
+                         "manažér pri bezplatnej obhliadke. Z nej idú potrubia do oboch izieb.")
+        said = ("Umiestnenie vonkajšej jednotky posúdi PM pri obhliadke.\n\n- Môže ísť na balkón alebo na strechu.\n"
+                "- Dĺžku potrubia tiež.")
+        self.assertEqual(bot.sanitize_reply(said)[0],
+                         "Umiestnenie vonkajšej jednotky posúdi PM pri obhliadke.\n\n- Dĺžku potrubia tiež.")
+        listed = "Pri obhliadke posúdi:\n- typ upevnenia: fasáda, balkón alebo strecha\n- Dĺžku potrubia"
+        self.assertEqual(bot.sanitize_reply(listed)[0], "Pri obhliadke posúdi:\n- Umiestnenie vonkajšej jednotky "
+                         "posúdi projektový manažér pri bezplatnej obhliadke.\n- Dĺžku potrubia")
+        one = "Vonkajšiu jednotku umiestni projektový manažér po obhliadke na balkóne, ktorý ste spomenuli."
+        self.assertEqual(bot.sanitize_reply(one)[0], one)
+        floor = "Byt na 3. poschodí má balkón aj terasu. Klíma do 25 m2. Stojí to málo."
+        self.assertEqual(bot.sanitize_reply(floor)[0], "Umiestnenie vonkajšej jednotky posúdi projektový manažér "
+                         "pri bezplatnej obhliadke. Klíma do 25 m2. Stojí to málo.")
 
     def test_installing_own_unit_gets_no_sales_discovery(self):  # live demo 2026-10-21: balcony self-install
         for msg in ("ahoj, chcem namontovat klimu na balkon, vies mi poradit na co si davat pri montazi pozor?",
