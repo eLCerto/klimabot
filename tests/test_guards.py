@@ -637,12 +637,14 @@ class QuoteTests(BotTest):
 
     def test_features_are_asked_before_the_first_offer(self):  # the owner's wish, 2026-10-19
         self.sess.user_inputs.append("Obývačka 30 m2, jedna izba.")
-        self.assertIn("čo je preň dôležité", bot.build_server_context())
+        self.assertEqual(bot.next_move().name, "zisti-priority")
+        self.assertIn("čo je pre zákazníka dôležité", bot.build_server_context())
         self.sess.user_inputs.append("Hlavne nech je tichá.")
-        self.assertNotIn("čo je preň dôležité", bot.build_server_context())
+        self.assertEqual(bot.next_move().name, "ponuka")
+        self.assertNotIn("čo je pre zákazníka dôležité", bot.build_server_context())
         self.sess.user_inputs[:] = ["Obývačka 30 m2."]
         self.q([(c, 1) for c in AR30_SET])
-        self.assertNotIn("čo je preň dôležité", bot.build_server_context(), "after an offer the question is the bot's")
+        self.assertNotIn("dôležité", bot.build_server_context(), "after an offer the question is the bot's")
 
     def test_an_offer_follows_the_requirements_and_a_cheaper_wish(self):  # scenario byt_3_izby
         self.sess.user_inputs.extend(["potrebujem klimu do bytu do 3 izieb", "izby maju 20, 20 a 10 m2"])
@@ -687,9 +689,11 @@ class QuoteTests(BotTest):
 
     def test_price_first_when_the_customer_asks_for_it(self):  # live demo 2026-10-20: features asked instead
         self.sess.user_inputs.append("Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?")
-        self.assertIn("Zákazník sa pýta na cenu", bot.build_server_context())
+        self.assertEqual(bot.next_move().name, "ponuka")
+        self.assertIn("Po cenách sa opýtaj, čo je preň dôležité", bot.build_server_context())
         self.sess.user_inputs[:] = ["Spálňa 14 m2."]
-        self.assertIn("Pred prvou cenovou ponukou", bot.build_server_context())
+        self.assertEqual(bot.next_move().name, "zisti-priority")
+        self.assertIn("Pred prvou ponukou", bot.build_server_context())
 
     def test_no_unsupported_feature_or_savings_claims(self):  # live demo 2026-10-20: SEIYA "WiFi", "ušetrí"
         reply = ("Odporúčam **Toshiba SEIYA (2,5 kW, biela)**.\n\nTáto jednotka vám ponúka:\n- Energetická trieda A++\n"
@@ -2252,6 +2256,83 @@ class DataDirTests(unittest.TestCase):
                 mock.patch.object(bot, "encode_passages", return_value=vecs), \
                 mock.patch.object(bot.np, "save", side_effect=PermissionError("read-only")):
             self.assertEqual(bot.load_or_compute_embeddings([("text", "knowledge/rules/a.md")]).tolist(), vecs.tolist())
+
+
+# ---------- conversation policy ----------
+
+class PolicyTests(BotTest):
+    """next_move(): one direction per turn (docs/conversation_policy.md)."""
+
+    def move(self, *messages):
+        self.sess.user_inputs[:] = list(messages)
+        return bot.next_move()
+
+    def test_moves_follow_the_diagram(self):
+        cases = [
+            (["Dobrý deň, chcem klimatizáciu."], "zisti-priestor"),
+            (["Potrebujem klímu do dvojizbového bytu, má 50 m2."], "zisti-izby"),
+            # live demo 2026-10-27: "obe izby, každá…" is the answer — no third question about rooms
+            (["Potrebujem klímu do dvojizbového bytu, má 50 m2.", "Chcem chladiť obe izby, každá má 20 m2."],
+             "zisti-priority"),
+            (["Potrebujem klímu do dvojizbového bytu, má 50 m2.", "Chcem chladiť obe izby, každá má 20 m2.",
+              "Hlavne nech je to čo najlacnejšie."], "ponuka"),
+            (["Spálňa 14 m2, koľko stojí?"], "ponuka"),
+            (["Obývačka 30 m2, chcem aby bola tichá."], "ponuka"),
+            (["Klimatizácia mi dymí a smrdí spáleninou, čo mám robiť?"], "bezpecnost"),
+            (["Chcem chladiť výrobnú halu."], "priemysel"),
+            (["Kúpil som si klímu, ako ju mám nainštalovať?"], "vlastna-montaz"),
+            (["Klimatizácia, ktorú ste mi namontovali, nechladí. Chcem reklamáciu."], "reklamacia"),
+        ]
+        for messages, name in cases:
+            self.assertEqual(self.move(*messages).name, name, messages)
+        pv = self.move("Dá sa vaša klimatizácia napojiť na fotovoltiku?")
+        self.assertEqual(pv.name, "neponukame")
+        self.assertIn("neponúka nič s fotovoltikou", pv.directive)
+        self.assertIn("Potom: Zákazník ešte nepovedal, aký priestor", pv.directive, "the decline keeps the sale going")
+        self.assertIn("multi-split", self.move("Dvojizbový byt, obe izby po 20 m2, koľko to stojí?").directive)
+
+    def test_moves_after_an_offer(self):
+        self.sess.user_inputs[:] = ["Spálňa 14 m2."]
+        bot.quote([{"code": c} for c in AR30_SET])
+        for latest, name in (("Beriem tú lacnejšiu.", "kontakt"), ("Máte aj niečo lacnejšie?", "nova-ponuka"),
+                             ("Koľko by stála s Wi-Fi modulom?", "nova-ponuka"), ("A má Wi-Fi?", "odpoved"),
+                             # A/B of 2026-10-27: "tá lacnejšia" points at an offer; no new price is due
+                             ("Má tá lacnejšia aj dobrý filter?", "odpoved"), ("dobre", "pokracuj")):
+            self.sess.user_inputs[:] = ["Spálňa 14 m2.", latest]
+            self.assertEqual(bot.next_move().name, name, latest)
+        self.sess.consent = {"purpose": "sales", "ts": "", "evidence": "Áno, súhlasím"}
+        self.assertEqual(bot.next_move().name, "zapis")
+
+    def test_an_offer_turn_must_call_a_tool_and_keeps_its_direction(self):
+        samsung, toshiba = (["AR40H09C1AMNEU", "AR40H09C1AMXEU"], ["RAS-10B2AVG-E2", "RAS-B10B2KVG-E2"])
+        reply = (f"**Samsung AR35 WIFI** (2,6 kW): **{priced(samsung)}** s DPH.\n\n"
+                 f"**Toshiba SEIYA Classic 2** (2,5 kW): **{priced(toshiba)}** s DPH.\n\nKtorá vám viac vyhovuje?")
+        _, shown = self.turn("Dobrý deň, spálňa 14 m2, koľko by stála klimatizácia?",
+                             resp(tool("quote", items=[{"code": c} for c in samsung]),
+                                  tool("quote", items=[{"code": c} for c in toshiba])),
+                             resp(text(reply)))
+        self.assertIn(priced(toshiba), shown)
+        self.assertEqual(bot.client.calls[0]["tool_choice"], {"type": "any"})
+        self.assertNotIn("tool_choice", bot.client.calls[1])
+        # The quotes made mid-turn don't flip the move: the reply is still written as the first offer.
+        self.assertIn("Teraz príde prvá ponuka", json.dumps(bot.client.calls[1]["messages"][-1], ensure_ascii=False))
+        self.assertIn('"move": "ponuka"', self.log_text())
+
+    def test_picking_the_cheaper_offer_is_no_price_question(self):  # A/B of 2026-10-27: 6 needless regenerations
+        samsung = ["AR40H09C1AMNEU", "AR40H09C1AMXEU"]
+        self.sess.user_inputs[:] = ["Spálňa 12 m2, koľko stojí najlacnejšia klimatizácia?"]
+        bot.quote([{"code": c} for c in samsung])
+        _, shown = self.turn("Beriem tú lacnejšiu.", resp(text(
+            "Výborne, Samsung AR35 WIFI. Ak mi necháte meno, telefón, e-mail a obec a odsúhlasíte otázku nižšie, "
+            "projektový manažér sa vám ozve.")))
+        self.assertNotIn("cena-neodpovedana", self.log_text())
+        self.assertIn('"move": "kontakt"', self.log_text())
+
+    def test_a_discovery_turn_is_not_forced_to_call_tools(self):
+        _, shown = self.turn("Dobrý deň, chcem klimatizáciu.",
+                             resp(text("Dobrý deň, rád pomôžem. Akú miestnosť chcete chladiť a koľko má m²?")))
+        self.assertNotIn("tool_choice", bot.client.calls[0])
+        self.assertIn("ĎALŠÍ KROK", json.dumps(bot.client.calls[0]["messages"][-1], ensure_ascii=False))
 
 
 # ---------- Slovak spelling ----------
