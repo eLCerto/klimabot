@@ -878,8 +878,13 @@ class QuoteTests(BotTest):
             big = self.q([("RAS-2M14G3AVG-E", 1), (indoor, 2)])
             self.assertIn("naddimenzované", big["error"], indoor)
             self.assertIn("20 m²", big["error"], indoor)
-        for total in ("Byt má 50 m2", "rodinný dom o rozlohe 120 m²", "byt je 50m2"):
+        for total in ("Byt má 50 m2", "rodinný dom o rozlohe 120 m²", "byt je 50m2", "byt o veľkosti 70 m2",
+                      "dvojizbového bytu, má 50 m2", "byt (50 m2)"):
             self.assertTrue(bot._M2_TOTAL_RE.search(total), total)
+        # The live check's wording: the comma after "bytu" left 50 m² a room again.
+        self.sess.user_inputs[:] = ["Dobrý deň, potrebujem klímu do dvojizbového bytu, má 50 m2.",
+                                    "Chcem chladiť obe izby, každá má 20 m2.", "Hlavne nech je to čo najlacnejšie."]
+        self.assertNotIn("error", self.q([("RAS-2M10G3AVG-E", 1), ("RAS-B10B2KVG-E2", 2)]))
         for room in ("v byte máme spálňu 14 m2", "byt, spálňa 14 m2", "obývačka 30 m2"):
             self.assertFalse(bot._M2_TOTAL_RE.search(room), room)
 
@@ -2123,6 +2128,23 @@ class LiveCheckTests(BotTest):
         # Once a tool result names it, the answer may come from the history.
         self.assertEqual(bot._unsourced_features("A WindFree je aj v Avant S2?", "WindFree má aj Avant S2."), [])
         self.assertEqual(bot._unsourced_features("Čo je HADA?", "Akú plochu máte?"), [], "the reply describes nothing")
+        # Live check 2026-10-27: answered from general knowledge, not in the price lists.
+        self.assertEqual(bot._unsourced_features(
+            "Dá sa vaša klimatizácia napojiť na fotovoltiku, aby bežala zo solárnych panelov?",
+            "Áno, klimatizácia sa dá napojiť na fotovoltiku, invertor optimalizuje spotrebu."), ["fotovoltika"])
+        self.assertEqual(bot._unsourced_features(
+            "Dobrý deň, má Toshiba HAORI ovládanie hlasom cez Siri alebo Google Home?",
+            "Siri sa dá cez HomeKit hub."), ["Siri"])
+        self.assertEqual(bot._unsourced_features("Má Samsung infračervený solárny ovládač?",
+                                                 "Áno, solárny ovládač je v balení."), [], "a solar remote is no PV")
+
+    def test_no_instalments(self):  # the owner, 2026-10-27
+        for message in ("A predávate aj na splátky?", "Dá sa to kúpiť na leasing?", "Ponúkate úver?"):
+            self.sess.user_inputs[:] = [message]
+            self.assertIn("nepredáva na splátky", bot.build_server_context(), message)
+        for message in ("Nepotrebujem splátky, zaplatím naraz.", "Koľko stojí klíma do spálne 14 m2?"):
+            self.sess.user_inputs[:] = [message]
+            self.assertNotIn("nepredáva na splátky", bot.build_server_context(), message)
 
     def test_tykanie_with_a_customer_who_doesnt_tykat_is_regenerated(self):
         _, shown = self.turn("Aká je záruka na klimatizácie Toshiba?",
@@ -2186,6 +2208,91 @@ class DataDirTests(unittest.TestCase):
                 mock.patch.object(bot, "encode_passages", return_value=vecs), \
                 mock.patch.object(bot.np, "save", side_effect=PermissionError("read-only")):
             self.assertEqual(bot.load_or_compute_embeddings([("text", "knowledge/rules/a.md")]).tolist(), vecs.tolist())
+
+
+# ---------- Slovak spelling ----------
+
+class SpellingTests(BotTest):
+    BROKEN = "Keď mi poviedate tieto detaily, hneď vám povedám, ktorý model vám odporúčim."  # live check 2026-10-27
+    CLEAN = ("Ďakujem, Samuel. Pre obe izby vám nacením multi-split Toshiba aj Samsung WindFree; od Samsungu máte "
+             "Wi-Fi v základe. Keď mi poviete, čo je pre vás najdôležitejšie, odporučím vám najlepší variant.")
+
+    def test_misspelled_words_and_what_passes(self):
+        self.sess.user_inputs[:] = ["Volám sa Samuel, byt je v Bánovciach"]
+        self.assertEqual(bot._misspelled_words(self.BROKEN), ["odporúčim", "povedám", "poviedate"])
+        self.assertEqual(bot._misspelled_words(self.CLEAN), [], "domain words, brand cases, naj-, the customer's name")
+        self.assertEqual(bot._misspelled_words("Montáž v Bánovciach posúdi projektový manažér, kód AR35 RAS-B10."), [])
+        self.assertEqual(bot._misspelled_words("Která jednotka je lepší?"), ["Která"])
+
+    def test_missing_diacritics_are_added(self):
+        fixed, _ = bot.sanitize_reply("Nastenná jednotka je vaš výber, bez predpripravy.")
+        self.assertEqual(fixed, "Nástenná jednotka je váš výber, bez predprípravy.")
+        for fine in ("Projektový manažér to objasní pri obhliadke.", "This is ideal for the time you have."):
+            self.assertEqual(bot.sanitize_reply(fine)[0], fine, "only added diacritics, no English")
+
+    def test_misspellings_cost_one_regeneration(self):
+        _, shown = self.turn("Dobrý deň, potrebujem klímu do spálne 14 m2",
+                             resp(text(self.BROKEN)), resp(text(self.CLEAN)))
+        self.assertEqual(shown, self.CLEAN)
+        self.assertIn("poviedate", json.dumps(bot.client.calls[1]["messages"], ensure_ascii=False))
+        # Still misspelled after it: shown and logged, no second regeneration for spelling.
+        _, shown = self.turn("A čo ešte?", resp(text(self.BROKEN)), resp(text(self.BROKEN)))
+        self.assertEqual(shown, self.BROKEN)
+        self.assertIn("pravopis-slovo", self.log_text())
+
+    def test_english_replies_are_not_spellchecked(self):
+        _, shown = self.turn("Dobrý deň", resp(text("Dobrý deň, s čím vám pomôžem pri výbere klimatizácie?")))
+        _, shown = self.turn("Can you answer in English, please?",
+                             resp(text("Of course. Which room would you like to cool, and how big is it?")))
+        self.assertIn("Which room", shown)
+
+
+# ---------- eval: the AI reviewer ----------
+
+class JudgeTests(unittest.TestCase):
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("klimabot_judge", REPO / "eval" / "judge.py")
+        self.judge = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.judge)
+        self.run = TMP / f"judge_run_{next(_ids)}"
+        (self.run / "conversations").mkdir(parents=True)
+        for cid in ("c01_byt", "c02_dom"):
+            (self.run / "conversations" / f"{cid}.json").write_text(json.dumps({
+                "id": cid, "title": "Byt", "review": "dve izby",
+                "turns": [{"user": "Dvojizbový byt, 50 m2", "assistant": ["Koľko izieb chcete chladiť?"],
+                           "tools": [{"name": "quote", "input": "{}", "is_error": "False", "output_preview": "{}"}]}],
+            }), encoding="utf-8")
+
+    def report(self, score):
+        return {**{f"{k}_score": score for k in self.judge.CRITERIA}, "summary": "Zhrnutie.",
+                "findings": [{"criterion": "discovery", "turn": 1, "quote": "x", "problem": "p"}]}
+
+    def test_reviews_are_written_and_the_budget_holds(self):
+        client = FakeClient([resp(tool("report_review", **self.report(3)), use=usage(4_000, 800))] * 2)
+        results = self.judge.judge(self.run, client, budget_usd=1.0)
+        self.assertEqual([r["id"] for r in results], ["c01_byt", "c02_dom"])
+        self.assertEqual(client.calls[0]["tool_choice"], {"type": "tool", "name": "report_review"})
+        self.assertIn("Kolo 1", client.calls[0]["messages"][0]["content"])
+        report = (self.run / "judge.md").read_text(encoding="utf-8")
+        self.assertIn("| c01_byt | 3 | 3 | 3 | 3 | 3 | 3 | 18 |", report)
+        self.assertIn("**discovery**, kolo 1: „x“ — p", report)
+        # A budget too small for even one call skips every conversation without calling the API.
+        client = FakeClient([])
+        self.assertEqual(self.judge.judge(self.run, client, budget_usd=0.001), [])
+        self.assertIn("c01_byt, c02_dom", (self.run / "judge.md").read_text(encoding="utf-8"))
+
+    def test_values_sent_as_json_strings_are_read(self):  # Haiku sent a nested object as a string
+        raw = {**self.report(4), "findings": json.dumps(self.report(4)["findings"]), "flow_score": "2"}
+        self.assertEqual(self.judge.normalized(raw)["scores"]["flow"], 2)
+        self.assertEqual(self.judge.normalized(raw)["findings"][0]["problem"], "p")
+        with self.assertRaises(ValueError):
+            self.judge.normalized({**self.report(4), "language_score": 9})
+
+    def test_only_and_unpriced_models(self):
+        client = FakeClient([resp(tool("report_review", **self.report(5)), use=usage(4_000, 800))])
+        self.assertEqual([r["id"] for r in self.judge.judge(self.run, client, only={"c02"})], ["c02_dom"])
+        with self.assertRaises(SystemExit):
+            self.judge.judge(self.run, FakeClient([]), model="claude-unpriced")
 
 
 # ---------- retrieval quality ----------

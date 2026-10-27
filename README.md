@@ -43,6 +43,7 @@ main.py           starts the web app
 cost_report.py    cost, conversion and GDPR-audit report over the logs (also at /admin)
 config/           pricing policy, consent wording, sizing thresholds, stock rules, filtration ranking, model prices
 knowledge/        what the bot searches: samsung/, toshiba/, montaz/ (price lists), rules/ (behavior rules)
+dictionaries/     the Slovak spelling dictionary (sk-spell) and the bot's own extra words
 web/              the web app: web.py and static/ (one HTML file + pinned marked and DOMPurify)
 tests/            unit tests with a fake model client
 eval/             scripted customer conversations, runners and analysis
@@ -60,6 +61,8 @@ Caddyfile                                   HTTPS on a server (compose profile h
 - **Toshiba:** Toshiba produktový katalóg 2026–2027 (SK), prices valid 1 Apr 2026 – 31 Mar 2027, via the Slovak distributor AIR-COND International
 
 Prices are informative list prices excluding VAT (DPH) and recycling fees, as of those editions. They change, and the official price lists are what counts. This project isn't affiliated with Samsung or Toshiba, and all trademarks belong to their owners.
+
+The Slovak spelling check reads the [sk-spell](https://github.com/sk-spell/hunspell-sk) Hunspell dictionary (version 2024-08-29, from LibreOffice's dictionaries; © Zdenko Podobný and contributors), unchanged in [`dictionaries/`](dictionaries/) under its GPL 2 / LGPL 2.1 / MPL 1.1 tri-licence ([`README_sk.txt`](dictionaries/README_sk.txt), [`LICENSE.txt`](dictionaries/LICENSE.txt)).
 
 Not real: [`knowledge/montaz/`](knowledge/montaz/) is a small sample of an installation-materials price list with made-up prices, and the pricing policy in [`discounts.json`](config/discounts.json) is illustrative (a uniform 10 % discount). The "shop" in the demo is fictional.
 

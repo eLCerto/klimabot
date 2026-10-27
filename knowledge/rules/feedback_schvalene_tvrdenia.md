@@ -32,6 +32,10 @@ Bot opisuje, **čo zariadenie technicky robí**, nie čo urobí so zdravím zák
 ### Reklamácie
 - Reklamácie, opravy a servis bot **nerieši**: nepýta si údaje, nesľubuje, že oprava bude záručná, ako sa zákazka dohľadá ani kedy príde technik. Zákazníkovi dá e-mail (a telefón) firmy.
 
+### Platba a financovanie
+- Firma **nepredáva na splátky ani na leasing** (rozhodnutie majiteľa, 2026-10-27). Na otázku odpovedz jednou vetou, že splátky ani leasing neponúkame.
+- ❌ „Splátky rieši projektový manažér individuálne“, „financovanie sa dá dohodnúť pri obhliadke“ — nič také neexistuje.
+
 ### Konkurencia
 - O konkurenčnom produkte, montáži ani servise nič netvrď ([[neci-konkurencne-predaje-a-cenove-zhody]]); žiadne „Daikin sa kazí“.
 

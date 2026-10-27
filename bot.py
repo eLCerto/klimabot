@@ -23,6 +23,7 @@ from anthropic import Anthropic
 from dotenv import load_dotenv
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer
+from spylls.hunspell import Dictionary as HunspellDictionary
 
 # --- Config & paths ---
 
@@ -30,6 +31,7 @@ BOT_DIR = Path(__file__).parent
 load_dotenv(BOT_DIR / ".env")
 CONFIG_DIR = BOT_DIR / "config"         # policy: discounts, consent wording, sizing, stock, model prices
 KNOWLEDGE_DIR = BOT_DIR / "knowledge"   # what search_knowledge retrieves: the price lists and the rules
+DICTIONARY_DIR = BOT_DIR / "dictionaries"  # sk-spell's Slovak Hunspell dictionary + our extra words (spelling check)
 # Everything the bot writes at runtime (logs, leads, sessions, the spend and mail ledgers,
 # the KB embedding cache) goes under one directory: data/ by default, a mounted volume in
 # Docker (KLIMABOT_DATA_DIR=/data). A relative path is taken from the project dir.
@@ -948,8 +950,10 @@ _CUSTOMER_M2_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m{1,2}²|m\^2|metr
 # "spolu 40 m²", "celkom 54 m2": a total, not a room. So is the whole flat or house: "Byt má 50 m2" was the
 # largest room on the live demo of 2026-10-27, and two 20 m² rooms got 3.5 kW units.
 _M2_TOTAL_RE = re.compile(r"(?:(?:spolu|celkom|dokopy|celkov\w*|total\w*|together|in\s+total)\s*(?:je\s+|má\s+|ma\s+|to\s+je\s+)?|"
+                          # punctuation too: "dvojizbového bytu, má 50 m2" (live check 2026-10-27)
                           r"\b(?:byt|bytu|dom|domu|apartmán\w*|apartman\w*|flat|apartment|house)\b"
-                          r"(?:\s+(?:má|ma|je|o|s|rozloh\w*|ploch\w*|výmer\w*|vymer\w*|has|is|of|približne|priblizne|asi|cca|okolo))*\s*)"
+                          r"(?:[\s,:;(–-]+(?:má|ma|je|o|s|so|na|rozloh\w*|ploch\w*|výmer\w*|vymer\w*|veľk\w*|velk\w*|has|is|of|"
+                          r"približne|priblizne|asi|cca|okolo)\b)*[\s,:;(–-]*)"
                           r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m²)", re.IGNORECASE)
 _NO_CEILING_RE = re.compile(
     r"(?:nemáme|nemám|nie\s+je|bez)\s+(?:žiadn\w+\s+)?podhľad|podhľad\w*\s+(?:nemáme|nemám|nie\s+je)|"
@@ -4105,6 +4109,7 @@ def sanitize_reply(text, language="sk"):
     if language == "sk":
         text = _CZECH_TOKEN_PAT.sub(_czech_replace, text)
         text = re.sub(r"\b[Mm]estnos[ťt]\b", lambda m: "Obec" if m.group(0)[0] == "M" else "obec", text)
+        text = _fix_diacritics(text)  # "nastenná" → "nástenná" (live check 2026-10-27)
 
     # Cyrillic letters inside Latin words ("електрické", "главне"): transliterate.
     text = text.translate(_CYRILLIC_TO_LATIN)
@@ -4720,6 +4725,9 @@ _ANY_SERIES_FEATURE_RE = re.compile("|".join(f"(?:{rx})" for rx in _SERIES_FEATU
 _TECH_TERM_RES = {name: re.compile(rx, re.IGNORECASE) for name, rx in {
     **_SERIES_FEATURE_TERMS, "WindFree": r"wind[\s-]*free", "Tri-care": r"tri[\s-]*care", "SmartThings": r"smart\s*things",
     "Bixby": r"\bbixby\b", "Bi-flow": r"\bbi[\s-]?flow\b", "Magic Coil": r"magic\s+coil", "katechínový filter": r"katech[ií]n\w*",
+    # Live check 2026-10-27: photovoltaics answered "áno, invertor optimalizuje spotrebu" without a search, and
+    # HAORI got Siri via a HomeKit hub — neither is in the price lists.
+    "fotovoltika": r"fotovolt\w*|solárn\w*\s+panel\w*|\bFVE\b", "Siri": r"\bsiri\b", "HomeKit": r"home\s*kit",
 }.items()}
 _TECH_QUESTION_RE = re.compile(r"\?|\b(?:čo|co|ako|aký|aká|aké|aky|aka|ake|rozdiel\w*|líši|lisi|funguj\w*|znamen\w*|"
                                r"what|how|difference)\b", re.IGNORECASE)
@@ -4739,6 +4747,114 @@ def _unsourced_features(user_input, reply):
     sources = _tool_results_text()
     return [name for name, rx in _TECH_TERM_RES.items()
             if rx.search(user_input) and rx.search(reply) and not rx.search(sources)]
+
+
+# Slovak spelling. The model writes forms that aren't Slovak ("poviedate", "naceením", "Která", "nastenná"): in
+# the demo and eval logs of 2026-10-27, 16 % of the Slovak replies had two or more. A word is misspelled when
+# sk-spell's dictionary (dictionaries/sk_SK, read with spylls), the words of knowledge/ and config/ (product
+# names, glossary terms), dictionaries/klimabot_sk.txt and the customer's own words all lack it.
+_SK_DICT = HunspellDictionary.from_files(str(DICTIONARY_DIR / "sk_SK"))
+_SPELL_WORD_RE = re.compile(r"[^\W\d_]+(?:-[^\W\d_]+)*")
+_SPELL_VOCAB = {w.lower() for path in [*KNOWLEDGE_DIR.rglob("*.json"), *KNOWLEDGE_DIR.rglob("*.md"),
+                                       *CONFIG_DIR.glob("*.json")]
+                for w in _SPELL_WORD_RE.findall(path.read_text(encoding="utf-8"))}
+_SPELL_VOCAB |= {line.strip().lower() for line in (DICTIONARY_DIR / "klimabot_sk.txt").read_text(encoding="utf-8")
+                 .splitlines() if line.strip() and not line.startswith("#")}
+_SPELL_VOCAB |= {w.lower() for w in _SPELL_WORD_RE.findall(f"{COMPANY_NAME} {COMPANY_EMAIL} {fold_diacritics(COMPANY_NAME)} "
+                                                           f"{os.getenv('KLIMABOT_DOMAIN', '')}")}
+# Proper names of the price lists, to accept their Slovak cases ("od Samsungu", "o Toshibe"): capitalised words
+# that aren't ordinary Slovak words — "Povedz" at a sentence start would let "Povedám" through.
+_SPELL_NAME_STEMS = {s for w in {w.lower() for path in [*KNOWLEDGE_DIR.rglob("*.json"), *KNOWLEDGE_DIR.rglob("*.md")]
+                                 for w in re.findall(r"\b[A-ZÁČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ][a-záäčďéíĺľňóôŕšťúýž]{3,}\b",
+                                                     path.read_text(encoding="utf-8"))}
+                     if not _SK_DICT.lookup(w) for s in (w, w[:-1])}
+_SPELL_CACHE = {}
+SPELLING_MIN_WORDS = 2  # distinct misspelled words that cost a regeneration; fewer are only logged
+
+
+def _sk_known(word):
+    if word not in _SPELL_CACHE:
+        if len(_SPELL_CACHE) > 50_000:
+            _SPELL_CACHE.clear()
+        lw = word.lower()
+        _SPELL_CACHE[word] = bool(
+            _SK_DICT.lookup(word) or _SK_DICT.lookup(lw)
+            # superlatives: spylls doesn't apply the dictionary's naj- prefix ("najmenší", "najskôr")
+            or (lw.startswith("naj") and len(lw) > 5 and _SK_DICT.lookup(lw[3:])))
+    return _SPELL_CACHE[word]
+
+
+def _misspelled_words(text):
+    """Distinct words of a Slovak reply that aren't Slovak, sorted. Short words, ALL-CAPS and CamelCase tokens
+    (codes, brands: HADA, WindFree) are skipped."""
+    customer = {w.lower() for w in _SPELL_WORD_RE.findall(_all_user_text())}
+    found = set()
+    for w in _SPELL_WORD_RE.findall(text):
+        if len(w) < 3 or w.isupper() or any(c.isupper() for c in w[1:]):
+            continue
+        lw = w.lower()
+        if lw in _SPELL_VOCAB or lw in customer or _sk_known(w):
+            continue
+        if "-" in w and all(len(p) < 3 or p.lower() in _SPELL_VOCAB or _sk_known(p) for p in w.split("-")):
+            continue
+        if w[0].isupper() and any(lw[:-k] in _SPELL_NAME_STEMS for k in (1, 2, 3)):
+            continue
+        found.add(w)
+    return sorted(found, key=str.lower)
+
+
+# Most misspellings are missing diacritics ("nastenná", "nástennu", "predpripravy", "vaš"): the one known word that
+# adds one or two of them is a safe mechanical fix. Only adding: on the logs of 2026-10-27, removing or moving one
+# turned Czech and correct forms into other words ("Zájem" → "Zajem", "objasní" → "objasni"); those go to the
+# regeneration instead. A full Hunspell suggestion takes up to 2 s per word.
+_DIACRITIC_SWAPS = {"a": "áä", "c": "č", "d": "ď", "e": "é", "i": "í", "l": "ľĺ", "n": "ň", "o": "óô", "r": "ŕ",
+                    "s": "š", "t": "ť", "u": "ú", "y": "ý", "z": "ž"}
+
+
+@functools.lru_cache(maxsize=5_000)
+def _diacritic_fix(word):
+    """The only Slovak word that adds one diacritic to `word` (else two), in its case; else None."""
+    lw = word.lower()
+    positions = [i for i, c in enumerate(lw) if c in _DIACRITIC_SWAPS]
+
+    def ok(v):
+        return v in _SPELL_VOCAB or _sk_known(v)
+
+    singles = {lw[:i] + a + lw[i + 1:] for i in positions for a in _DIACRITIC_SWAPS[lw[i]]}
+    found = {v for v in singles if ok(v)}
+    if not found:
+        found = {v[:j] + b + v[j + 1:] for v in singles for j in positions
+                 if v[j] == lw[j] for b in _DIACRITIC_SWAPS[lw[j]]}
+        found = {v for v in found if ok(v)}
+    if len(found) != 1:
+        return None
+    fix = found.pop()
+    return fix[0].upper() + fix[1:] if word[0].isupper() else fix
+
+
+_EN_FUNCTION_WORDS_RE = re.compile(r"\b(?:the|and|you|your|with|will|which|this|that|would|is|are|for)\b",
+                                   re.IGNORECASE)
+_SK_FUNCTION_WORDS_RE = re.compile(r"\b(?:je|sa|na|pre|vám|vás|a|v|do|so|by|ako|aj|alebo|že|sú)\b", re.IGNORECASE)
+
+
+def _mostly_english(text):
+    """An English reply (a customer who switched to English) isn't checked for Slovak spelling."""
+    return len(_EN_FUNCTION_WORDS_RE.findall(text)) > len(_SK_FUNCTION_WORDS_RE.findall(text))
+
+
+def _fix_diacritics(text):
+    """Replace each misspelled word that has exactly one diacritic fix (Slovak sessions; see sanitize_reply).
+    English slipped into the reply stays as it is ("figure" isn't "figúre")."""
+    if _mostly_english(text):
+        return text
+    english = len({m.lower() for m in _EN_FUNCTION_WORDS_RE.findall(text)}) >= 2
+    for w in _misspelled_words(text):
+        if english and w.isascii():
+            continue
+        fix = _diacritic_fix(w)
+        if fix:
+            text = re.sub(rf"(?<![\w-]){re.escape(w)}(?![\w-])", fix, text)
+    return text
 
 
 @functools.lru_cache(maxsize=None)
@@ -5337,7 +5453,7 @@ _DATE_PROMISE_RE = re.compile(
     re.IGNORECASE)
 # Whole-reply problems: worth a regeneration, but there is no sentence to cut.
 _REGEN_ONLY_RULES = ("jazyk-odpovede", "cena-neodpovedana", "kontakt-pred-ponukou", "prazdna-odpoved", "dve-moznosti",
-                     "zakazana-otazka", "cena-nezobrazena", "vykanie", "funkcia-bez-podkladu")
+                     "zakazana-otazka", "cena-nezobrazena", "vykanie", "funkcia-bez-podkladu", "pravopis")
 _PRICE_QUESTION_RE = re.compile(
     r"\b(?:koľko|kolko|kolik)\b[^?\n]{0,60}(?:stoj|stál|stal|stát|bude|vyjde|zaplat|cen)|\bak[áa]\s+(?:je\s+)?cena\b|"
     r"\bcenu\b|\bhow\s+much\b|\bwhat\s+(?:would|does|will)\b[^?\n]{0,40}\bcost\b|\bprice\b|"
@@ -5835,6 +5951,8 @@ def _regen_note(violations):
         "vykanie": "Zákazník ti netyká: celú odpoveď napíš vykaním (vám, vás, chcete, máte, ak ste si vybrali).",
         "funkcia-bez-podkladu": "Zavolaj `search_knowledge` (alebo `lookup_product` s názvom radu a výkonom) a funkciu "
                                 "opíš iba podľa výsledku.",
+        "pravopis": "Vymenované tvary nahraď spisovnými (napr. „poviete“, nie „poviedate“; „nacením“, nie „naceením“; "
+                    "„ozve“, nie „ozvie“); české a anglické slová nepoužívaj.",
     }
     lines = [f"  - {v}\n    → {howto.get(v.split(':', 1)[0].strip(), '')}" for v in violations]
     return {"type": "text", "text": (
@@ -6284,6 +6402,10 @@ def build_system_blocks():
     ]
 
 
+# Instalments, leasing or financing in the customer's latest message (folded): the company offers none.
+_FINANCING_RE = re.compile(r"\bsplat(?:k\w*|ok)\b|\bleasing\w*|\blizing\w*|\bfinancovan\w*|\buver(?:om|u|y)?\b|"
+                           r"\binstal+ments?\b|\bfinancing\b", re.IGNORECASE)
+
 # The customer installs a unit they already have, or asks how to install one (matched on folded text).
 _OWN_INSTALL_RE = re.compile(
     r"\bmontujem\b|\binstalujem\b|\bnamontujem\b|\bnainstalujem\b|\bsvojpomocn\w*|"
@@ -6427,6 +6549,11 @@ def build_server_context(note=None):
                    "„odovzdám“ ani „potom sa vám ozve“; ďalší krok iba ako podmienku („Ak mi necháte meno a "
                    "telefón a odsúhlasíte otázku nižšie, projektový manažér sa vám ozve.“). Otázku na súhlas "
                    "pripojí server sám.")
+    if _wished(_FINANCING_RE, latest):
+        # Live check 2026-10-27: "Splátky rieši projektový manažér individuálne". The owner (2026-10-27): no
+        # instalments, no leasing.
+        status += ("\nZákazník sa pýta na splátky, leasing alebo financovanie. Firma nepredáva na splátky ani na "
+                   "leasing: povedz to jednou vetou a nesľubuj, že to vyrieši projektový manažér.")
     if _wished(_OWN_INSTALL_RE):
         # The live demo of 2026-10-21: a customer mounting his own Comfort S2 on a balcony asked how to install it
         # and got m² / rooms / features questions three times.
@@ -6795,6 +6922,7 @@ def run_user_turn_streaming(user_input):
     force_final = False      # the next call is the turn's last: no tools allowed
     stop_kind = None         # set when the budget stops the turn before a call
     regens_used = 0          # per customer turn, across all LLM responses
+    spelling_regen_used = False  # one regeneration per turn for spelling (pravopis), see SPELLING_MIN_WORDS
     shown_this_turn = []     # every text the customer saw in this turn
     force_tool = False       # the next call must call a tool (a price question left without a quote)
 
@@ -6929,6 +7057,18 @@ def run_user_turn_streaming(user_input):
                     f"funkcia-bez-podkladu: zákazník sa pýta na {', '.join(unsourced)} a odpovedáš bez podkladu z "
                     "nástrojov. Zavolaj `search_knowledge` a funkciu opíš iba podľa výsledku."
                 )
+            # Slovak spelling (sanitize_reply already fixed the one-diacritic slips): two or more other misspelled
+            # words cost one regeneration per turn; fewer, or what is left after it, are only logged.
+            misspelled = (_misspelled_words(attempt_text)
+                          if answering and language != "en" and attempt_text.strip()
+                          and not _mostly_english(attempt_text) else [])
+            if len(misspelled) >= SPELLING_MIN_WORDS and not spelling_regen_used and not force_final:
+                violations.append(
+                    f"pravopis: tieto slová nie sú spisovná slovenčina: {', '.join(misspelled[:8])}. Napíš odpoveď "
+                    "správnou spisovnou slovenčinou; ak si tvarom nie si istý, použi jednoduchšie slovo."
+                )
+            elif misspelled:
+                violations.append(f"pravopis-slovo: {', '.join(misspelled[:8])}")
             # An empty final reply (text written next to the tools is hidden, so this would leave the
             # customer with nothing): one retry with a note, then the fallback line below.
             if answering and not force_final and not attempt_text.strip() and not shown_this_turn:
@@ -6974,6 +7114,7 @@ def run_user_turn_streaming(user_input):
             _record_usage(u_now, "regen_discarded" if will_regen else response.stop_reason)
             if will_regen:
                 regens_used += 1
+                spelling_regen_used = spelling_regen_used or any(v.startswith("pravopis:") for v in regen_worthy)
                 # A price question left without a quote: the next attempt must call a tool (d04 made no
                 # tool call in 7 turns and told the customer real codes weren't in the price list).
                 force_tool = any(v.startswith(("cena-neodpovedana", "dve-moznosti", "funkcia-bez-podkladu"))
