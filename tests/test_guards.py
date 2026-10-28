@@ -2333,6 +2333,15 @@ class PolicyTests(BotTest):
         self.assertNotIn("cena-neodpovedana", self.log_text())
         self.assertIn('"move": "kontakt"', self.log_text())
 
+    def test_a_discovery_move_prices_nothing(self):  # the API A/B of 2026-10-27 made an offer a turn early
+        _, shown = self.turn("Dobrý deň, potrebujem klimatizáciu do spálne, má 18 m2.",
+                             resp(tool("quote", items=[{"code": c} for c in AR30_SET])),
+                             resp(text("Čo je pre vás najdôležitejšie — tichý chod, filtrácia alebo Wi-Fi?")))
+        self.assertEqual(self.sess.quotes, [])
+        self.assertIn("tichý chod", shown)
+        self.assertIn('"limit": "discovery_quote"', self.log_text())
+        self.assertIn("Teraz sa ešte nenaceňuje", json.dumps(bot.client.calls[1]["messages"][-1], ensure_ascii=False))
+
     def test_a_discovery_turn_is_not_forced_to_call_tools(self):
         _, shown = self.turn("Dobrý deň, chcem klimatizáciu.",
                              resp(text("Dobrý deň, rád pomôžem. Akú miestnosť chcete chladiť a koľko má m²?")))

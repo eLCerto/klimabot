@@ -7444,6 +7444,10 @@ def run_user_turn_streaming(user_input):
                     # second is usually a paraphrase of the first (scenario detska_izba_alergia):
                     # ~9 s of reranking on the demo server for nothing new.
                     over = "response_searches"
+                elif block.name == "quote" and move.name in ("zisti-priestor", "zisti-izby", "zisti-priority"):
+                    # A discovery move prices nothing yet (the API A/B of 2026-10-27 made an offer where the
+                    # priorities question was due). Only quote is refused: lookups and bookkeeping still run.
+                    over = "discovery_quote"
                 if over:
                     log_event("limit_hit", limit=over, name=block.name)
                     content_str, is_error = ((
@@ -7454,6 +7458,9 @@ def run_user_turn_streaming(user_input):
                         "ak mu naozaj niečo chýba, hľadaj v ďalšej odpovedi s inými kľúčovými slovami. Kódy setov "
                         "daj `lookup_product` (názov radu a výkon)."
                     ) if over == "response_searches" else (
+                        "Teraz sa ešte nenaceňuje — tento quote sa nespustil. Drž sa ĎALŠIEHO KROKU: najprv sa "
+                        "zákazníka opýtaj, čo ešte potrebuješ vedieť; ponuka s cenami príde, keď odpovie."
+                    ) if over == "discovery_quote" else (
                         "Limit nástrojov v tomto kroku je vyčerpaný — nástroj sa nespustil. "
                         "Odpovedz zákazníkovi z toho, čo už máš.")), True
                 else:
