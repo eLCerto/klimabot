@@ -6200,6 +6200,22 @@ def _quotes_in_reply(quotes, shown_text):
     return cards
 
 
+def _offer_prices_text(quotes, language="sk"):
+    """The totals with DPH of this turn's quotes, written by code: the offer moves' fallback when the reply shown
+    states none of them (a draft cut sentence by sentence or regenerated twice kept the series and lost every
+    amount — direction metrics of 2026-10-28)."""
+    seen, rows = set(), []
+    for q in quotes:
+        if _quote_key(q) in seen:
+            continue
+        seen.add(_quote_key(q))
+        desc = " + ".join((f"{line['qty']}× " if line["qty"] > 1 else "") + line["description"] for line in q["lines"])
+        rows.append(f"- {desc}: **{_eur(q['total_with_DPH_23pct_eur'])}**")
+    head = ("Prices incl. VAT (excluding the recycling fee and installation):" if language == "en"
+            else "Ceny s DPH (bez recyklačného poplatku a montáže):")
+    return "\n".join([head] + rows)
+
+
 _CONTACT_REQUEST_RE = re.compile(
     r"\b(meno|telef[óo]n\w*|tel\.|[čc][íi]sl[oa]|kontakt\w*|e-?mail\w*|obec|phone|name|contact|e-?mail|number)\b"
     r"[^.!\n]{0,80}\?"
@@ -7359,6 +7375,19 @@ def run_user_turn_streaming(user_input):
         # The consent question: code appends the canonical wording when the reply asks
         # for contact details, or when contacts arrived without a consent answer.
         # After a refusal only new contact details from the customer reopen the question.
+        # An offer move must show its prices: code adds this turn's totals when the reply shown states none of them,
+        # before a closing question so the reply still ends by asking which option fits.
+        new_quotes = sess.quotes[quotes_before:]
+        if (is_final and move.name in ("ponuka", "nova-ponuka") and new_quotes and attempt_text.strip()
+                and not _quotes_in_reply(new_quotes, "\n".join(shown_this_turn + [attempt_text]))):
+            prices = _offer_prices_text(new_quotes, language)
+            paragraphs = attempt_text.rstrip().split("\n\n")
+            if len(paragraphs) > 1 and paragraphs[-1].rstrip().endswith("?"):
+                paragraphs.insert(-1, prices)
+            else:
+                paragraphs.append(prices)
+            attempt_text = "\n\n".join(paragraphs)
+            log_event("offer_prices_appended", quotes=len({_quote_key(q) for q in new_quotes}))
         # Contacts are known and the customer answered the last question with something other than
         # yes / no ("S tou cenou súhlasím", a stock question): ask once more, so the lead isn't lost
         # silently (q02, q03). At most twice per conversation.

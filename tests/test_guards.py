@@ -2333,6 +2333,27 @@ class PolicyTests(BotTest):
         self.assertNotIn("cena-neodpovedana", self.log_text())
         self.assertIn('"move": "kontakt"', self.log_text())
 
+    def test_an_offer_always_shows_its_prices(self):  # direction metrics of 2026-10-28: an offer without prices
+        samsung, toshiba = (["AR40H09C1AMNEU", "AR40H09C1AMXEU"], ["RAS-10B2AVG-E2", "RAS-B10B2KVG-E2"])
+        events, shown = self.turn("Spálňa 14 m2, hlavne nech je tichá.",
+                                  resp(tool("quote", items=[{"code": c} for c in samsung]),
+                                       tool("quote", items=[{"code": c} for c in toshiba])),
+                                  resp(text("Pre tichú spálňu: **Samsung AR35 WIFI** alebo **Toshiba SEIYA Classic 2**."
+                                            "\n\nKtorá vám viac vyhovuje?")))
+        self.assertIn(priced(samsung), shown)
+        self.assertIn(priced(toshiba), shown)
+        self.assertTrue(shown.rstrip().endswith("Ktorá vám viac vyhovuje?"), shown)
+        self.assertIn("offer_prices_appended", self.log_text())
+        self.assertEqual(sum(1 for e, _ in events if e == "quote"), 2, "the price cards follow the shown totals")
+        # A reply that states its prices gets nothing added.
+        self.setUp()
+        _, shown = self.turn("Spálňa 14 m2, hlavne nech je tichá.",
+                             resp(tool("quote", items=[{"code": c} for c in samsung]),
+                                  tool("quote", items=[{"code": c} for c in toshiba])),
+                             resp(text(f"**Samsung AR35 WIFI** (2,6 kW): **{priced(samsung)}** s DPH.\n\n"
+                                       f"**Toshiba SEIYA Classic 2** (2,5 kW): **{priced(toshiba)}** s DPH.")))
+        self.assertNotIn("Ceny s DPH (bez", shown)
+
     def test_a_discovery_move_prices_nothing(self):  # the API A/B of 2026-10-27 made an offer a turn early
         _, shown = self.turn("Dobrý deň, potrebujem klimatizáciu do spálne, má 18 m2.",
                              resp(tool("quote", items=[{"code": c} for c in AR30_SET])),
