@@ -40,7 +40,7 @@ MOVE_DIRECTIONS = {
     "zisti-priority": {"zisti-priority"},
     "kontakt": {"kontakt"}, "neponukame": {"neponukame"},
     "odpoved": {"odpoved", "ponuka", "zisti-priority"}, "pokracuj": ALL,
-    "zapis": {"odpoved", "kontakt"}, "po-zapise": ALL,
+    "zapis": {"odpoved", "kontakt", "odkaz"}, "po-zapise": ALL,  # the thanks may give the company contact
     "bezpecnost": {"bezpecnost"}, "reklamacia": {"odkaz"},
     "priemysel": {"odkaz", "kontakt", "odpoved"}, "vlastna-montaz": {"odkaz", "odpoved"},
 }

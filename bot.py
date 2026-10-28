@@ -6561,7 +6561,10 @@ _NEW_VARIANT_RE = re.compile(
     r"\b(?:nieco|nejak\w*|nieco\s+ine|ine\w*|este|aj|radsej)\s+lacnej\w*|\blacnej\w*\s+(?:variant|model|rad|moznost|set|"
     r"klim\w*)|\b(?:mate|chcem|chcel\w*|ukazte|ponuknite|dajte)\b[^?.]{0,30}\blacnej\w*|\bcheaper\b|"
     r"\b(?:kolko|kolik)\b[^?\n]{0,60}(?:stoj|stal|bude|vyjde|zaplat|cen)|\bak[aá]\s+(?:je\s+)?cena\b|\bcenu\b|"
-    r"\bhow\s+much\b|\bprice\b", re.IGNORECASE)
+    r"\bhow\s+much\b|\bprice\b|"
+    # "čo najlacnejšie" after an offer asks for the cheapest variant (direction metrics of 2026-10-28: answered and
+    # asked for the contact instead); "tá / tú najlacnejšiu" only points at an offer shown
+    r"(?<!\bta )(?<!\btu )(?<!\bten )(?<!\btej )(?<!\btou )\bnajlacnej\w*", re.IGNORECASE)
 _MANY_ROOMS_RE = re.compile(r"\b(?:[2-9]|dve|dva|tri|styri|pat|obe|obidve|oba|vsetky)\s+(?:izb|izieb|miestnost)\w*|"
                             r"\bkazd\w*\s+(?:izb\w*\s+)?(?:ma|je|po)\b", re.IGNORECASE)
 

@@ -2302,7 +2302,10 @@ class PolicyTests(BotTest):
         for latest, name in (("Beriem tú lacnejšiu.", "kontakt"), ("Máte aj niečo lacnejšie?", "nova-ponuka"),
                              ("Koľko by stála s Wi-Fi modulom?", "nova-ponuka"), ("A má Wi-Fi?", "odpoved"),
                              # A/B of 2026-10-27: "tá lacnejšia" points at an offer; no new price is due
-                             ("Má tá lacnejšia aj dobrý filter?", "odpoved"), ("dobre", "pokracuj")):
+                             ("Má tá lacnejšia aj dobrý filter?", "odpoved"), ("dobre", "pokracuj"),
+                             # direction metrics of 2026-10-28
+                             ("Hlavne nech je to čo najlacnejšie.", "nova-ponuka"),
+                             ("Má tá najlacnejšia aj Wi-Fi?", "odpoved")):
             self.sess.user_inputs[:] = ["Spálňa 14 m2.", latest]
             self.assertEqual(bot.next_move().name, name, latest)
         self.sess.consent = {"purpose": "sales", "ts": "", "evidence": "Áno, súhlasím"}

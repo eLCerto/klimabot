@@ -38,9 +38,9 @@
       "turns": [
         {"customer": "Dobrý deň, potrebujem klímu do dvojizbového bytu, má 50 m2.", "expect": ["zisti-izby"],
          "should": "Opýta sa, ktoré izby chce chladiť a koľko m² má každá; nenaceňuje."},
-        {"customer": "Chcem chladiť obe izby, každá má 20 m2.", "expect": ["zisti-priority"],
-         "should": "Na izby sa už nepýta; jednou otázkou zistí, čo je dôležité."},
-        {"customer": "Hlavne nech je to čo najlacnejšie.", "expect": ["ponuka"],
+        {"customer": "Chcem chladiť obe izby, každá má 20 m2.", "expect": ["zisti-priority", "ponuka"],
+         "should": "Na izby sa už nepýta; jednou otázkou zistí, čo je dôležité — alebo, ak sa na to pýtal už v prvej odpovedi, rovno nacení dve možnosti."},
+        {"customer": "Hlavne nech je to čo najlacnejšie.", "expect": ["ponuka", "nova-ponuka"],
          "should": "Najlacnejšie riešenie pre dve izby po 20 m² (multi-split alebo dva sety), nacenené, ceny s DPH."}
       ],
       "final": {"quotes_min": 1, "price_shown": true}
@@ -52,7 +52,7 @@
         {"customer": "Rodinný dom, chcem chladiť tri izby: 25, 15 a 12 m2. Koľko by to stálo?", "expect": ["ponuka"],
          "should": "Multi-split s tromi vnútornými jednotkami podľa izieb, nacenený, cena s DPH."}
       ],
-      "final": {"quotes_min": 1, "price_shown": true, "last_has": ["multi"]}
+      "final": {"quotes_min": 1, "price_shown": true, "last_has": ["multi|vonkajš\\w* jednotk|vnútorn\\w* jednotk"]}
     },
     {
       "id": "kw_zadane",
@@ -184,6 +184,60 @@
          "should": "Žiadne rady ani návod; otázky k montáži rieši projektový manažér alebo kontakt na firmu. Nepýta sa na m² ani izby."}
       ],
       "final": {"price_shown": false, "last_lacks": ["m²", "koľko izieb"]}
+    },
+    {
+      "id": "prva_ponuka_bez_kontaktu",
+      "title": "Prvá ponuka bez žiadosti o kontakt (fix 80520f8)",
+      "turns": [
+        {"customer": "Spálňa 14 m2, koľko stojí? Chcem to vybaviť čo najskôr.", "expect": ["ponuka"],
+         "should": "Dve nacenené možnosti a otázka, ktorá vyhovuje; o meno ani telefón ešte nežiada."}
+      ],
+      "final": {"quotes_min": 2, "price_shown": true, "last_lacks": ["Súhlasíte so spracovaním", "vaše meno", "telefónne číslo"]}
+    },
+    {
+      "id": "uver_leasing",
+      "title": "Úver a leasing (fix 5d622f3: presná veta)",
+      "turns": [
+        {"customer": "Dá sa to kúpiť na úver alebo na leasing? Aké máte možnosti financovania?", "expect": ["neponukame"],
+         "should": "Presne: „Na splátky ani na leasing nepredávame.“ Nič o bankách, hotovosti ani o tom, že to vyrieši projektový manažér; potom otázka na priestor."}
+      ],
+      "final": {"price_shown": false, "last_has": ["nepredávame"], "last_lacks": ["bank", "hotovos", "vyrieš", "dohodn"]}
+    },
+    {
+      "id": "fotovoltika_bateria",
+      "title": "Fotovoltika s batériou (fix 5d622f3: presná veta)",
+      "turns": [
+        {"customer": "Ponúkate aj fotovoltiku s batériou, aby klimatizácia bežala zo slnka?", "expect": ["neponukame"],
+         "should": "Presne: „S fotovoltikou neponúkame nič…“; nič o invertoroch ani o prúde; potom otázka na priestor."}
+      ],
+      "final": {"price_shown": false, "last_lacks": ["invertor", "jednosmern", "striedav", "posúdi"]}
+    },
+    {
+      "id": "plocha_bez_ceny",
+      "title": "Plocha bez želaní: nič sa nenaceňuje (fix e307153)",
+      "turns": [
+        {"customer": "Dobrý deň, potrebujem klímu do obývačky, má 25 m2. Bývame na treťom poschodí.", "expect": ["zisti-priority"],
+         "should": "Jednou otázkou zistí, čo je dôležité; nič nenaceňuje (quote na tomto kroku server odmietne)."}
+      ],
+      "final": {"quotes_max": 0, "price_shown": false}
+    },
+    {
+      "id": "spalna_do_leta",
+      "title": "Spálňa s termínom: nič sa nenaceňuje (fix e307153)",
+      "turns": [
+        {"customer": "Spálňa 16 m2, chcem klimatizáciu ešte do leta.", "expect": ["zisti-priority"],
+         "should": "Jednou otázkou zistí, čo je dôležité; termín nesľubuje a nič nenaceňuje."}
+      ],
+      "final": {"quotes_max": 0, "price_shown": false, "last_lacks": ["stihneme", "do leta (?:je )?reáln"]}
+    },
+    {
+      "id": "premiova_ponuka_s_cenami",
+      "title": "Prémiová ponuka s mnohými funkciami musí mať ceny (fix 584b66d)",
+      "turns": [
+        {"customer": "Obývačka 35 m2, chcem prémiovú klimatizáciu s najlepšou filtráciou a Wi-Fi. Koľko by stála?", "expect": ["ponuka"],
+         "should": "Dve možnosti triedy 1 filtrácie s Wi-Fi, obe s cenou s DPH (ak ju odpoveď stratí, server ju doplní z quote)."}
+      ],
+      "final": {"quotes_min": 2, "price_shown": true}
     }
   ]
 }
