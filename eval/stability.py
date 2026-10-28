@@ -256,8 +256,14 @@ def print_table(rows):
         print(f"| {name} | " + " | ".join(fmt(k, s.get(k)) for k in KEYS) + " |")
 
 
+# A post-commit hook runs with git's own GIT_INDEX_FILE / GIT_DIR set: inherited, they made `git worktree add`
+# fail with status 128 (the first five hook runs, 2026-10-28).
+GIT_ENV = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+
+
 def git(*args, cwd=HERE):
-    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True,
+                          env=GIT_ENV).stdout.strip()
 
 
 def measure_commit(ref, reps, workers, only):
@@ -269,13 +275,16 @@ def measure_commit(ref, reps, workers, only):
         worktree = METRICS_DIR / "worktrees" / sha[:12]
         run_dir = METRICS_DIR / f"{datetime.now():%Y-%m-%d_%H-%M-%S}_{sha[:8]}"
         run_dir.mkdir(parents=True)
-        subprocess.run(["git", "worktree", "add", "--detach", str(worktree), sha], cwd=HERE, check=True,
-                       capture_output=True)
+        added = subprocess.run(["git", "worktree", "add", "--detach", str(worktree), sha], cwd=HERE,
+                               capture_output=True, text=True, env=GIT_ENV)
+        if added.returncode:
+            raise SystemExit(f"git worktree add failed: {added.stderr.strip()}")
         try:
             result = run(worktree, run_dir, reps, workers, only=only)
         finally:
             os.chdir(HERE)
-            subprocess.run(["git", "worktree", "remove", "--force", str(worktree)], cwd=HERE, capture_output=True)
+            subprocess.run(["git", "worktree", "remove", "--force", str(worktree)], cwd=HERE, capture_output=True,
+                           env=GIT_ENV)
         result.update(commit=sha, subject=git("log", "-1", "--format=%s", sha),
                       branch=git("rev-parse", "--abbrev-ref", "HEAD"))
         (run_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -306,6 +315,7 @@ HOOK = """#!/bin/sh
 # Skip once with KLIMABOT_METRICS=0 git commit …
 [ "$KLIMABOT_METRICS" = "0" ] && exit 0
 root=$(git rev-parse --show-toplevel)
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX  # git sets them for hooks; the worktree must not inherit them
 sha=$(git rev-parse HEAD)
 mkdir -p "$root/eval/runs/metrics/logs"
 nohup "{python}" "$root/eval/stability.py" --commit "$sha" > "$root/eval/runs/metrics/logs/$sha.log" 2>&1 &
