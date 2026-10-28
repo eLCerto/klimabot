@@ -2290,6 +2290,7 @@ class PolicyTests(BotTest):
         self.assertIn("neponúka nič s fotovoltikou", pv.directive)
         self.assertIn("Potom: Zákazník ešte nepovedal, aký priestor", pv.directive, "the decline keeps the sale going")
         self.assertIn("multi-split", self.move("Dvojizbový byt, obe izby po 20 m2, koľko to stojí?").directive)
+        self.assertIn("O kontakt v tejto odpovedi nežiadaj", self.move("Spálňa 14 m2, koľko stojí?").directive)
 
     def test_moves_after_an_offer(self):
         self.sess.user_inputs[:] = ["Spálňa 14 m2."]

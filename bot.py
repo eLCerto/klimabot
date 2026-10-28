@@ -6623,7 +6623,9 @@ def _sales_move(latest):
                     "dôležité (tichý chod, filtrácia vzduchu, Wi-Fi ovládanie z mobilu, dizajn, čo najnižšia cena), "
                     "a podľa toho vyber rad. Nenaceňuj ešte a nepýtaj sa na značku ani rozpočet.", None)
     directive = ("Teraz príde prvá ponuka: naceň dve možnosti, každú vlastným `quote`, a uveď ich ceny s DPH; potom sa "
-                 "jednou otázkou opýtaj, ktorá mu vyhovuje. Na nič, čo už zákazník povedal, sa znova nepýtaj.")
+                 "jednou otázkou opýtaj, ktorá mu vyhovuje. Na nič, čo už zákazník povedal, sa znova nepýtaj. "
+                 # the A/B of 2026-10-27 asked for name and phone in the first offer
+                 "O kontakt v tejto odpovedi nežiadaj — až keď si zákazník vyberie.")
     if price_question and not _preferences_known():
         directive += (" Po cenách sa opýtaj, čo je preň dôležité (tichý chod, filtrácia vzduchu, Wi-Fi, dizajn), "
                       "aby si ponuku spresnil.")
