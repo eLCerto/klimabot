@@ -6569,24 +6569,29 @@ def _size_known():
 
 
 def _decline_text(latest):
-    """What the company doesn't offer or the price lists don't know, asked in the latest message: one sentence."""
+    """What the company doesn't offer or the price lists don't know, asked in the latest message: the exact sentence
+    to say. A free-worded decline added things ("…alebo bankový úver, ktorý si môžete riešiť sami", direction
+    metrics of 2026-10-28)."""
     out = []
     if _wished(_FINANCING_RE, latest):
         # Live check 2026-10-27: "Splátky rieši projektový manažér individuálne", then made-up payment terms.
         # The owner (2026-10-27): no instalments, no leasing.
-        out.append("Zákazník sa pýta na splátky, leasing alebo financovanie. Firma nepredáva na splátky ani na "
-                   "leasing: povedz iba to, jednou vetou. Iné platobné podmienky (spôsob úhrady, DPH, zľavy, "
-                   "množstvá) nevymýšľaj a nesľubuj, že financovanie vyrieši projektový manažér.")
+        out.append("Zákazník sa pýta na splátky, leasing alebo financovanie. Firma nepredáva na splátky ani na leasing. "
+                   "Povedz presne túto vetu a o platbe nič viac: „Na splátky ani na leasing nepredávame.“ Iné "
+                   "platobné podmienky (úver, spôsob úhrady, DPH, zľavy, množstvá) nespomínaj a nesľubuj, že "
+                   "financovanie vyrieši projektový manažér.")
     if _PV_RE.search(latest):
         # The owner (2026-10-27): nothing with photovoltaics — no connection, design or advice.
-        out.append("Zákazník sa pýta na fotovoltiku. Firma neponúka nič s fotovoltikou — ani napojenie klimatizácie "
-                   "na fotovoltiku, ani návrh, ani poradenstvo. Povedz to jednou vetou; nič o fotovoltike, "
-                   "invertoroch, batériách ani napájaní nevysvetľuj a nesľubuj, že to posúdi projektový manažér.")
+        out.append("Zákazník sa pýta na fotovoltiku. Firma neponúka nič s fotovoltikou — ani napojenie, ani návrh, ani "
+                   "poradenstvo. Povedz presne túto vetu a o fotovoltike nič viac: „S fotovoltikou neponúkame nič — "
+                   "ani napojenie klimatizácie, ani návrh či poradenstvo.“ Nič o invertoroch, batériách ani napájaní "
+                   "nevysvetľuj a nesľubuj, že to posúdi projektový manažér.")
     absent = [name for name in sorted(_KB_ABSENT_TECH - {"fotovoltika"}) if _TECH_TERM_RES[name].search(latest)]
     if absent:
+        terms = " ani ".join(absent)
         out.append(f"Zákazník sa pýta na {', '.join(absent)}: v cenníkoch ani v pravidlách o tom nič nie je. Povedz "
-                   "jednou vetou, že to v podkladoch nemáme a nevieš to potvrdiť; nič o tom nevysvetľuj z vlastných "
-                   "vedomostí.")
+                   f"presne túto vetu a o tom nič viac: „O {terms} v podkladoch nemáme informácie, takže to neviem "
+                   "potvrdiť.“ Nič o tom nevysvetľuj z vlastných vedomostí.")
     return " ".join(out)
 
 
