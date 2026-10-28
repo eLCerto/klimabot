@@ -14,6 +14,9 @@ Differences from the API (documented in the eval report):
   CLI can cache it);
 - the CLI adds ~800 tokens of its own context (environment, date);
 - no max_tokens limit.
+
+Pass the production model ID (bot.MODEL): the CLI's "haiku" alias runs a newer Haiku than the one the bot
+uses in production (checked 2026-10-28: "haiku" → claude-haiku-5-5).
 """
 import glob
 import json
@@ -184,9 +187,12 @@ class ClaudeCLIClient:
             system_prompt = "\n\n".join(blocks[:2]) + "\n" + TOOL_PROTOCOL.replace("{tools}", tools_json)
             dynamic = "\n\n".join(blocks[2:])
             # tool_choice none: the turn's budget allows only a final answer (bot.py drops any tool call).
-            task = ("Napíš konečnú odpoveď asistenta zákazníkovi, bez blokov tool_call."
-                    if (tool_choice or {}).get("type") == "none"
-                    else "Napíš ďalšiu správu asistenta (text a/alebo bloky tool_call).")
+            # tool_choice any: the policy's offer turns and the regenerations that must call a tool — the API
+            # enforces it, so the prompt has to as well, or CLI runs measure a bot without it.
+            choice = (tool_choice or {}).get("type")
+            task = ("Napíš konečnú odpoveď asistenta zákazníkovi, bez blokov tool_call." if choice == "none" else
+                    "Napíš ďalšiu správu asistenta: musí obsahovať aspoň jeden blok tool_call (nástroj si vyber)."
+                    if choice == "any" else "Napíš ďalšiu správu asistenta (text a/alebo bloky tool_call).")
             prompt = ((f"=== DODATOČNÉ SYSTÉMOVÉ INFORMÁCIE ===\n{dynamic}\n\n" if dynamic else "")
                       + "=== ROZHOVOR ===\n" + render_transcript(messages)
                       + f"\n\n=== ÚLOHA ===\n{task}")

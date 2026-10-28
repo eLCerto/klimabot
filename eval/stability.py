@@ -1,160 +1,359 @@
-"""Stability check: the same scripted conversations several times through the real API, and how often each reply
-heads where it should and agrees with its repeats. Compares two versions of the bot (an A/B of a change).
+"""Direction metrics: the scripted conversations of eval/scenarios/direction.json, several times each, through the
+bot of a checkout or a commit — where each reply heads, whether the conversation policy picked the expected move,
+whether the reply followed it, whether the conversation ended as scripted — plus regenerations, calls, time, cost.
 
-Usage:  python eval/stability.py --repo <checkout> --out <file.json> [--reps 3] [--budget-usd 3]
-        python eval/stability.py --compare a.json b.json
-Needs ANTHROPIC_API_KEY (this repo's .env is read). The production caps stay on; the run stops before a
-conversation once --budget-usd is spent. Each reply's direction is read by code (direction()), not by a model.
+By default the model runs through the local Claude Code CLI on the subscription (eval/claude_cli_client.py, the
+production model ID), not the paid API; --api opts in to the real API with --budget-usd. CLI figures (seconds, USD)
+are the CLI's, comparable between commits, not with production.
+
+    python eval/stability.py                      # this checkout: the table, and a run dir under eval/runs/metrics/
+    python eval/stability.py --commit HEAD        # a commit, in a temporary worktree; appends to the history
+    python eval/stability.py --history            # the metrics of every measured commit (local, gitignored)
+    python eval/stability.py --install-hook       # measure every commit: a git post-commit hook, in the background
+    python eval/stability.py --compare a.json b.json
 """
 import argparse
+import fcntl
+import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
-import tempfile
 import time
-from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
+SCENARIOS = HERE / "eval" / "scenarios" / "direction.json"
+METRICS_DIR = HERE / "eval" / "runs" / "metrics"  # eval/runs/ is gitignored: the history stays on this machine
+HISTORY = METRICS_DIR / "history.jsonl"
 
-# Each turn lists the directions that are right for it (knowledge/rules/feedback_overit_potreby_pred_ponukou.md and
-# the owner's decisions in CLAUDE.md: rooms and what matters before the first offer, two priced options, decline in
-# one sentence, the contact after a choice).
-SCENARIOS = {
-    "spalna_cena": [("Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?", {"ponuka"})],
-    "byt_dve_izby": [("Dobrý deň, potrebujem klímu do dvojizbového bytu, má 50 m2.", {"zisti-izby"}),
-                     ("Chcem chladiť obe izby, každá má 20 m2.", {"zisti-priority"}),
-                     ("Hlavne nech je to čo najlacnejšie.", {"ponuka"})],
-    "vagny_zaciatok": [("Dobrý deň, chcem klimatizáciu.", {"zisti-priestor"}),
-                       ("Obývačka 30 m2, chcem aby bola tichá.", {"ponuka"})],
-    "fotovoltika": [("Dá sa vaša klimatizácia napojiť na fotovoltiku?", {"neponukame"})],
-    "vyber_a_kontakt": [("Spálňa 12 m2, koľko stojí najlacnejšia klimatizácia?", {"ponuka"}),
-                        ("Beriem tú lacnejšiu.", {"kontakt"})],
-    "otazka_po_ponuke": [("Spálňa 16 m2, chcem Wi-Fi. Koľko to stojí?", {"ponuka"}),
-                         ("Má tá lacnejšia aj dobrý filter?", {"odpoved", "ponuka"})],
+# Where a reply heads, per move of the policy (docs/conversation_policy.md). A first question about the space may
+# also ask about the rooms; an answer may show a price or ask what matters; a referral gives the company contact.
+ALL = {"ponuka", "kontakt", "neponukame", "zisti-priestor", "zisti-izby", "zisti-priority", "odpoved", "odkaz",
+       "bezpecnost"}
+MOVE_DIRECTIONS = {
+    "ponuka": {"ponuka"}, "nova-ponuka": {"ponuka"},
+    "zisti-priestor": {"zisti-priestor", "zisti-izby"}, "zisti-izby": {"zisti-izby", "zisti-priestor"},
+    "zisti-priority": {"zisti-priority"},
+    "kontakt": {"kontakt"}, "neponukame": {"neponukame"},
+    "odpoved": {"odpoved", "ponuka", "zisti-priority"}, "pokracuj": ALL,
+    "zapis": {"odpoved", "kontakt"}, "po-zapise": ALL,
+    "bezpecnost": {"bezpecnost"}, "reklamacia": {"odkaz"},
+    "priemysel": {"odkaz", "kontakt", "odpoved"}, "vlastna-montaz": {"odkaz", "odpoved"},
 }
-
 _EUR_RE = re.compile(r"\d[\d\s.,]*\s*€|€\s*\d")
 _QUESTION_SENTENCES_RE = re.compile(r"[^.!?\n]*\?")
+_DECLINE_RE = re.compile(r"neponúk|nepredáv|nezaober|nezahŕň|nerobíme|neposkytuj|nemôžeme|nie je (?:súčasť|predmet|naš)|"
+                         r"nemáme (?:\w+ )?(?:informáci|podklad)|v podkladoch (?:som )?(?:to |nič )?(?:nemám|nemáme|nenašiel)|"
+                         r"nevieme potvrdiť|neviem potvrdiť|nemôžem (?:vám )?(?:to )?potvrdiť")
+_PRIORITY_WORDS_RE = re.compile(r"tich|filtr|wi-?fi|dizajn|najnižš")
 
 
-def direction(reply, quoted):
-    """Where a reply heads, read from its text and whether a quote was made this turn. A first question about
-    the type of space counts as zisti-priestor even when it also asks about the rooms (the directive asks both)."""
+def direction(reply, quoted, company_email, asks_contact):
+    """Where a reply heads, read by code from its text, whether a quote was made this turn and the bot's own
+    contact-request check. A first question about the type of space counts as zisti-priestor even when it also
+    asks about the rooms (the directive asks both)."""
     low = reply.lower()
     questions = " ".join(_QUESTION_SENTENCES_RE.findall(low))
-    if re.search(r"neponúk|nepredáv|nezaober|nezahŕň|nerobíme|neposkytuj|nemôžeme|nie je (?:súčasť|predmet|naš)", low):
+    if re.search(r"\b112\b", reply):
+        return "bezpecnost"
+    if _DECLINE_RE.search(low):
         return "neponukame"
-    if re.search(r"\bmeno\b|telefón|e-mail", low) and re.search(r"súhlas|nechajte|potrebujem|napíšte", low):
+    if asks_contact(reply):
         return "kontakt"
     if quoted and _EUR_RE.search(reply):
         return "ponuka"
+    if company_email and company_email.lower() in low and not _EUR_RE.search(reply):
+        return "odkaz"
     if re.search(r"ak[ýá] (?:typ )?priestor|typ priestoru|\bbyt, rodinný dom", questions):
         return "zisti-priestor"
     if re.search(r"izb|miestnost", questions):
         return "zisti-izby"
-    if re.search(r"dôležit|tich|filtr|wi-?fi|dizajn|najnižš", questions):
+    if re.search(r"dôležit|tich|filtr|wi-?fi|dizajn|najnižš", questions) or (
+            questions and len(set(_PRIORITY_WORDS_RE.findall(low))) >= 3):  # the options listed above the question
         return "zisti-priority"
     if re.search(r"m²|m2|ploch", questions):
         return "zisti-priestor"
     return "odpoved"
 
 
-def run(repo, reps, budget_usd):
-    """{scenario: [[turn record, …] per repeat]} through the bot in `repo`."""
-    from dotenv import load_dotenv
-    load_dotenv(HERE / ".env")
-    data = Path(tempfile.mkdtemp(prefix="klimabot_stability_"))
-    os.environ.update(KLIMABOT_DATA_DIR=str(data), LEAD_MAIL_TO="",
-                      KLIMABOT_KB_CACHE_DIR=os.environ.get("KLIMABOT_KB_CACHE_DIR", str(HERE / "data")))
-    sys.path.insert(0, str(repo))
-    os.chdir(repo)
-    import bot  # noqa: E402 — the version under test
+def load_scenarios(path=SCENARIOS):
+    raw = path.read_bytes()
+    return json.loads(raw)["conversations"], hashlib.sha1(raw).hexdigest()[:10]
 
-    spent, out = 0.0, {}
-    for rep in range(reps):
-        for name, turns in SCENARIOS.items():
-            if spent >= budget_usd:
-                print(f"budget reached ({spent:.2f} $): stopping", file=sys.stderr)
-                return out, spent
-            sess = bot.Session()
-            bot.use_session(sess)
-            records = []
-            for message, expected in turns:
-                quotes_before, usd_before, start = len(sess.quotes), sess.cost_usd, time.time()
-                events = list(bot.run_user_turn_streaming(message))
-                reply = "\n\n".join(d["text"] for e, d in events if e == "token")
-                records.append({"message": message, "expected": sorted(expected), "reply": reply,
-                                "direction": direction(reply, len(sess.quotes) > quotes_before),
-                                "calls": sum(1 for e, _ in events if e == "turn_complete"),
-                                "regens": sum(1 for e, d in events
-                                              if e == "notice" and d.get("text", "").startswith("Validator zamietol")),
-                                "usd": round(sess.cost_usd - usd_before, 5), "seconds": round(time.time() - start, 1)})
-            log = sess.log_path.read_text(encoding="utf-8") if sess.log_path.exists() else ""
-            records[-1]["sentences_dropped"] = log.count('"event": "bot_reply_sentences_dropped"')
-            bot.end_session(sess)
-            spent += sum(r["usd"] for r in records)
-            out.setdefault(name, []).append(records)
-            print(f"rep {rep + 1} {name}: " + " | ".join(r["direction"] for r in records)
-                  + f"  ({sum(r['usd'] for r in records):.3f} $)", file=sys.stderr)
-    return out, spent
+
+def check_final(final, quotes, consent, lead, replies, company_email):
+    """The scripted end of a conversation, checked by code: [] when it ended as it should."""
+    def rx(p):
+        return p.replace("{COMPANY_EMAIL}", re.escape(company_email or ""))
+    failed = []
+    if "quotes_min" in final and quotes < final["quotes_min"]:
+        failed.append(f"quotes {quotes} < {final['quotes_min']}")
+    if "quotes_max" in final and quotes > final["quotes_max"]:
+        failed.append(f"quotes {quotes} > {final['quotes_max']}")
+    shown = any(_EUR_RE.search(r) for r in replies)
+    if "price_shown" in final and shown != final["price_shown"]:
+        failed.append(f"price shown: {shown}")
+    if "lead" in final and lead != final["lead"]:
+        failed.append(f"lead: {lead}")
+    if "consent" in final and consent != final["consent"]:
+        failed.append(f"consent: {consent}")
+    last = replies[-1] if replies else ""
+    failed += [f"last reply lacks /{p}/" for p in final.get("last_has", []) if not re.search(rx(p), last, re.I)]
+    failed += [f"last reply has /{p}/" for p in final.get("last_lacks", []) if re.search(rx(p), last, re.I)]
+    failed += [f"a reply has /{p}/" for p in final.get("any_lacks", [])
+               if any(re.search(rx(p), r, re.I) for r in replies)]
+    return failed
+
+
+def run(repo, run_dir, reps, workers, use_api=False, budget_usd=3.0, only=None):
+    """{"runs": {conversation id: [{"turns": [...], "final_failed": [...]} per repeat]}, "usd": …, "mode": …}."""
+    conversations, scen_hash = load_scenarios()
+    if only:
+        conversations = [c for c in conversations if any(c["id"].startswith(p) for p in only)]
+    os.environ.update(KLIMABOT_DATA_DIR=str(run_dir / "data"), LEAD_MAIL_TO="",
+                      KLIMABOT_KB_CACHE_DIR=os.environ.get("KLIMABOT_KB_CACHE_DIR", str(HERE / "data")))
+    if use_api:
+        from dotenv import load_dotenv
+        load_dotenv(HERE / ".env")
+    else:
+        os.environ["ANTHROPIC_API_KEY"] = "unused-claude-cli"  # bot.py refuses to start without one
+        # The CLI's usage figures carry its own prompt overhead: the production caps would cut the scripts short.
+        os.environ.setdefault("KLIMABOT_SESSION_USD_CAP", "50")
+        os.environ.setdefault("KLIMABOT_TURN_USD_CAP", "10")
+    sys.path.insert(0, str(HERE / "eval"))   # the CLI adapter of this checkout
+    sys.path.insert(0, str(repo))            # the bot under test
+    os.chdir(repo)
+    import bot  # noqa: E402
+    from claude_cli_client import ClaudeCLIClient  # noqa: E402
+
+    if not use_api:
+        bot.client = ClaudeCLIClient(model=bot.MODEL, log_dir=run_dir)
+    bot.get_reranker()  # once here, not in every thread
+    spent = {"usd": 0.0}
+
+    def conversation(job):
+        rep, conv = job
+        if use_api and spent["usd"] >= budget_usd:
+            return conv["id"], None
+        sess = bot.Session()
+        bot.use_session(sess)
+        turns, replies = [], []
+        for turn in conv["turns"]:
+            quotes_before, usd_before, start = len(sess.quotes), sess.cost_usd, time.time()
+            events = list(bot.run_user_turn_streaming(turn["customer"]))
+            reply = "\n\n".join(d["text"] for e, d in events if e == "token")
+            replies.append(reply)
+            quoted = len(sess.quotes) > quotes_before
+            turns.append({"customer": turn["customer"], "expect": turn["expect"], "reply": reply, "quoted": quoted,
+                          "asks_contact": bool(bot._asks_contact(reply)),
+                          "direction": direction(reply, quoted, bot.COMPANY_EMAIL, bot._asks_contact),
+                          "calls": sum(1 for e, _ in events if e == "turn_complete"),
+                          "regens": sum(1 for e, d in events
+                                        if e == "notice" and d.get("text", "").startswith("Validator zamietol")),
+                          "usd": round(sess.cost_usd - usd_before, 5), "seconds": round(time.time() - start, 1)})
+        log = sess.log_path.read_text(encoding="utf-8") if sess.log_path.exists() else ""
+        moves = [json.loads(line)["move"] for line in log.splitlines() if '"event": "policy_move"' in line]
+        for i, t in enumerate(turns):
+            t["move"] = moves[i] if i < len(moves) else None
+        consent = bool(sess.consent and sess.consent.get("purpose") == "sales")
+        failed = check_final(conv.get("final", {}), len(sess.quotes), consent, bool(sess.handoff_path), replies,
+                             bot.COMPANY_EMAIL)
+        bot.end_session(sess)
+        spent["usd"] += sum(t["usd"] for t in turns)
+        print(f"rep {rep + 1} {conv['id']}: " + " | ".join(f"{t['move'] or '-'}→{t['direction']}" for t in turns)
+              + (f"  FINAL ✗ {failed}" if failed else "  final ✓"), file=sys.stderr, flush=True)
+        return conv["id"], {"turns": turns, "final_failed": failed}
+
+    jobs = [(rep, conv) for rep in range(reps) for conv in conversations]
+    runs = {c["id"]: [] for c in conversations}
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for cid, result in pool.map(conversation, jobs):
+            if result is not None:
+                runs[cid].append(result)
+    return {"runs": runs, "usd": round(spent["usd"], 4), "reps": reps, "scenarios": scen_hash,
+            "mode": "api" if use_api else f"cli:{bot.MODEL}"}
 
 
 def summary(result):
-    turns = [(name, i, rec) for name, repeats in result["runs"].items() for rep in repeats
-             for i, rec in enumerate(rep)]
+    turns = [t for reps in result["runs"].values() for rep in reps for t in rep["turns"]]
     n = len(turns) or 1
-    on_target = sum(rec["direction"] in rec["expected"] for _, _, rec in turns)
-    agree, positions = 0, 0
-    for name, repeats in result["runs"].items():
-        for i in range(max(len(r) for r in repeats)):
-            dirs = [r[i]["direction"] for r in repeats if len(r) > i]
+
+    def ok(direction, moves):
+        return direction in set().union(*(MOVE_DIRECTIONS.get(m, ALL) for m in moves))
+    with_move = [t for t in turns if t.get("move")]
+    agree = positions = 0
+    for reps in result["runs"].values():
+        for i in range(max((len(r["turns"]) for r in reps), default=0)):
+            dirs = [r["turns"][i]["direction"] for r in reps if len(r["turns"]) > i]
             if len(dirs) > 1:
                 positions += 1
                 agree += len(set(dirs)) == 1
-    convs = sum(len(r) for r in result["runs"].values()) or 1
-    return {"turns": len(turns), "on_target": on_target / n, "repeats_agree": agree / (positions or 1),
-            "regens_per_turn": sum(r["regens"] for _, _, r in turns) / n,
-            "calls_per_turn": sum(r["calls"] for _, _, r in turns) / n,
-            "seconds_per_turn": sum(r["seconds"] for _, _, r in turns) / n,
-            "usd_per_conversation": result["usd"] / convs}
+    convs = [r for reps in result["runs"].values() for r in reps]
+    return {
+        "turns": len(turns),
+        "on_target": sum(ok(t["direction"], t["expect"]) for t in turns) / n,
+        "policy_correct": (sum(t["move"] in t["expect"] for t in with_move) / len(with_move)) if with_move else None,
+        "model_followed": (sum(ok(t["direction"], [t["move"]]) for t in with_move) / len(with_move))
+        if with_move else None,
+        "repeats_agree": agree / positions if positions else None,
+        "final_ok": sum(not r["final_failed"] for r in convs) / (len(convs) or 1),
+        "regens_per_turn": sum(t["regens"] for t in turns) / n,
+        "calls_per_turn": sum(t["calls"] for t in turns) / n,
+        "seconds_per_turn": sum(t["seconds"] for t in turns) / n,
+        "usd_per_conversation": result["usd"] / (len(convs) or 1),
+    }
 
 
-def compare(paths):
-    rows = [(Path(p).stem, summary(json.loads(Path(p).read_text(encoding="utf-8")))) for p in paths]
-    keys = ["turns", "on_target", "repeats_agree", "regens_per_turn", "calls_per_turn", "seconds_per_turn",
-            "usd_per_conversation"]
-    print("| metric | " + " | ".join(name for name, _ in rows) + " |")
-    print("|---|" + "---|" * len(rows))
-    for k in keys:
-        cells = [f"{s[k]:.0%}" if k in ("on_target", "repeats_agree") else f"{s[k]:.3f}" if isinstance(s[k], float)
-                 else str(s[k]) for _, s in rows]
-        print(f"| {k} | " + " | ".join(cells) + " |")
+def misses(result):
+    out = []
+    for cid, reps in result["runs"].items():
+        for rep in reps:
+            for i, t in enumerate(rep["turns"]):
+                if t["direction"] not in set().union(*(MOVE_DIRECTIONS.get(m, ALL) for m in t["expect"])):
+                    out.append(f"{cid} kolo {i + 1}: {t['move'] or '-'}→{t['direction']} (čakané {'/'.join(t['expect'])})")
+            if rep["final_failed"]:
+                out.append(f"{cid} koniec: {'; '.join(rep['final_failed'])}")
+    return out
+
+
+def write_report(result, path):
+    s = summary(result)
+    lines = [f"# Direction metrics — {result.get('commit', 'working tree')}", "",
+             f"Mode `{result['mode']}`, scenarios `{result['scenarios']}`, {result['reps']} repeats.", "",
+             "| metric | value |", "|---|---|"]
+    lines += [f"| {k} | {fmt(k, v)} |" for k, v in s.items()]
+    lines += ["", "## Off target", ""] + [f"- {m}" for m in misses(result)] + ["", "## Conversations", ""]
+    for cid, reps in result["runs"].items():
+        for r, rep in enumerate(reps, 1):
+            lines.append(f"### {cid} (repeat {r}) — final {'✓' if not rep['final_failed'] else '✗ ' + '; '.join(rep['final_failed'])}")
+            for i, t in enumerate(rep["turns"], 1):
+                lines += [f"**{i}. Zákazník:** {t['customer']}  ",
+                          f"čakané `{'/'.join(t['expect'])}`, politika `{t['move']}`, odpoveď `{t['direction']}`, "
+                          f"regen {t['regens']}, {t['seconds']} s", "", "> " + t["reply"][:600].replace("\n", "\n> "), ""]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def fmt(key, value):
+    if value is None:
+        return "–"
+    if key in ("on_target", "policy_correct", "model_followed", "repeats_agree", "final_ok"):
+        return f"{value:.0%}"
+    return f"{value:.3f}" if isinstance(value, float) else str(value)
+
+
+KEYS = ["on_target", "policy_correct", "model_followed", "repeats_agree", "final_ok", "regens_per_turn",
+        "calls_per_turn", "seconds_per_turn", "usd_per_conversation"]
+
+
+def print_table(rows):
+    print("| " + " | ".join(["run"] + KEYS) + " |")
+    print("|---|" + "---|" * len(KEYS))
     for name, s in rows:
-        result = json.loads(Path(paths[[r[0] for r in rows].index(name)]).read_text(encoding="utf-8"))
-        misses = Counter(f"{scen} kolo {i + 1}: {rec['direction']} (čakané {'/'.join(rec['expected'])})"
-                         for scen, reps in result["runs"].items() for rep in reps for i, rec in enumerate(rep)
-                         if rec["direction"] not in rec["expected"])
-        print(f"\n{name} — mimo cieľa: " + ("; ".join(f"{k} ×{v}" for k, v in misses.most_common()) or "nič"))
+        print(f"| {name} | " + " | ".join(fmt(k, s.get(k)) for k in KEYS) + " |")
+
+
+def git(*args, cwd=HERE):
+    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+
+
+def measure_commit(ref, reps, workers, only):
+    """A commit in a temporary worktree, one run at a time (a lock): appends a row to the history."""
+    METRICS_DIR.mkdir(parents=True, exist_ok=True)
+    sha = git("rev-parse", ref)
+    with open(METRICS_DIR / ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)  # commits made while a run is going wait for it
+        worktree = METRICS_DIR / "worktrees" / sha[:12]
+        run_dir = METRICS_DIR / f"{datetime.now():%Y-%m-%d_%H-%M-%S}_{sha[:8]}"
+        run_dir.mkdir(parents=True)
+        subprocess.run(["git", "worktree", "add", "--detach", str(worktree), sha], cwd=HERE, check=True,
+                       capture_output=True)
+        try:
+            result = run(worktree, run_dir, reps, workers, only=only)
+        finally:
+            os.chdir(HERE)
+            subprocess.run(["git", "worktree", "remove", "--force", str(worktree)], cwd=HERE, capture_output=True)
+        result.update(commit=sha, subject=git("log", "-1", "--format=%s", sha),
+                      branch=git("rev-parse", "--abbrev-ref", "HEAD"))
+        (run_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
+        write_report(result, run_dir / "report.md")
+        row = {"ts": datetime.now().isoformat(timespec="seconds"), "commit": sha, "subject": result["subject"],
+               "branch": result["branch"], "mode": result["mode"], "scenarios": result["scenarios"],
+               "reps": reps, "only": only, "run_dir": str(run_dir), **summary(result), "misses": misses(result)}
+        with HISTORY.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    print_table([(sha[:8], row)])
+
+
+def show_history(limit):
+    if not HISTORY.exists():
+        print("No measured commits yet: commit with the hook installed, or run --commit HEAD.")
+        return
+    rows = [json.loads(line) for line in HISTORY.read_text(encoding="utf-8").splitlines() if line.strip()][-limit:]
+    print("| " + " | ".join(["date", "commit", "subject"] + KEYS) + " |")
+    print("|---|---|---|" + "---|" * len(KEYS))
+    for r in rows:
+        print(f"| {r['ts'][:16]} | {r['commit'][:8]} | {r['subject'][:40]} | "
+              + " | ".join(fmt(k, r.get(k)) for k in KEYS) + " |")
+
+
+HOOK = """#!/bin/sh
+# Klimabot: direction metrics for every commit (eval/stability.py --commit), in the background, on the Claude Code
+# CLI subscription. History: eval/runs/metrics/history.jsonl — show it with: {python} eval/stability.py --history
+# Skip once with KLIMABOT_METRICS=0 git commit …
+[ "$KLIMABOT_METRICS" = "0" ] && exit 0
+root=$(git rev-parse --show-toplevel)
+sha=$(git rev-parse HEAD)
+mkdir -p "$root/eval/runs/metrics/logs"
+nohup "{python}" "$root/eval/stability.py" --commit "$sha" > "$root/eval/runs/metrics/logs/$sha.log" 2>&1 &
+"""
+
+
+def install_hook():
+    hook = Path(git("rev-parse", "--git-path", "hooks/post-commit"))
+    hook = hook if hook.is_absolute() else HERE / hook
+    if hook.exists() and "eval/stability.py" not in hook.read_text(encoding="utf-8"):
+        raise SystemExit(f"{hook} exists and isn't ours — add the line from HOOK in eval/stability.py by hand.")
+    hook.write_text(HOOK.replace("{python}", sys.executable), encoding="utf-8")
+    hook.chmod(0o755)
+    print(f"installed {hook}: every commit is measured in the background (KLIMABOT_METRICS=0 skips one)")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--repo", default=str(HERE))
-    ap.add_argument("--out")
-    ap.add_argument("--reps", type=int, default=3)
-    ap.add_argument("--budget-usd", type=float, default=3.0)
-    ap.add_argument("--compare", nargs="+")
+    ap.add_argument("--commit", help="measure this commit (a temporary worktree) and append to the history")
+    ap.add_argument("--repo", default=str(HERE), help="measure this checkout (default: this one)")
+    ap.add_argument("--out", help="also save the result JSON here")
+    ap.add_argument("--reps", type=int, default=2)
+    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--only", nargs="*", help="conversation id prefixes")
+    ap.add_argument("--api", action="store_true", help="the real Anthropic API instead of the CLI (costs money)")
+    ap.add_argument("--budget-usd", type=float, default=3.0, help="--api only")
+    ap.add_argument("--history", nargs="?", const=30, type=int, metavar="N")
+    ap.add_argument("--install-hook", action="store_true")
+    ap.add_argument("--compare", nargs="+", metavar="RESULT_JSON")
     args = ap.parse_args()
+    if args.install_hook:
+        return install_hook()
+    if args.history:
+        return show_history(args.history)
     if args.compare:
-        compare(args.compare)
-        return
-    out = Path(args.out).resolve()  # run() changes into the repo under test
-    runs, spent = run(Path(args.repo).resolve(), args.reps, args.budget_usd)
-    out.write_text(json.dumps({"repo": args.repo, "usd": spent, "runs": runs}, ensure_ascii=False,
-                                         indent=1), encoding="utf-8")
-    print(f"→ {args.out} ({spent:.2f} $)", file=sys.stderr)
+        return print_table([(Path(p).parent.name if Path(p).name == "result.json" else Path(p).stem,
+                             summary(json.loads(Path(p).read_text(encoding="utf-8")))) for p in args.compare])
+    if args.commit:
+        return measure_commit(args.commit, args.reps, args.workers, args.only)
+    run_dir = METRICS_DIR / f"{datetime.now():%Y-%m-%d_%H-%M-%S}_worktree"
+    run_dir.mkdir(parents=True)
+    result = run(Path(args.repo).resolve(), run_dir, args.reps, args.workers, args.api, args.budget_usd, args.only)
+    (run_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
+    if args.out:
+        Path(args.out).write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
+    write_report(result, run_dir / "report.md")
+    print_table([("this run", summary(result))])
+    print(f"→ {run_dir}/report.md", file=sys.stderr)
 
 
 if __name__ == "__main__":

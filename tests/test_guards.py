@@ -2335,6 +2335,28 @@ class PolicyTests(BotTest):
         self.assertIn("ĎALŠÍ KROK", json.dumps(bot.client.calls[0]["messages"][-1], ensure_ascii=False))
 
 
+class DirectionScenarioTests(BotTest):
+    """eval/scenarios/direction.json, the conversations the direction metrics run on every commit: here only the
+    policy's side, without a model — each scripted message must get its expected move. Quotes and consent are
+    simulated where the script implies them."""
+
+    def test_the_policy_routes_every_scripted_turn(self):
+        data = json.loads((REPO / "eval" / "scenarios" / "direction.json").read_text(encoding="utf-8"))
+        self.assertGreaterEqual(len(data["conversations"]), 15)
+        for conv in data["conversations"]:
+            self.setUp()
+            for i, turn in enumerate(conv["turns"], 1):
+                self.sess.user_inputs.append(turn["customer"])
+                if re.match(r"áno, súhlasím", turn["customer"], re.I):
+                    self.sess.consent = {"purpose": "sales", "ts": "", "evidence": turn["customer"]}
+                if re.match(r"nie, nesúhlasím", turn["customer"], re.I):
+                    self.sess.consent_refused = True
+                move = bot.next_move().name
+                self.assertIn(move, turn["expect"], f"{conv['id']} turn {i}: {turn['customer']}")
+                if move in ("ponuka", "nova-ponuka"):
+                    self.sess.quotes.append({"lines": [], "total_eur": 0})  # the offer the model makes
+
+
 class ContentRegenTests(BotTest):
     """What still regenerated in the A/B of 2026-10-27 once the policy fixed the direction."""
 

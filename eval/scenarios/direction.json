@@ -1,0 +1,189 @@
+{
+  "_about": "Scripted conversations for the direction metrics (eval/stability.py, run on every commit). Each turn: what the customer writes (customer), the move(s) the conversation policy should pick (expect — names from docs/conversation_policy.md) and how the bot should answer (should, for people). Each conversation: the final output code checks (final): quotes_min / quotes_max (successful quote() calls), price_shown (a € amount in any reply), lead (capture_lead wrote a brief), consent (sales consent recorded), last_has / last_lacks / any_lacks (regexes, case-insensitive, on the last reply or on every reply; {COMPANY_EMAIL} is the bot's company e-mail). No euro amounts here: prices come only from quote. Changing a conversation changes the metric — the history row records this file's hash.",
+  "conversations": [
+    {
+      "id": "spalna_cena",
+      "title": "Spálňa 14 m², otázka na cenu",
+      "turns": [
+        {"customer": "Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?", "expect": ["ponuka"],
+         "should": "Dve nacenené možnosti (každá z quote, dve značky) s cenou s DPH; potom jedna otázka, ktorá vyhovuje. Žiadna otázka na značku ani rozpočet."}
+      ],
+      "final": {"quotes_min": 2, "price_shown": true, "any_lacks": ["ktorú značku", "aký (?:máte )?rozpočet"]}
+    },
+    {
+      "id": "vagny_tichy",
+      "title": "Neurčitý začiatok, potom obývačka a tichý chod",
+      "turns": [
+        {"customer": "Dobrý deň, chcem klimatizáciu.", "expect": ["zisti-priestor"],
+         "should": "Opýta sa na typ priestoru a plochu v m² (prípadne izby), najviac dve otázky; žiadne ceny ani modely."},
+        {"customer": "Obývačka 30 m2, chcem aby bola tichá.", "expect": ["ponuka"],
+         "should": "Dve nacenené možnosti pre 30 m² s ohľadom na tichý chod, ceny s DPH."}
+      ],
+      "final": {"quotes_min": 2, "price_shown": true}
+    },
+    {
+      "id": "priority_potom_ponuka",
+      "title": "Plocha bez želaní: najprv otázka, čo je dôležité",
+      "turns": [
+        {"customer": "Dobrý deň, potrebujem klimatizáciu do spálne, má 18 m2.", "expect": ["zisti-priority"],
+         "should": "Jednou otázkou zistí, čo je dôležité (tichý chod, filtrácia, Wi-Fi, dizajn, cena); ešte nenaceňuje."},
+        {"customer": "Hlavne aby mala Wi-Fi a bola tichá.", "expect": ["ponuka"],
+         "should": "Dve nacenené možnosti s Wi-Fi v základe, ceny s DPH."}
+      ],
+      "final": {"quotes_min": 2, "price_shown": true, "last_has": ["wi-?fi"]}
+    },
+    {
+      "id": "byt_dve_izby",
+      "title": "Dvojizbový byt: izby, priority, najlacnejšie",
+      "turns": [
+        {"customer": "Dobrý deň, potrebujem klímu do dvojizbového bytu, má 50 m2.", "expect": ["zisti-izby"],
+         "should": "Opýta sa, ktoré izby chce chladiť a koľko m² má každá; nenaceňuje."},
+        {"customer": "Chcem chladiť obe izby, každá má 20 m2.", "expect": ["zisti-priority"],
+         "should": "Na izby sa už nepýta; jednou otázkou zistí, čo je dôležité."},
+        {"customer": "Hlavne nech je to čo najlacnejšie.", "expect": ["ponuka"],
+         "should": "Najlacnejšie riešenie pre dve izby po 20 m² (multi-split alebo dva sety), nacenené, ceny s DPH."}
+      ],
+      "final": {"quotes_min": 1, "price_shown": true}
+    },
+    {
+      "id": "trojizbovy_dom",
+      "title": "Tri izby s plochami a otázka na cenu",
+      "turns": [
+        {"customer": "Rodinný dom, chcem chladiť tri izby: 25, 15 a 12 m2. Koľko by to stálo?", "expect": ["ponuka"],
+         "should": "Multi-split s tromi vnútornými jednotkami podľa izieb, nacenený, cena s DPH."}
+      ],
+      "final": {"quotes_min": 1, "price_shown": true, "last_has": ["multi"]}
+    },
+    {
+      "id": "kw_zadane",
+      "title": "Zákazník pozná výkon v kW",
+      "turns": [
+        {"customer": "Potrebujem klimatizáciu s výkonom 3,5 kW. Koľko stojí?", "expect": ["ponuka"],
+         "should": "Dve nacenené možnosti s výkonom 3,5 kW, ceny s DPH."}
+      ],
+      "final": {"quotes_min": 2, "price_shown": true}
+    },
+    {
+      "id": "alergia",
+      "title": "Alergik: najlepšia filtrácia",
+      "turns": [
+        {"customer": "Spálňa 15 m2, som alergik. Koľko by stála klimatizácia?", "expect": ["ponuka"],
+         "should": "Dve možnosti s filtráciou triedy 1 (filtration_policy.json), nacenené; žiadne zdravotné sľuby."}
+      ],
+      "final": {"quotes_min": 2, "price_shown": true, "last_lacks": ["AR35", "AR30", "SEIYA Classic", "vylieč", "zdravš"]}
+    },
+    {
+      "id": "otazka_po_ponuke",
+      "title": "Otázka na filter po ponuke",
+      "turns": [
+        {"customer": "Spálňa 16 m2, chcem Wi-Fi. Koľko to stojí?", "expect": ["ponuka"],
+         "should": "Dve nacenené možnosti s Wi-Fi."},
+        {"customer": "Má tá lacnejšia aj dobrý filter?", "expect": ["odpoved"],
+         "should": "Odpovie podľa series_features lacnejšieho setu; ak je filter základný, môže navrhnúť lepší rad. Nežiada kontakt."}
+      ],
+      "final": {"quotes_min": 2, "last_has": ["filt"]}
+    },
+    {
+      "id": "lacnejsi_variant",
+      "title": "Najlepšia klimatizácia, potom lacnejšia",
+      "turns": [
+        {"customer": "Spálňa 20 m2, chcem tú najlepšiu klimatizáciu. Koľko stojí?", "expect": ["ponuka"],
+         "should": "Rady triedy 1 (najlepšia filtrácia, najviac funkcií), jeden za značku, nacenené."},
+        {"customer": "To je na mňa drahé, máte niečo lacnejšie?", "expect": ["nova-ponuka"],
+         "should": "Nacení lacnejší rad cez quote a povie rozdiel podľa comparison_with_earlier_quotes."}
+      ],
+      "final": {"quotes_min": 3, "price_shown": true}
+    },
+    {
+      "id": "vyber_a_suhlas",
+      "title": "Výber ponuky, kontakt, súhlas, lead",
+      "turns": [
+        {"customer": "Spálňa 12 m2, koľko stojí najlacnejšia klimatizácia?", "expect": ["ponuka"],
+         "should": "Dve nacenené možnosti, najlacnejšia vhodná prvá."},
+        {"customer": "Beriem tú lacnejšiu.", "expect": ["kontakt"],
+         "should": "Poďakuje, zopakuje zostavu a požiada o meno, telefón, e-mail a obec; ďalší krok iba ako podmienku; server pripojí otázku na súhlas."},
+        {"customer": "Ján Testovací, 0901 234 567, jan.testovaci@example.com, Nitra", "expect": ["pokracuj"],
+         "should": "Poďakuje a vysvetlí, že potrebujeme výslovné áno na otázku nižšie; nesľubuje, že sa niekto ozve."},
+        {"customer": "Áno, súhlasím", "expect": ["zapis"],
+         "should": "Zapíše lead (capture_lead) a krátko poďakuje; projektový manažér sa ozve."}
+      ],
+      "final": {"quotes_min": 2, "consent": true, "lead": true}
+    },
+    {
+      "id": "odmietnutie_suhlasu",
+      "title": "Výber ponuky a odmietnutie súhlasu",
+      "turns": [
+        {"customer": "Spálňa 12 m2, koľko stojí?", "expect": ["ponuka"], "should": "Dve nacenené možnosti."},
+        {"customer": "Chcem tú lacnejšiu.", "expect": ["kontakt"],
+         "should": "Požiada o kontakt; server pripojí otázku na súhlas."},
+        {"customer": "Nie, nesúhlasím.", "expect": ["pokracuj"],
+         "should": "Rešpektuje odmietnutie, nežiada údaje znova, dá priamy kontakt na firmu a ponúkne zhrnutie v chate."}
+      ],
+      "final": {"consent": false, "lead": false, "last_has": ["{COMPANY_EMAIL}"]}
+    },
+    {
+      "id": "fotovoltika",
+      "title": "Fotovoltika (neponúkame)",
+      "turns": [
+        {"customer": "Dá sa vaša klimatizácia napojiť na fotovoltiku?", "expect": ["neponukame"],
+         "should": "Jednou vetou: s fotovoltikou neponúkame nič; nič technické nevysvetľuje; potom sa opýta na priestor a m²."}
+      ],
+      "final": {"price_shown": false, "last_lacks": ["invertor", "batéri", "posúdi"]}
+    },
+    {
+      "id": "splatky_po_ponuke",
+      "title": "Splátky po ponuke (neponúkame)",
+      "turns": [
+        {"customer": "Spálňa 14 m2, koľko stojí?", "expect": ["ponuka"], "should": "Dve nacenené možnosti."},
+        {"customer": "Dá sa to kúpiť na splátky?", "expect": ["neponukame"],
+         "should": "Jednou vetou: na splátky ani leasing nepredávame; žiadne iné platobné podmienky; nadviaže na ponuku."}
+      ],
+      "final": {"last_has": ["splát"], "last_lacks": ["vyrieši", "dohodne", "individuáln"]}
+    },
+    {
+      "id": "siri",
+      "title": "Technológia, ktorú podklady nepoznajú",
+      "turns": [
+        {"customer": "Dobrý deň, dá sa Toshiba HAORI ovládať hlasom cez Siri?", "expect": ["neponukame"],
+         "should": "Povie, že o Siri v podkladoch nič nemáme; nič nevysvetľuje z vlastných vedomostí; potom sa opýta na priestor."}
+      ],
+      "final": {"last_lacks": ["HomeKit", "Apple TV", "HomePod"]}
+    },
+    {
+      "id": "reklamacia",
+      "title": "Reklamácia",
+      "turns": [
+        {"customer": "Klimatizácia, ktorú ste nám namontovali minulý rok, kvapká vodu. Chcem to reklamovať.", "expect": ["reklamacia"],
+         "should": "Reklamácie bot nerieši: dá e-mail (a telefón) firmy, nepýta si údaje a nič nesľubuje."}
+      ],
+      "final": {"price_shown": false, "consent": false, "last_has": ["{COMPANY_EMAIL}"], "last_lacks": ["Súhlasíte so spracovaním"]}
+    },
+    {
+      "id": "dym",
+      "title": "Nebezpečenstvo: dym z jednotky",
+      "turns": [
+        {"customer": "Z vnútornej jednotky ide dym a smrdí to spáleninou, čo mám robiť?", "expect": ["bezpecnost"],
+         "should": "Najprv bezpečnosť: istič, nesiahať, pri ohni 112; nič nepredáva; kontakt na firmu."}
+      ],
+      "final": {"price_shown": false, "last_has": ["112"]}
+    },
+    {
+      "id": "hala",
+      "title": "Priemyselný priestor",
+      "turns": [
+        {"customer": "Potrebujem klimatizovať výrobnú halu, má 400 m2.", "expect": ["priemysel"],
+         "should": "Nenavrhuje ani nenaceňuje; také priestory navrhuje projektový manažér — kontakt na firmu alebo meno a telefón ako podmienka."}
+      ],
+      "final": {"price_shown": false, "quotes_max": 0}
+    },
+    {
+      "id": "vlastna_montaz",
+      "title": "Vlastná montáž",
+      "turns": [
+        {"customer": "Kúpil som si klimatizáciu Samsung a chcem si ju namontovať sám. Ako ju mám nainštalovať?", "expect": ["vlastna-montaz"],
+         "should": "Žiadne rady ani návod; otázky k montáži rieši projektový manažér alebo kontakt na firmu. Nepýta sa na m² ani izby."}
+      ],
+      "final": {"price_shown": false, "last_lacks": ["m²", "koľko izieb"]}
+    }
+  ]
+}
