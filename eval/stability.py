@@ -266,6 +266,16 @@ def git(*args, cwd=HERE):
                           env=GIT_ENV).stdout.strip()
 
 
+def run_failure(run_dir, result):
+    """Why a run can't be recorded (model calls that failed, replies that never came), or None."""
+    errors = [json.loads(line).get("error", "") for path in (run_dir / "data" / "logs").glob("*.jsonl")
+              for line in path.read_text(encoding="utf-8").splitlines() if '"event": "api_error"' in line]
+    empty = sum(1 for reps in result["runs"].values() for rep in reps for t in rep["turns"] if not t["reply"].strip())
+    if errors or empty:
+        return f"{len(errors)} failed model calls, {empty} turns without a reply" + (f" ({errors[0][:120]})" if errors else "")
+    return None
+
+
 def measure_commit(ref, reps, workers, only):
     """A commit in a temporary worktree, one run at a time (a lock): appends a row to the history."""
     METRICS_DIR.mkdir(parents=True, exist_ok=True)
@@ -289,6 +299,12 @@ def measure_commit(ref, reps, workers, only):
                       branch=git("rev-parse", "--abbrev-ref", "HEAD"))
         (run_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
         write_report(result, run_dir / "report.md")
+        failure = run_failure(run_dir, result)
+        if failure:
+            # 2026-10-28: the subscription's 5-hour limit hit mid-run, 18 turns got no reply and the row said
+            # 79 % on target. A run whose model calls failed measures nothing: it isn't recorded.
+            run_dir.rename(run_dir.with_name(run_dir.name + "_failed"))
+            raise SystemExit(f"{sha[:8]} NOT RECORDED — {failure}")
         row = {"ts": datetime.now().isoformat(timespec="seconds"), "commit": sha, "subject": result["subject"],
                "branch": result["branch"], "mode": result["mode"], "scenarios": result["scenarios"],
                "reps": reps, "only": only, "run_dir": str(run_dir), **summary(result), "misses": misses(result)}
