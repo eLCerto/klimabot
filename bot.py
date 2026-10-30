@@ -49,14 +49,17 @@ if API_KEY.endswith("..."):  # every message would fail with 401 "invalid x-api-
 API_TIMEOUT_SECONDS = 60
 client = Anthropic(api_key=API_KEY, max_retries=0, timeout=API_TIMEOUT_SECONDS)
 
-MODEL = "claude-haiku-4-5-20251001"
+MODEL = "claude-haiku-5-5"
+# Off on every call: Haiku 5.5 thinks by default, but the history stores what the customer saw, so thinking blocks
+# couldn't go back with tool results, and thinking would use up HyDE's and the summary's small max_tokens.
+THINKING = {"type": "disabled"}
 EMBED_MODEL_NAME = "intfloat/multilingual-e5-base"  # better Slovak recall than paraphrase-MiniLM
 
 # --- Spend limits (USD, priced from model_prices.json) ---
 # Checked before every model call against the worst case of that call, so they are hard caps.
 PRICES = json.loads((CONFIG_DIR / "model_prices.json").read_text(encoding="utf-8"))[MODEL]
-SESSION_USD_CAP = float(os.getenv("KLIMABOT_SESSION_USD_CAP", "0.50"))   # one conversation
-TURN_USD_CAP = float(os.getenv("KLIMABOT_TURN_USD_CAP", "0.40"))         # one customer message
+SESSION_USD_CAP = float(os.getenv("KLIMABOT_SESSION_USD_CAP", "0.07"))   # one conversation
+TURN_USD_CAP = float(os.getenv("KLIMABOT_TURN_USD_CAP", "0.05"))         # one customer message
 # One customer message: the model may keep calling tools; these bound it. All sit above
 # the maxima measured in the eval (7 calls, 13 tool calls, 6 searches, 137 s).
 TURN_MAX_CALLS = 10
@@ -554,6 +557,11 @@ def _retry_after(err):
         return None
 
 
+def _response_text(response):
+    """The text of a response, which may have none: Haiku 5.5 can refuse (stop_reason "refusal")."""
+    return "".join((getattr(b, "text", "") or "") for b in response.content if getattr(b, "type", None) == "text")
+
+
 def _call_model(purpose, **kwargs):
     """client.messages.create with the retry policy above. Raises SpendLimitReached
     when the account can't be charged, and the API error itself when retrying is pointless."""
@@ -562,7 +570,7 @@ def _call_model(purpose, **kwargs):
     attempt = 0
     while True:
         try:
-            return client.messages.create(**kwargs)
+            return client.messages.create(thinking=THINKING, **kwargs)
         except anthropic.RateLimitError as e:
             if "enforced_spend_limit_reached" in f"{getattr(e, 'body', '')} {e}":
                 _trip_breaker("account_cap", e)
@@ -3473,13 +3481,13 @@ def expand_query(query):
     if _query_is_specific(query):
         return _remember_expansion(query, "")
     # HyDE is optional: skip it rather than spend the last of the conversation's budget.
-    if S().cost_usd + projected_call_cost(160, context_tokens=1_000) > SESSION_USD_CAP:
+    if S().cost_usd + projected_call_cost(210, context_tokens=1_000) > SESSION_USD_CAP:
         return ""
     try:
         msg = _call_model(
             "hyde",
             model=MODEL,
-            max_tokens=160,
+            max_tokens=210,
             system=(
                 "Rozšír zákazníkov dotaz o relevantné kľúčové slová z domény klimatizácií "
                 "(modely, technológie, komponenty). Odpíš 1–2 vety hypotetickej odpovede s konkrétnymi pojmami. "
@@ -3488,7 +3496,7 @@ def expand_query(query):
             messages=[{"role": "user", "content": query}],
         )
         _record_usage(msg.usage, "hyde")
-        expansion = msg.content[0].text.strip()
+        expansion = _response_text(msg).strip()
     except (anthropic.APIError, SpendLimitReached) as e:
         log_event("hyde_failed", error=str(e))
         return ""
@@ -3683,7 +3691,7 @@ def maybe_summarize(conversation):
     too_big = len(conversation) > HISTORY_KEEP_TAIL + 2 and len(_flatten_messages(conversation)) > HISTORY_MAX_CHARS
     if not (too_long or too_big):
         return conversation
-    if S().cost_usd + projected_call_cost(400) > SESSION_USD_CAP:
+    if S().cost_usd + projected_call_cost(520) > SESSION_USD_CAP:
         return conversation  # no budget left for the summary call
     cut = len(conversation) - HISTORY_KEEP_TAIL
     # Advance forward to the next *real* user input. tool_results (which also
@@ -3698,7 +3706,7 @@ def maybe_summarize(conversation):
     try:
         msg = _call_model(
             "summary",
-            model=MODEL, max_tokens=400,
+            model=MODEL, max_tokens=520,
             system=(
                 "Zhrň túto predošlú konverzáciu medzi predajcom-botom a zákazníkom v 3–6 vetách. "
                 "Zameraj sa na: čo zákazník chce, jeho preferencie/rozpočet/segment, čo už bolo navrhnuté, "
@@ -3707,9 +3715,12 @@ def maybe_summarize(conversation):
             messages=[{"role": "user", "content": _flatten_messages(head)}],
         )
         _record_usage(msg.usage, "summary")
-        summary = msg.content[0].text.strip()
+        summary = _response_text(msg).strip()
     except (anthropic.APIError, SpendLimitReached) as e:
         log_event("summarize_failed", error=str(e))
+        return conversation
+    if not summary:  # a refusal: replacing the head with nothing would lose it
+        log_event("summarize_failed", error="empty summary")
         return conversation
     log_event("summarized", head_len=len(head), tail_len=len(tail))
     return [
@@ -7173,10 +7184,7 @@ def run_user_turn_streaming(user_input):
                 max_tokens = 4096
                 continue
 
-            raw_attempt_text = unicodedata.normalize(
-                "NFC",
-                "".join((getattr(b, "text", "") or "") for b in response.content if getattr(b, "type", None) == "text"),
-            )
+            raw_attempt_text = unicodedata.normalize("NFC", _response_text(response))
             # Mechanical fixes first (headings, ---, emoji, CZ→SK words, the consent
             # question's wording), so checks only see what's left.
             attempt_text, was_sanitized = sanitize_reply(raw_attempt_text, language)

@@ -41,7 +41,7 @@ BOT_DIR = Path(__file__).parent
 load_dotenv(BOT_DIR / ".env")
 DATA_DIR = BOT_DIR / (os.getenv("KLIMABOT_DATA_DIR", "").strip() or "data")
 
-# USD per 1M tokens, from the same file bot.py's spend caps use.
+# USD per 1M tokens, for logs from before bot.py logged each call's USD: all of those ran Haiku 4.5.
 MODEL = "claude-haiku-4-5-20251001"
 _PRICES = json.loads((Path(__file__).resolve().parent / "config" / "model_prices.json").read_text(encoding="utf-8"))[MODEL]
 PRICE_INPUT = _PRICES["input"]
@@ -106,7 +106,7 @@ def summarize(path):
         "name": path.name,
         "started": None, "ended": None,
         "first_user_ts": None, "last_event_ts": None,
-        "in": 0, "out": 0, "cw": 0, "cr": 0,
+        "in": 0, "out": 0, "cw": 0, "cr": 0, "cost_usd": 0.0,
         "turns": 0,
         "user_msgs": 0, "user_words": 0,
         "bot_replies": 0, "bot_words": 0, "bot_questions": 0,
@@ -186,10 +186,12 @@ def summarize(path):
                     s["gdpr_question_ts"] = ts
         elif ev == "llm_turn":
             s["turns"] += 1
-            s["in"] += r.get("input_tokens", 0) or 0
-            s["out"] += r.get("output_tokens", 0) or 0
-            s["cw"] += r.get("cache_write", 0) or 0
-            s["cr"] += r.get("cache_read", 0) or 0
+            tokens = [r.get(k, 0) or 0 for k in ("input_tokens", "output_tokens", "cache_write", "cache_read")]
+            s["in"] += tokens[0]
+            s["out"] += tokens[1]
+            s["cw"] += tokens[2]
+            s["cr"] += tokens[3]
+            s["cost_usd"] += r["usd"] if "usd" in r else cost(*tokens)
         elif ev == "tool_call":
             s["tools"][r.get("name", "?")] += 1
         elif ev == "lead_captured":
@@ -232,7 +234,6 @@ def summarize(path):
                 s["feedback_down"].append((r.get("reply_excerpt") or "")[:160])
 
     # Derived
-    s["cost_usd"] = cost(s["in"], s["out"], s["cw"], s["cr"])
     s["cache_hit_pct"] = 100 * s["cr"] / max(1, s["cr"] + s["cw"] + s["in"])
     start = parse_ts(s["started"] or s["first_user_ts"])
     end = parse_ts(s["ended"] or s["last_event_ts"])

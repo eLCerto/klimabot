@@ -130,6 +130,8 @@ class FakeClient:
         if unknown:
             raise AssertionError(f"Messages.create() of anthropic {anthropic.__version__} doesn't take {unknown}")
         assert_no_dangling_tool_use(kw["messages"])
+        if kw["messages"][-1]["role"] != "user":  # a prefill: Haiku 5.5 answers 400
+            raise AssertionError("the request ends with an assistant turn")
         self.calls.append(kw)
         if not self.responses:
             raise AssertionError("FakeClient ran out of scripted responses")
@@ -1441,10 +1443,15 @@ class SpendTests(BotTest):
     def lookups(self, n):
         return [resp(tool("lookup_product", model_code=AR30_SET[0])) for _ in range(n)]
 
-    def test_usage_cost_matches_the_price_file_and_the_report(self):
+    def test_usage_cost_matches_the_price_file(self):
         expected = sum(bot.PRICES[k] for k in ("input", "output", "cache_write_5m", "cache_read"))
         self.assertAlmostEqual(bot.usage_cost(usage(10**6, 10**6, 10**6, 10**6)), expected)
-        self.assertAlmostEqual(cost_report.cost(10**6, 10**6, 10**6, 10**6), expected)
+
+    def test_the_report_keeps_the_usd_each_call_logged(self):
+        path = TMP / "logs" / f"usd_{next(_ids)}.jsonl"
+        path.write_text(json.dumps({"event": "llm_turn", "input_tokens": 10**6, "usd": 0.1}) + "\n"
+                        + json.dumps({"event": "llm_turn", "input_tokens": 10**6}), encoding="utf-8")
+        self.assertAlmostEqual(cost_report.summarize(path)["cost_usd"], 0.1 + cost_report.PRICE_INPUT)
 
     def test_endless_tool_calls_end_with_an_answer_without_tools(self):
         _, shown = self.turn("Aké klimatizácie máte?", *self.lookups(bot.TURN_MAX_CALLS - 1), resp(text(ANSWER)))
@@ -1469,7 +1476,7 @@ class SpendTests(BotTest):
         self.assertEqual(sum(1 for r in results if r.get("is_error") and "Limit nástrojov" in r["content"]), 2)
 
     def test_turn_budget_makes_the_last_affordable_call_without_tools(self):
-        with mock.patch.object(bot, "TURN_USD_CAP", 0.10):
+        with mock.patch.object(bot, "TURN_USD_CAP", 0.01):
             _, shown = self.turn("Aké klimatizácie máte?",
                                  resp(tool("lookup_product", model_code=AR30_SET[0]), use=usage(20_000, 50)),
                                  resp(text(ANSWER)))
@@ -1479,7 +1486,7 @@ class SpendTests(BotTest):
 
     def test_conversation_cap_lands_without_a_model_call(self):
         q = bot.quote([{"code": c} for c in AR30_SET])
-        self.sess.cost_usd = bot.SESSION_USD_CAP - 0.01
+        self.sess.cost_usd = bot.SESSION_USD_CAP - 0.001
         _, shown = self.turn("A ešte k montáži?")  # nothing scripted: any model call fails the test
         self.assertIn(bot.COMPANY_CONTACT, shown)
         self.assertIn(bot._eur(q["total_with_DPH_23pct_eur"]), shown, "the landing recaps the last quote")
@@ -1521,6 +1528,38 @@ class SpendTests(BotTest):
         sleep.assert_not_called()
         self.assertEqual([d["message"] for e, d in events if e == "error"], [bot._ERROR_REPLY["sk"]])
         self.assertEqual(self.sess.conversation, [], "the failed turn is rolled back")
+
+
+class ModelCallTests(BotTest):
+    """Haiku 5.5 thinks unless told not to, can start a response with a thinking block, and can refuse."""
+
+    def test_every_call_turns_thinking_off(self):
+        self.turn("Dobrý deň", resp(text("Dobrý deň, s čím vám môžem pomôcť?")))
+        self.assertEqual(bot.client.calls[0]["thinking"], {"type": "disabled"})
+
+    def test_hyde_reads_the_text_after_a_thinking_block(self):
+        bot._HYDE_CACHE.clear()
+        bot.client = FakeClient([resp(NS(type="thinking", thinking="", signature="x"), text("tichý chod, filter"))])
+        self.assertEqual(bot.expand_query("tichá klíma"), "tichý chod, filter")
+
+    def test_a_refused_hyde_leaves_the_search_without_expansion(self):
+        bot._HYDE_CACHE.clear()
+        bot.client = FakeClient([resp(stop="refusal")])
+        self.assertEqual(bot.expand_query("klíma na chatu"), "")
+
+    def test_a_refused_summary_keeps_the_history(self):
+        history = []
+        for i in range(bot.HISTORY_MAX_USER_TURNS + 6):
+            history += [{"role": "user", "content": f"otázka {i}"},
+                        {"role": "assistant", "content": [{"type": "text", "text": f"odpoveď {i}"}]}]
+        bot.client = FakeClient([resp(stop="refusal")])
+        self.assertIs(bot.maybe_summarize(history), history)
+        self.assertEqual(bot.client.responses, [], "the summary call was made")
+        self.assertIn("summarize_failed", self.log_text())
+
+    def test_a_refused_turn_still_gets_a_reply(self):
+        _, reply = self.turn("Dobrý deň", resp(stop="refusal"), resp(stop="refusal"), resp(stop="refusal"))
+        self.assertTrue(reply.strip())
 
 
 class ViewAndCacheTests(BotTest):
@@ -1810,7 +1849,7 @@ class WebTests(unittest.TestCase):
 
     def test_chat_is_refused_when_the_network_budget_is_used(self):
         _, sid = self.new_session()
-        web._ledger["per_ip"][web._net_id(IP)] = 1.9
+        web._ledger["per_ip"][web._net_id(IP)] = web.IP_DAILY_USD - 0.01
         bot.client = FakeClient([])
         status, body = self.post("/api/chat", sid, json={"message": "Dobrý deň"})
         self.assertEqual(status, 429)

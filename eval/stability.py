@@ -109,7 +109,7 @@ def check_final(final, quotes, consent, lead, replies, company_email):
     return failed
 
 
-def run(repo, run_dir, reps, workers, use_api=False, budget_usd=3.0, only=None):
+def run(repo, run_dir, reps, workers, use_api=False, budget_usd=3.0, only=None, model=None, effort=None):
     """{"runs": {conversation id: [{"turns": [...], "final_failed": [...]} per repeat]}, "usd": …, "mode": …}."""
     conversations, scen_hash = load_scenarios()
     if only:
@@ -130,8 +130,13 @@ def run(repo, run_dir, reps, workers, use_api=False, budget_usd=3.0, only=None):
     import bot  # noqa: E402
     from claude_cli_client import ClaudeCLIClient  # noqa: E402
 
+    model = model or bot.MODEL
     if not use_api:
-        bot.client = ClaudeCLIClient(model=bot.MODEL, log_dir=run_dir)
+        bot.client = ClaudeCLIClient(model=model, log_dir=run_dir, effort=effort)
+        prices = json.loads((HERE / "config" / "model_prices.json").read_text(encoding="utf-8"))
+        if model not in prices:
+            raise SystemExit(f"{model} has no prices in config/model_prices.json — add them first.")
+        bot.PRICES = prices[model]  # the run's USD at its own model's rates; production's table stays bot.MODEL's
     bot.get_reranker()  # once here, not in every thread
     spent = {"usd": 0.0}
 
@@ -175,7 +180,7 @@ def run(repo, run_dir, reps, workers, use_api=False, budget_usd=3.0, only=None):
             if result is not None:
                 runs[cid].append(result)
     return {"runs": runs, "usd": round(spent["usd"], 4), "reps": reps, "scenarios": scen_hash,
-            "mode": "api" if use_api else f"cli:{bot.MODEL}"}
+            "mode": "api" if use_api else f"cli:{model}" + (f"+{effort}" if effort else "")}
 
 
 def summary(result):
@@ -358,10 +363,14 @@ def main():
     ap.add_argument("--only", nargs="*", help="conversation id prefixes")
     ap.add_argument("--api", action="store_true", help="the real Anthropic API instead of the CLI (costs money)")
     ap.add_argument("--budget-usd", type=float, default=3.0, help="--api only")
+    ap.add_argument("--model", help="CLI only: another model on the same bot code (not recorded in the history)")
+    ap.add_argument("--effort", help="CLI only: low, medium, high…")
     ap.add_argument("--history", nargs="?", const=30, type=int, metavar="N")
     ap.add_argument("--install-hook", action="store_true")
     ap.add_argument("--compare", nargs="+", metavar="RESULT_JSON")
     args = ap.parse_args()
+    if (args.model or args.effort) and (args.commit or args.api):
+        ap.error("--model and --effort are for CLI runs of a checkout: the history compares one setup")
     if args.install_hook:
         return install_hook()
     if args.history:
@@ -373,12 +382,16 @@ def main():
         return measure_commit(args.commit, args.reps, args.workers, args.only)
     run_dir = METRICS_DIR / f"{datetime.now():%Y-%m-%d_%H-%M-%S}_worktree"
     run_dir.mkdir(parents=True)
-    result = run(Path(args.repo).resolve(), run_dir, args.reps, args.workers, args.api, args.budget_usd, args.only)
+    result = run(Path(args.repo).resolve(), run_dir, args.reps, args.workers, args.api, args.budget_usd, args.only,
+                 args.model, args.effort)
     (run_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     if args.out:
         Path(args.out).write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     write_report(result, run_dir / "report.md")
     print_table([("this run", summary(result))])
+    failure = run_failure(run_dir, result)
+    if failure:
+        raise SystemExit(f"NOT VALID — {failure}")
     print(f"→ {run_dir}/report.md", file=sys.stderr)
 
 

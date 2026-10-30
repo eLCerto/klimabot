@@ -15,8 +15,8 @@ Differences from the API (documented in the eval report):
 - the CLI adds ~800 tokens of its own context (environment, date);
 - no max_tokens limit.
 
-Pass the production model ID (bot.MODEL): the CLI's "haiku" alias runs a newer Haiku than the one the bot
-uses in production (checked 2026-10-28: "haiku" → claude-haiku-5-5).
+Pass the production model ID (bot.MODEL): the CLI's "haiku" alias moves on with new releases. Haiku 5.5 thinks
+here although production turns thinking off (see __init__), so CLI figures don't carry over to production.
 """
 import glob
 import json
@@ -135,9 +135,10 @@ def parse_reply(text):
 
 
 class ClaudeCLIClient:
-    def __init__(self, model="haiku", timeout=300, retries=3, log_dir=None):
+    def __init__(self, model="haiku", timeout=300, retries=3, log_dir=None, effort=None):
         self.exe = find_claude_cli()
         self.model = model
+        self.effort = effort
         self.timeout = timeout
         self.retries = retries
         self.cwd = Path(tempfile.gettempdir()) / "klimabot_cli_cwd"  # outside the repo: no CLAUDE.md
@@ -145,7 +146,9 @@ class ClaudeCLIClient:
         self.log_dir = Path(log_dir) if log_dir else None
         self.messages = self  # so `client.messages.create(...)` works
         env = {k: v for k, v in os.environ.items() if not k.startswith("ANTHROPIC_")}
-        env["MAX_THINKING_TOKENS"] = "0"  # production runs without extended thinking
+        # Production runs without extended thinking. Haiku 5.5 thinks anyway: this, --thinking disabled and the
+        # other CLI switches don't stop its adaptive thinking (checked 2026-10-30; modelUsage.thinkingTokens > 0).
+        env["MAX_THINKING_TOKENS"] = "0"
         self.env = env
 
     def _run(self, system_prompt, prompt):
@@ -156,6 +159,8 @@ class ClaudeCLIClient:
         cmd = [self.exe, "-p", "--model", self.model, "--output-format", "json",
                "--system-prompt-file", f.name, "--tools", "", "--strict-mcp-config",
                "--disable-slash-commands", "--setting-sources", "local", "--no-session-persistence"]
+        if self.effort:
+            cmd += ["--effort", self.effort]
         last_error = None
         try:
             for attempt in range(self.retries):
@@ -216,7 +221,8 @@ class ClaudeCLIClient:
         if self.log_dir:
             with (self.log_dir / "cli_calls.jsonl").open("a", encoding="utf-8") as f:
                 f.write(json.dumps({"ts": time.time(), "raw": raw, "tool_calls": [c[0] for c in calls],
-                                    "usage": data.get("usage"), "cost_usd": data.get("total_cost_usd")},
+                                    "usage": data.get("usage"), "cost_usd": data.get("total_cost_usd"),
+                                    "model_usage": data.get("modelUsage")},
                                    ensure_ascii=False) + "\n")
 
         content = []

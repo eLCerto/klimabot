@@ -157,7 +157,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", nargs="*", help="conversation id prefixes to run")
     parser.add_argument("--workers", type=int, default=4)
-    # The production model, not the CLI's "haiku" alias (that runs a newer Haiku, checked 2026-10-28).
+    # The production model, not the CLI's "haiku" alias, which moves on with new releases.
     parser.add_argument("--model", default=bot.MODEL, help="CLI model (CLI mode only; default: bot.MODEL)")
     parser.add_argument("--api", action="store_true", help="use the real Anthropic API (costs money)")
     parser.add_argument("--budget-usd", type=float, default=10.0,

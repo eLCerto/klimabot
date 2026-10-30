@@ -29,7 +29,7 @@ Most of the work went into stopping the model from making things up. In early te
 
 ## How it works
 
-- **Model:** Claude Haiku 4.5 with tool use (`search_knowledge`, `lookup_product`, `quote`, `check_compatibility`, `compare_products`, `update_customer_state`, `capture_lead`, `request_human_handoff`), with prompt caching on the static system prompt.
+- **Model:** Claude Haiku 5.5 with tool use (`search_knowledge`, `lookup_product`, `quote`, `check_compatibility`, `compare_products`, `update_customer_state`, `capture_lead`, `request_human_handoff`), with prompt caching on the static system prompt.
 - **Retrieval:** hybrid BM25 (with diacritics-folded tokens and a SK/CZ/EN synonym glossary) plus `multilingual-e5-base` embeddings, fused with reciprocal rank fusion and re-ranked by a multilingual cross-encoder. HyDE query expansion runs for vague questions.
 - **Behavior rules** live as Markdown files in [`knowledge/rules/`](knowledge/rules/). Each one states the rule, why it exists (usually a real failure), and how to apply it. They're retrieved like knowledge, with a small authority boost.
 - **Web UI:** Flask + server-sent events, one HTML file with no build step. Replies render as sanitized Markdown, the empty chat offers example questions, a status line says what the bot is doing while it prepares a reply ("Počítam cenu…"), and the PM record can be copied or downloaded. Light and dark themes, a tabbed layout on phones. marked and DOMPurify are pinned local copies (no CDN), and the page is served with a Content-Security-Policy. Each browser tab gets its own session, so concurrent visitors never share a conversation.
@@ -88,8 +88,8 @@ Costs are capped in USD, priced from `model_prices.json`. A "network" is one IPv
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `KLIMABOT_SESSION_USD_CAP` | 0.50 | one conversation (also in the CLI); when it is used up, the bot closes the conversation with a recap of the last quote and the company contact |
-| `KLIMABOT_TURN_USD_CAP` | 0.40 | one customer message (also in the CLI) |
+| `KLIMABOT_SESSION_USD_CAP` | 0.07 | one conversation (also in the CLI); when it is used up, the bot closes the conversation with a recap of the last quote and the company contact |
+| `KLIMABOT_TURN_USD_CAP` | 0.05 | one customer message (also in the CLI) |
 | `KLIMABOT_IP_DAILY_USD` | 2.00 | per network per day (UTC) |
 | `KLIMABOT_DAILY_USD_BUDGET` | 5.00 | all visitors together per day (UTC); saved in `.demo_spend.json`, so a restart doesn't reset it |
 | `KLIMABOT_MAX_TURNS` | 25 | messages per conversation |
