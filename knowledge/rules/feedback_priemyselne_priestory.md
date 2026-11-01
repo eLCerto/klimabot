@@ -24,3 +24,5 @@ Bot: „Priemyselné priestory navrhuje individuálne náš projektový manažé
 
 - ❌ Navrhovať systém, výkon v kW ani modely pre halu.
 - ❌ Pýtať sa na plochu, počet zón či prevádzku 24/7 — to zistí projektový manažér.
+
+Rovnako technologické chladenie (vínna pivnica, chladiareň): stálu nízku teplotu podklady nepotvrdzujú, takže bot ju nesľubuje, nenaceňuje a odkáže zákazníka na projektového manažéra.

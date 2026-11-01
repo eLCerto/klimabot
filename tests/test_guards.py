@@ -748,7 +748,7 @@ class QuoteTests(BotTest):
         self.assertTrue(comfort["wifi_standard"])
         self.assertIn("AJ040TXJ2KG/EU", comfort["outdoor_options"])
         toshiba = bot.lookup_product("Toshiba multi-split 2 kW")  # Toshiba wall units: 2.5 kW, not 2
-        self.assertIn("najbližšia väčšia", toshiba["note"])
+        self.assertIn("najbližšia vhodná", toshiba["note"])
         self.assertEqual({u["cooling_kW"] for u in toshiba["units"]}, {2.5})
         avant = bot.lookup_product("Samsung WindFree Avant S2 multi-split 2 kW")["units"]
         self.assertEqual({u["code"] for u in avant}, {"AR70F07C1AWNEU", "AR70F07C1ABNEU"}, "the named series only")
@@ -1975,6 +1975,12 @@ class ReviewFixTests(BotTest):
                    f"{gross} s DPH ({net} bez DPH).", f"{net} bez DPH, {gross} s DPH."):
             self.assertEqual(bot._vat_mislabeled_amounts(ok), [], ok)
         self.assertTrue(bot._vat_mislabeled_amounts(f"Cena je {net} s DPH."))
+        # The API's usual wording: the label in the bracket is the next amount's (2026-11-01).
+        for ok in (f"Cena s DPH: {gross} (bez DPH {net}, po 10 % zľave).", f"Cena s DPH: **{gross}** (bez DPH {net}).",
+                   f"Cena bez DPH: {net} (s DPH {gross})."):
+            self.assertEqual(bot._vat_mislabeled_amounts(ok), [], ok)
+        self.assertTrue(bot._vat_mislabeled_amounts(f"Cena: {gross} (bez DPH)."), "no second amount: the label is its own")
+        self.assertTrue(bot._vat_mislabeled_amounts(f"Cena {gross} (bez DPH) alebo {net} (s DPH)."), "a closed bracket too")
 
     def test_disagreeing_with_the_price_is_not_a_refusal(self):  # 2
         for said in ("Nesúhlasím s tou cenou, je to drahé.", "To nesúhlasí s tým, čo ste písali.",
@@ -2550,6 +2556,308 @@ class JudgeTests(unittest.TestCase):
 
 
 # ---------- retrieval quality ----------
+
+class QaFixTests(BotTest):
+    """The exploratory QA of 2026-11-01 (docs/qa_exploratory_2026-11-01.md): each finding with what must still pass."""
+
+    def say(self, *messages):
+        self.sess.user_inputs[:] = list(messages)
+
+    def move(self, *messages):
+        self.say(*messages)
+        return bot.next_move()
+
+    def lead(self):
+        self.turn("Chcem ponuku, volajte.", resp(text("Aké je vaše meno a telefónne číslo?")))
+        self.turn("Áno, súhlasím. Peter Hudák, 0905123456.", resp(text("Ďakujem.")))
+        self.sess.handoff_path = None
+        self.assertIn("ok", bot.capture_lead("Peter Hudák", "0905123456", "Spálňa."))
+
+    def test_f01_withdrawal_and_erasure_are_recognised(self):
+        for phrase in ("Chcem odvolať súhlas so spracovaním údajov.", "Odvolávam súhlas.", "Prosím vymažte moje údaje.",
+                       "Nechcem, aby mi niekto volal.", "Nevolajte mi.", "I withdraw my consent.", "Please delete my data.",
+                       "Don't call me.", "Vymazali ste moje údaje?"):
+            self.assertTrue(bot._consent_withdrawal(phrase), phrase)
+        for phrase in ("Aké údaje potrebujete?", "Súhlasím s ponukou.", "Zavolajte mi prosím.", "Odvolám sa na vašu ponuku.",
+                       "Chcem, aby mi volali popoludní."):
+            self.assertFalse(bot._consent_withdrawal(phrase), phrase)
+
+    def test_f01_a_withdrawal_marks_the_lead_and_code_answers(self):
+        self.lead()
+        events, shown = self.turn("Prosím vymažte moje údaje, rozmyslel som si to.")  # no scripted response: no model call
+        self.assertEqual(shown, bot._withdrawal_text("sk"))
+        self.assertNotIn("odovzdal", shown)
+        self.assertTrue(self.sess.consent_withdrawal_requested)
+        brief = self.sess.handoff_path.read_text(encoding="utf-8")
+        self.assertIn("NEKONTAKTOVAŤ", brief)
+        self.assertNotIn("PM nech zákazníka osloví", brief)
+        self.assertIn("handoff", [e for e, _ in events], "the PM panel shows the marked brief")
+        queued = json.loads(bot.HANDOFF_PATH.read_text(encoding="utf-8").splitlines()[-1])
+        self.assertEqual((queued["reason"], queued["purpose"]), ("consent_withdrawal", "gdpr"))
+        self.assertIn("error", bot.capture_lead("Peter Hudák", "0905123456", "Znova."))
+        self.assertFalse(bot._should_auto_capture())
+        self.assertIn('"event": "consent_withdrawal_requested"', self.log_text())
+        lines = len(bot.HANDOFF_PATH.read_text(encoding="utf-8").splitlines())
+        self.turn("Nevolajte mi.")
+        self.assertEqual(len(bot.HANDOFF_PATH.read_text(encoding="utf-8").splitlines()), lines, "one request in the queue")
+        self.assertIn("netvrď, že údaje sú vymazané", bot._consent_status_text())
+
+    def test_f01_before_consent_it_is_a_refusal(self):
+        self.turn("Volám sa Peter Hudák, 0905123456.", resp(text("Ďakujem.")))
+        self.turn("Vymažte moje údaje.", resp(text("Dobre, nič neukladáme.")))
+        self.assertTrue(self.sess.consent_refused)
+        self.assertNotIn("0905123456", self.log_text())
+
+    def test_f02_no_diagnosis_in_the_brief(self):
+        self.turn("Chcem ponuku, volajte.", resp(text("Aké je vaše meno a telefónne číslo?")))
+        self.turn("Áno, súhlasím. Mária Kováčová, 0908765432. Syn má astmu.", resp(text("Ďakujem.")))
+        self.assertNotIn("astm", self.sess.consent["evidence"].lower())
+        self.assertIn(bot.HEALTH_REDACTED, self.sess.consent["evidence"])
+        claim = "Odovzdali sme to projektovému manažérovi spolu s poznámkou, že syn má astmu."
+        self.assertTrue(bot._health_noted_claims(claim))
+        self.assertEqual(bot._health_noted_claims("Astmu do záznamu nezapisujeme."), [])
+        self.assertTrue(any(v.startswith("zdravie-zaznam") for v in bot.validate_assistant_reply(claim)))
+        self.say("Syn má astmu.")
+        self.assertIn("nezapisujú", bot.build_server_context())
+
+    def test_f03_room_lists_are_read_whole(self):
+        for typed, expected in (("izby 25, 15 a 12 m2", [12, 15, 25]), ("30, 22, 18, 15, 14 a 12 m2", [12, 14, 15, 18, 22, 30]),
+                                ("14 and 18 sqm", [14, 18]), ("25 + 15 + 12 m2", [12, 15, 25]), ("12,5 m2", [12.5]),
+                                ("12,5 a 10 m2", [10, 12.5]), ("3 izby, 25 a 12 m2", [12, 25]), ("3 a 20 m2", [20]),
+                                ("klíma z roku 2015, 20 m2", [20])):
+            self.say(typed)
+            self.assertEqual(sorted(bot._customer_m2()), expected, typed)
+
+    def test_f03_the_right_multi_split_is_no_longer_refused(self):
+        self.say("Byt, tri izby: 25, 15 a 12 m2, na jednu vonkajšiu.")
+        result = bot.quote([{"code": "AJ052TXJ3KG/EU"}, {"code": "AR50F09C1AHNEU"}, {"code": "AR50F07C1AHNEU", "qty": 2}])
+        self.assertNotIn("error", result, result)
+        self.say("Izby 30, 22, 18, 15, 14 a 12 m2.")  # the smaller of two systems isn't sized by the 30 m² room
+        result = bot.quote([{"code": "AJ052TXJ3KG/EU"}, {"code": "AR70F07C1AWNEU", "qty": 3}])
+        self.assertNotIn("error", result, result)
+        self.sess.quotes.clear()
+        self.assertIn("multi-split", self.move("Izby 25, 15 a 12 m2, koľko to stojí?").directive)
+        self.assertIn("najviac päť", self.move("Izby 30, 22, 18, 15, 14 a 12 m2.").directive)
+        self.assertNotIn("najviac päť", self.move("Izby 30, 22 a 18 m2.").directive)
+
+    def test_f04_internal_text_is_caught(self):
+        for leak in ("Výsledok nástroja je jasný: opravy bot nerieši.", "Zákazníkovi dávam dôležité upozornenie.",
+                     "Ak si zákazník zároveň zvažuje novú klimatizáciu, pomôžem mu.", "Preto nič nesľubujem a nepýtam údaje.",
+                     "Kontrola zostavy ju odmietla.", "Sumy sú podľa výstupu cenníka.", "Otázku, ktorú pripojí systém nižšie."):
+            self.assertTrue(bot._internal_leak_sentences(leak), leak)
+        for fine in ("Som AI asistent spoločnosti.", "Multi-split je systém s jednou vonkajšou jednotkou.",
+                     "Odpovedzte prosím na otázku nižšie.", "Chcete pokračovať s touto ponukou?"):
+            self.assertEqual(bot._internal_leak_sentences(fine), [], fine)
+
+    def test_f05_a_correction_inside_the_reply_is_regenerated(self):
+        _, shown = self.turn("Dobrý deň, aké klímy predávate?", resp(text("Je to viac... presnejšie podľa ponuky menej.")),
+                             resp(text("Predávame Samsung a Toshiba.")))
+        self.assertEqual(shown, "Predávame Samsung a Toshiba.")
+
+    def test_f06_the_cheapest_set_is_per_room(self):
+        self.say("Penzión, izby 20 m2 a recepcia 40 m2. Chcem najlacnejšie riešenie.")
+        result = bot.quote([{"code": c, "qty": 12} for c in ("AR70F09C1AWNEU", "AR70F09C1AWXEU")])
+        self.assertTrue(any("nie je najlacnejší" in w and "AR40H09C" in w for w in result["fit_warnings"]), result["fit_warnings"])
+        self.assertTrue(bot._false_cheapest_claim(0, "**Možnosť 1 (najnižšia cena)**"))
+        self.assertFalse(bot._false_cheapest_claim(0, "Možnosť 1 je biela."))
+        self.assertEqual(bot._CHEAPEST_PAREN_RE.sub("", "**Cebu S2 (lowest price)**"), "**Cebu S2**")
+
+    def test_f06_separate_sets_against_a_multi_split(self):
+        lines = [{"code": "AJ040TXJ2KG/EU"}, {"code": "AR50F07C1AHNEU", "qty": 2}]
+        self.say("Izby 20 a 12 m2, chcem najlacnejšie riešenie.")
+        self.assertTrue(any("multi-split nie je najlacnejší" in w for w in bot.quote(lines).get("fit_warnings", [])))
+        self.say("Izby 20 a 12 m2, na jednu vonkajšiu, chcem najlacnejšie riešenie.")
+        self.assertFalse(any("multi-split nie je najlacnejší" in w for w in bot.quote(lines).get("fit_warnings", [])))
+
+    def test_f06_commercial_units_are_not_the_cheapest_for_rooms(self):
+        self.say("Penzión, izby 20 m2 a recepcia 40 m2. Chcem najlacnejšie riešenie.")
+        result = bot.quote([{"code": "AC071RNNDKG/EU", "qty": 2}, {"code": "PC4SUFMAN", "qty": 2}, {"code": "MWR-SH11N", "qty": 2},
+                            {"code": "AC071BXAPKG/EU", "qty": 2}])
+        self.assertTrue(any("komerčná zostava nie je najlacnejší" in w for w in result.get("fit_warnings", [])), result)
+
+    def test_f07_lookup_tells_what_the_price_lists_say(self):
+        comfort = bot.lookup_product("AR60F12C1AWNEU")
+        self.assertEqual((comfort["SEER"], comfort["SCOP"]), (7.6, 4.6))
+        self.assertEqual(comfort["indoor_outdoor_dB"], "16/46")
+        self.assertIn("vnútorná/vonkajšia", comfort["noise_note"])
+        haori = bot.lookup_product("RAS-B10N4KVRG-E2")
+        self.assertIn(["RAS-10P2AVSG-E", "RAS-B10N4KVRG-E2"], haori["sold_as_set"], "HAORI has a set")
+        self.assertEqual(bot.compare_products(["AR60F12C1AWNEU"])["comparison"][0]["SEER"], 7.6)
+        row = next(x for x in bot.lookup_product("Samsung WindFree Comfort S2 3,5 kW")["series_sets"] if x["cooling_kW"] == 3.5)
+        self.assertEqual(row["SEER"], 7.6)
+        units = bot.lookup_product("Toshiba podstropná 4 kW")["units"]
+        self.assertIn("RAV-HM401CTP-E", [u["code"] for u in units], "3.6 kW is the size for 4 kW, not 5 kW")
+
+    def test_lookup_accepts_compare_products_argument(self):
+        content, error = bot.dispatch_tool("lookup_product", {"model_codes": "Toshiba HAORI 2,5 kW"})
+        self.assertFalse(error)
+        self.assertIn("HAORI", content)
+        content, error = bot.dispatch_tool("lookup_product", {"model_codes": ["AR60F12C1AWNEU", "RAS-B10N4KVRG-E2"]})
+        self.assertFalse(error)
+        self.assertEqual(len(json.loads(content)["products"]), 2)
+
+    def test_f09_an_unknown_area_still_gets_a_price(self):
+        self.assertEqual(self.move("Spálňa 30m, koľko to dá?").name, "ponuka")
+        self.say("3 m potrubia"), self.assertEqual(bot._customer_m2(), [])
+        self.say("potrubie 15 m"), self.assertEqual(bot._customer_m2(), [])
+        self.say("Спальня 15 м2"), self.assertEqual(bot._customer_m2(), [15])
+        self.say("neviem koľko stojí klíma"), self.assertFalse(bot._size_unknown())
+        move = self.move("byt 2 izby, spálňa a obývačka, neviem koľko m2, taká normálna", "hlavne lacno. daj cenu")
+        self.assertEqual(move.name, "ponuka")
+        self.assertIn("plochu nevie", move.directive)
+
+    def test_f10_no_promise_of_a_later_message(self):
+        self.assertTrue(any(v.startswith("neskorsia-sprava")
+                            for v in bot.validate_assistant_reply("Presnú cenu vám pošlem v ďalšej správe.")))
+        self.assertEqual([v for v in bot.validate_assistant_reply("Projektový manažér vám pošle ponuku.")
+                          if v.startswith("neskorsia-sprava")], [])
+
+    def test_f11_a_sentence_pointing_at_a_cut_one_goes_too(self):
+        cut, _ = bot._drop_hard_sentences("Presnú cenu vám pošlem v ďalšej správe. Jeho výkon je 2 kW. Ktorý chcete?")
+        self.assertEqual(cut, "Ktorý chcete?")
+        cut, _ = bot._drop_hard_sentences("Presnú cenu vám pošlem v ďalšej správe.\n\nSamostatne ju nepoužijete.\n\nOk?")
+        self.assertEqual(cut, "Ok?")
+        kept, _ = bot._drop_hard_sentences("Jeho výkon je 2 kW. Ktorý chcete?")
+        self.assertEqual(kept, "Jeho výkon je 2 kW. Ktorý chcete?", "nothing was cut before it")
+
+    def test_f12_a_wifi_question_is_no_wifi_claim(self):
+        offer = ("**Toshiba SEIYA Classic 2**\nCena je dobrá.\n\nČo je dôležité: tichý chod, ovládanie cez Wi-Fi alebo dizajn? "
+                 "Podľa toho ponuku spresním.")
+        self.assertEqual(bot._fix_wifi_claims(offer), offer)
+        self.assertIn("voliteľným", bot._fix_wifi_claims("**Toshiba SEIYA Classic 2**\nMá ovládanie cez Wi-Fi v základe."))
+
+    def test_f14_a_first_name_alone_is_masked_after_a_refusal(self):
+        self.turn("no dobre samsung. volam sa Jozo, cislo 0915 555 666. kedy zavolate", resp(text("Ďakujem, Jozo.")))
+        self.turn("Nie, nesúhlasím.", resp(text("Rozumiem.")))
+        self.assertNotIn("Jozo", self.log_text())
+
+    def test_f15_false_positives(self):
+        self.assertFalse(bot._asks_contact("What matters: quiet, Wi-Fi control from your phone, design?"))
+        self.assertFalse(bot._asks_contact("Meno a súkromné čísla zamestnancov vám dať nemôžem."))
+        self.assertTrue(bot._asks_contact("Napíšte mi meno a telefón."), "a real request still counts")
+        self.assertEqual(bot._unsupported_figures("Úsporu oproti plynu ani dobu návratnosti vám neviem vyčísliť."), [])
+        self.assertTrue(bot._unsupported_figures("Ušetríte na elektrine a návratnosť je rýchla."))
+        self.assertEqual(bot._health_claim_sentences("Či môže prechladnúť, nedokážem posúdiť."), [])
+        self.assertTrue(bot._health_claim_sentences("Dieťa neprechladne, je to zdravšie."))
+        self.assertEqual(bot._hallucinated_model_codes("RAS-B10N4KVRG"), [])
+        self.assertEqual(bot._hallucinated_model_codes("RAS-B99N4KVRG"), ["RAS-B99N4KVRG"])
+
+    def test_f16_legal_threats_and_stray_safety_steps(self):
+        self.say("Vaša montáž mi zničila stenu a klíma nefunguje, chcem odškodné a pôjdem na súd.")
+        self.assertTrue(bot._support_case())
+        self.say("Klíma mi prestala chladiť, asi freón.")
+        boiler = "Pomôžem vám. Pri zápachu plynu nepoužívajte otvorený oheň. Pri ohrození volajte 112.\n\nČo ďalej?"
+        self.assertEqual(bot.sanitize_reply(boiler)[0], "Pomôžem vám.\n\nČo ďalej?")
+        self.say("Ide z nej dym!")
+        self.assertIn("112", bot.sanitize_reply(boiler)[0])
+
+    def test_f17_a_complaint_and_a_new_unit(self):
+        move = self.move("Pred mesiacom ste mi montovali klímu a kvapká z nej voda. Chcel by som ešte jednu do spálne 13 m2.",
+                         "čo najlacnejšie")
+        self.assertEqual(move.name, "ponuka")
+        self.assertIn("Toto je reklamácia", move.directive)
+        self.assertEqual(self.move("Pred mesiacom ste mi montovali klímu a kvapká z nej voda.").name, "reklamacia")
+
+    def test_f18_other_languages_get_one_line_about_it(self):
+        _, shown = self.turn("Доброго дня! Мені потрібен кондиціонер.", resp(text("Aký priestor chcete chladiť?")))
+        self.assertTrue(shown.startswith(bot._OTHER_LANGUAGE_NOTE), shown)
+        _, shown = self.turn("Я не розумію.", resp(text("Akú má plochu?")))
+        self.assertNotIn(bot._OTHER_LANGUAGE_NOTE, shown, "said once")
+        self.assertTrue(bot._other_language("Jó napot, magyarul kérem"))
+        self.assertFalse(bot._other_language("Dobrý den, sháním klimatizaci"))
+
+    def test_f19_white_and_black_are_one_option(self):
+        self.say("Spálňa 25 m2.")
+        white = bot.quote([{"code": "AR70F09C1AWNEU"}, {"code": "AR70F09C1AWXEU"}])
+        black = bot.quote([{"code": "AR70F09C1ABNEU"}, {"code": "AR70F09C1AWXEU"}])
+        self.assertNotIn("error", white), self.assertNotIn("error", black)
+        reply = f"{bot._eur(white['total_with_DPH_23pct_eur'])} a {bot._eur(black['total_with_DPH_23pct_eur'])}"
+        self.assertTrue(bot._single_first_offer("Spálňa 25 m2.", 0, reply))
+
+    def test_f20_moves_after_an_offer(self):
+        self.say("Obývačka 32 m2.")
+        bot.quote([{"code": "AR70F12C1ABNEU"}, {"code": "AR70F12C1AWXEU"}])
+        for latest, name in (("Beriem Avant Black. Aká je záruka?", "kontakt"), ("Čo je WindFree?", "odpoved"),
+                             ("Koľko dB má Avant S2?", "odpoved"), ("Aký je SEER Comfort S2 3,5 kW?", "odpoved"),
+                             ("Áno, pripravte ponuku na tie dve jednotky.", "nova-ponuka"),
+                             ("Dobre, tak dve nezávislé jednotky.", "nova-ponuka"), ("A čo HAORI 3,5 kW?", "nova-ponuka"),
+                             ("Koľko stojí AR30 3,5 kW?", "nova-ponuka")):
+            self.sess.user_inputs[1:] = [latest]
+            self.assertEqual(bot.next_move().name, name, latest)
+        self.sess.user_inputs[1:] = ["Má aj dobrý filter?"]
+        self.assertIn("O kontakt nežiadaj", bot.next_move().directive)
+
+    def test_f13_f22_spaces_that_need_something_else(self):
+        cellar = self.move("Mám vínnu pivnicu 18 m2, potrebujem stálych 12 stupňov.")
+        self.assertEqual(cellar.name, "priemysel")
+        self.assertIn("error", bot.quote([{"code": c} for c in AR30_SET]))
+        self.assertTrue(bot._industrial_contact_text("sk").startswith("Takéto priestory"))
+        self.assertEqual(self.move("Potrebujeme chladenie do serverovne, záťaž 6 kW.").name, "ponuka")
+        self.assertIn("podhľad", self.move("Mám zubnú ambulanciu 35 m2.").directive)
+        self.assertNotIn("Wi-Fi", self.move("Mám zubnú ambulanciu 35 m2.").directive)
+        self.assertEqual(self.move("Chcem kúriť v celom dome, dom má 120 m2.").name, "zisti-izby")
+
+    def test_f24_the_brief_names_the_chosen_variant_and_the_room(self):
+        self.say("Spálňa 18 m2.")
+        first = bot.quote([{"code": c} for c in AR30_SET])
+        second = bot.quote([{"code": "RAS-10B2AVG-E2"}, {"code": "RAS-B10B2KVG-E2"}])
+        self.assertNotIn("error", first), self.assertNotIn("error", second)
+        rendered = bot._render_quotes([first, second], AR30_SET)
+        self.assertIn("**Variant 1** (segment retail_B2C) — **variant, ktorý si zákazník vybral**", rendered)
+        self.assertNotIn("posledná ponuka", rendered)
+        self.assertEqual(bot._customer_place(), "spálňa (podľa zákazníka)")
+
+    def test_f25_f27_mechanical_fixes(self):
+        self.say("Prvá správa.", "Druhá správa.")
+        fixed = bot.sanitize_reply("Dobrý deň, cena je 1107.00 € a 728.10 €. Napíšte nám na info@klimabot.example alebo zavolajte.")[0]
+        self.assertEqual(fixed, "Cena je 1 107,00 € a 728,10 €. Napíšte nám na info@klimabot.example.")
+        self.say("Prvá správa.")
+        self.assertTrue(bot.sanitize_reply("Dobrý deň, vitajte.")[0].startswith("Dobrý deň"), "the first reply greets")
+        self.assertEqual(bot.sanitize_reply("The price is 728.10 €.", "en")[0], "The price is 728.10 €.")
+
+    def test_f26_a_brand_prompt_needs_no_question_mark(self):
+        self.assertTrue(bot._forbidden_questions("Ak máte preferenciu pre značku Samsung alebo Toshiba, napíšte mi to."))
+        self.assertEqual(bot._forbidden_questions("Predávame Samsung a Toshiba."), [])
+
+
+    # What the replay of the QA conversations on the fixed code still found.
+    def test_no_ceiling_in_other_word_order(self):
+        self.say("Podhľad v ambulancii nemám.")
+        self.assertTrue(bot._NO_CEILING_RE.search(bot._all_user_text()))
+
+    def test_a_yes_about_the_flat_is_no_consent(self):
+        self.turn("Chcem ponuku, volajte.", resp(text("Aké je vaše meno a telefónne číslo?")))
+        self.turn("ano byt, obe izby naraz, daj uz tu cenu", resp(text("Dobre.")))
+        self.assertIsNone(self.sess.consent)
+        self.assertEqual(cost_report.consent_answer("ano byt, obe izby naraz"), None)
+        self.assertEqual(cost_report.consent_answer("Áno, súhlasím"), "yes")
+
+    def test_a_series_of_the_price_list_is_on_offer(self):
+        self.assertTrue(bot._not_in_catalog_claims("Názov AR30 v našej ponuke nemáme."))
+        self.assertEqual(bot._not_in_catalog_claims("Červenú farbu pre HAORI v našej ponuke nemáme."), [])
+        self.assertEqual(bot._not_in_catalog_claims("Model Daikin v ponuke nemáme."), [])
+
+    def test_the_cheapest_against_earlier_quotes(self):
+        self.say("Spálňa 25 m2.")
+        bot.quote([{"code": "AR40H09C1AMNEU"}, {"code": "AR40H09C1AMXEU"}])
+        bot.quote([{"code": "RAS-10B2AVG-E2"}, {"code": "RAS-B10B2KVG-E2"}])
+        self.assertTrue(bot._wrong_cheapest_sentences("Najlacnejšia je Toshiba SEIYA Classic 2."))
+        self.assertEqual(bot._wrong_cheapest_sentences("Najlacnejší je Samsung AR35 WIFI."), [])
+
+    def test_the_lowest_price_leads_with_separate_sets(self):
+        directive = self.move("Izby 25, 15 a 12 m2, chcem čo najlacnejšie.").directive
+        self.assertIn("samostatné sety", directive)
+        self.assertNotIn("samostatné sety do izieb", self.move("Izby 25, 15 a 12 m2 na jednu vonkajšiu, čo najlacnejšie.").directive)
+
+    def test_refrigerant_goes_to_a_certified_installer(self):
+        self.say("Predáte mi 2 kg R32?")
+        self.assertIn("certifikovaného inštalatéra", bot.build_server_context())
+        self.say("Klíma mi nechladí.")
+        self.assertNotIn("certifikovaného inštalatéra", bot.build_server_context())
+
+    def test_repeated_typos(self):
+        self.assertEqual(bot.sanitize_reply("Vďakujem, to nviem.")[0], "Ďakujem, to neviem.")
+
 
 class RetrievalTests(BotTest):
     """tests/retrieval_golden.json through the real hybrid search and reranker (without HyDE, which needs the API).

@@ -22,6 +22,10 @@
     "triggers": ["priemysel", "industri", "hala", "haly", "halu", "hale", "halou", "výrobn", "vyrobn", "továr", "tovaren", "tovarn", "fabrik", "závod", "zavod", "logistick", "factory", "warehouse", "production hall",
                  "chliev", "mašta", "masta", "stajň", "stajn", "kurín", "kurin", "kravín", "kravin", "ovčín", "ovcin", "farmu", "farme", "farmy", "farmou", "farmár", "farmar", "hydin", "ošípan", "osipan", "prasa", "prasat", "prasiat", "prasc", "dobyt", "poľnohospod", "polnohospod", "agro", "skleník", "sklenik", "stodol", "senník", "sennik", "barn", "pigsty", "livestock", "greenhouse"]
   },
+  "technological": {
+    "note": "Technologické chladenie (vínna pivnica, chladiareň): stála nízka teplota, ktorú podklady nepotvrdzujú. Chatbot ho nenavrhuje ani nenaceňuje, rieši ho projektový manažér ako priemyselný priestor (QA 2026-11-01).",
+    "triggers": ["vínn", "vinn", "vinotek", "vínotek", "chladiar", "chladiren", "chladiareň", "mraziar", "mraziren"]
+  },
   "office_words": ["kancelári", "kancelari", "coworking"],
   "office_residential_ok_up_to_m2": 25,
   "wifi_triggers": ["wifi", "wi-fi", "wi fi", "aplikáci", "aplikaci", "appk", "z mobilu", "cez mobil", "smartthings"]

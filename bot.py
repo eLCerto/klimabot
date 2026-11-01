@@ -150,6 +150,7 @@ class Session:
         self.consent_refused = False
         self.consent_reasks = 0           # canonical question asked again after an answer that wasn't a yes
         self.consent_withdrawal_requested = False  # a refusal after consent: an operator handles it
+        self.language_note_shown = False  # the "we reply in Slovak or English" line
         self.support_handoffs = []        # request_human_handoff records of this session
         self.pii_seen = set()             # personal values to mask in the log until consent
         self.turn_move = None             # (customer message count, Move): next_move() decided once per turn
@@ -209,6 +210,7 @@ _CONSENT_YES_NOT_CONSENT_RE = re.compile(CONSENT_PHRASES["yes_not_consent_re"], 
 _CONSENT_NO_RE = re.compile(CONSENT_PHRASES["no_re"], re.IGNORECASE)
 _CONSENT_NO_NOT_REFUSAL_RE = re.compile(CONSENT_PHRASES["no_not_refusal_re"], re.IGNORECASE)  # "nesúhlasím s cenou"
 _CONSENT_NO_IN_WINDOW_RE = re.compile(CONSENT_PHRASES["no_in_window_re"], re.IGNORECASE)
+_CONSENT_WITHDRAWAL_RE = re.compile(CONSENT_PHRASES["withdrawal_re"], re.IGNORECASE)  # "odvolávam súhlas", "vymažte údaje"
 
 system_prompt = (
     "Si predajný chatbot klimatizácií pre spoločnosť Samuel Malíšek Klimabot. "
@@ -939,23 +941,35 @@ _INFERRED_COMMERCIAL_RE = _stems_re(SIZING["inferred_commercial"])
 # Industrial spaces (a hall, production, a factory) are out of the chatbot's scope (the owner's
 # decision, 2026-10-18): no design, no price — the PM's contact, or the PM calls back.
 _INDUSTRIAL_RE = _stems_re(SIZING["industrial"]["triggers"])
+_TECHNOLOGICAL_RE = _stems_re(SIZING["technological"]["triggers"])
 
 
 def _industrial_case():
-    return bool(_INDUSTRIAL_RE.search(_all_user_text()))
+    return bool(_INDUSTRIAL_RE.search(_all_user_text()) or _TECHNOLOGICAL_RE.search(_all_user_text()))
 
 
 def _industrial_contact_text(language):
+    technological = _TECHNOLOGICAL_RE.search(_all_user_text()) and not _INDUSTRIAL_RE.search(_all_user_text())
     if language == "en":
-        return (f"Industrial and agricultural spaces are designed individually by our project manager — please {_contact_offer('en')}. "
+        return (f"{'Spaces like this are' if technological else 'Industrial and agricultural spaces are'} designed individually by our project manager — please {_contact_offer('en')}. "
                 "If you leave your name and phone or e-mail here, the project manager will get back to you.")
-    return (f"Priemyselné a poľnohospodárske priestory navrhuje individuálne náš projektový manažér — {_contact_offer('sk')}. "
+    return (f"{'Takéto priestory' if technological else 'Priemyselné a poľnohospodárske priestory'} navrhuje individuálne náš projektový manažér — {_contact_offer('sk')}. "
             "Ak nám tu necháte meno a telefón či e-mail, projektový manažér sa vám ozve.")
 _OFFICE_RE = _stems_re(SIZING["office_words"])
 _CUSTOMER_KW_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*kW\b", re.IGNORECASE)
-# "20mm2" is a typo for 20 m² (live demo 2026-10-20: the size went unread, so no offer was forced).
-_CUSTOMER_M2_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m{1,2}²|m\^2|metrov\s+štvorcov|štvorcov|sq\.?\s*m|"
-                             r"square\s+met)", re.IGNORECASE)
+# "20mm2" is a typo for 20 m² (live demo 2026-10-20: the size went unread, so no offer was forced). A bare "30m" is an
+# area too, unless it is pipe, cable or height (QA 2026-11-01: the customer was asked for it again); so is Cyrillic "м2".
+_M2_UNIT = (r"(?:m{1,2}2|m{1,2}²|m\^2|м2|м²|кв\.?\s*м\w*|metrov\s+štvorcov\w*|metrov\s+stvorcov\w*|štvorcov\w*|stvorcov\w*|"
+            r"sq\.?\s*m\w*|square\s+met\w*)")
+_CUSTOMER_M2_RE = re.compile(
+    rf"(\d+(?:[.,]\d+)?)\s*{_M2_UNIT}|"
+    r"(?<![\d.,])([1-9]\d{1,2})\s*(?:m|metrov)\b(?!\s*(?:potrub\w*|kábl\w*|kabl\w*|výšk\w*|vysk\w*|dlh\w*|dĺžk\w*))",
+    re.IGNORECASE)
+# "25, 15 a 12 m2": the unit stands only after the last number. Reading just that one made 12 m² the largest room and
+# the fit check refused every correct multi-split (QA 2026-11-01). "12,5" stays one number.
+_M2_LIST_RE = re.compile(rf"((?:\d+(?:[.,]\d(?!\d))?(?:\s*,\s+|\s*,(?=\d{{2}}\b)|\s*[+/&]\s*|\s+(?:a|i|aj|and)\s+))+)(\d+(?:[.,]\d+)?)\s*{_M2_UNIT}",
+                         re.IGNORECASE)
+_NOT_AREA_BEFORE_RE = re.compile(r"potrub|vzdialen|výšk|vysk|dĺžk|dlzk|kábel|kabel", re.IGNORECASE)
 # "spolu 40 m²", "celkom 54 m2": a total, not a room. So is the whole flat or house: "Byt má 50 m2" was the
 # largest room on the live demo of 2026-10-27, and two 20 m² rooms got 3.5 kW units.
 _M2_TOTAL_RE = re.compile(r"(?:(?:spolu|celkom|dokopy|celkov\w*|total\w*|together|in\s+total)\s*(?:je\s+|má\s+|ma\s+|to\s+je\s+)?|"
@@ -965,7 +979,7 @@ _M2_TOTAL_RE = re.compile(r"(?:(?:spolu|celkom|dokopy|celkov\w*|total\w*|togethe
                           r"približne|priblizne|asi|cca|okolo)\b)*[\s,:;(–-]*)"
                           r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m²)", re.IGNORECASE)
 _NO_CEILING_RE = re.compile(
-    r"(?:nemáme|nemám|nie\s+je|bez)\s+(?:žiadn\w+\s+)?podhľad|podhľad\w*\s+(?:nemáme|nemám|nie\s+je)|"
+    r"(?:nemáme|nemám|nie\s+je|bez)\s+(?:žiadn\w+\s+)?podhľad|podhľad\w*\s+(?:[^.?!\n]{0,30}\s)?(?:nemáme|nemám|nie\s+je)|"
     r"betónov\w*\s+strop|no\s+(?:suspended|false)\s+ceiling|without\s+(?:a\s+)?(?:suspended|false)\s+ceiling",
     re.IGNORECASE)
 _CASSETTE_PATH_RE = re.compile(r"cassette|kazet", re.IGNORECASE)
@@ -983,6 +997,34 @@ _SOURCE_CACHE = {}
 
 def _customer_numbers(regex):
     return [float(m.group(1).replace(",", ".")) for m in regex.finditer(_all_user_text())]
+
+
+def _customer_m2():
+    """Every area the customer typed, each number of a room list included."""
+    text = _all_user_text()
+    values, listed = [], []
+    for m in _M2_LIST_RE.finditer(text):
+        items = (float(x.replace(",", ".")) for x in re.findall(r"\d+(?:[.,]\d(?!\d))?", m.group(1)))
+        values += [v for v in items if 5 <= v <= 500]  # not "3 a 20 m2" (rooms), not "2015, 20 m2" (a year)
+        values.append(float(m.group(2).replace(",", ".")))
+        listed.append(m.span())
+    for m in _CUSTOMER_M2_RE.finditer(text):
+        if any(a <= m.start() < b for a, b in listed):
+            continue
+        if m.group(2) and _NOT_AREA_BEFORE_RE.search(text[max(0, m.start() - 25):m.start()]):
+            continue
+        values.append(float((m.group(1) or m.group(2)).replace(",", ".")))
+    return values
+
+
+def _customer_rooms():
+    """(room sizes, totals) from the customer's words. A total next to the rooms ("spolu 54 m²") is not a room, nor is
+    the sum of the others; a single size next to a total is a room's ("Byt má 50 m2", "Každá izba má 20 M2")."""
+    totals = {float(t.replace(",", ".")) for t in _M2_TOTAL_RE.findall(_all_user_text())}
+    rooms = sorted(set(_customer_m2()) - totals)
+    if len(rooms) >= 2 and abs(rooms[-1] - sum(rooms[:-1])) <= 1:
+        rooms = rooms[:-1]
+    return rooms, totals
 
 
 def _series_features(rec):
@@ -1007,6 +1049,9 @@ def _unit_has_wifi(rec):
         return _has_wifi(rec)
     series = rec["category_path"].rsplit(".", 1)[-1]
     return any(_has_wifi(r) for r in _SETS.values() if r["brand"] == rec["brand"] and _series_key(r) == series)
+
+
+_ONE_OUTDOOR_WISH_RE = re.compile(r"\b(?:jedn\w*\s+(?:spolocn\w*\s+)?vonkajs\w*|one\s+outdoor|multi[\s-]?split)", re.IGNORECASE)
 
 
 def _cheapest_wifi_set(cooling_kw):
@@ -1154,9 +1199,12 @@ def _cheaper_suitable_set(rec, codes, text):
     """The cheapest suitable single-split set when it is clearly (5 %+) cheaper than `rec`, else None —
     one rule for the fit check and `cheaper_alternative`. Suitable = not undersized for the customer's m²
     (else at least 90 % of the quoted set's capacity), Wi-Fi if wished, a single named brand."""
-    m2 = _customer_numbers(_CUSTOMER_M2_RE)
-    min_kw = (max(m2) * SIZING["kw_per_m2"] * SIZING["undersize_ratio"] if m2
-              else (rec["raw"].get("cooling_kW") or 0) * 0.9)
+    m2, ratio = _customer_m2(), SIZING["kw_per_m2"] * SIZING["undersize_ratio"]
+    kw = rec["raw"].get("cooling_kW") or 0
+    # With several rooms the set serves the largest room it covers: a penzión's 40 m² reception made the cheapest set
+    # for its 20 m² rooms a 3.5 kW one (QA 2026-11-01).
+    rooms = [r for r in _customer_rooms()[0] if r * ratio <= kw]
+    min_kw = (rooms[-1] if rooms else max(m2)) * ratio if m2 else kw * 0.9
     wifi = _wished(_WIFI_WANTED_FOLDED_RE)
     brands = [b for b, rx in _BRAND_RES.items() if rx.search(text)]
     brand = brands[0] if len(brands) == 1 and not _ANY_BRAND_RE.search(fold_diacritics(text)) else None
@@ -1164,6 +1212,32 @@ def _cheaper_suitable_set(rec, codes, text):
     if not best or best["codes"] == sorted(codes) or best["price"] >= rec["raw"]["set_price_EUR"] * 0.95:
         return None
     return {**best, "wifi": wifi, "brand": brand}
+
+
+def _cheapest_room_sets(text):
+    """The cheapest single-split set for each named room, or None. A customer who asked for one outdoor unit has
+    chosen already."""
+    rooms = _customer_rooms()[0]
+    if len(rooms) < 2 or _ONE_OUTDOOR_WISH_RE.search(fold_diacritics(text)):
+        return None
+    brands = [b for b, rx in _BRAND_RES.items() if rx.search(text)]
+    brand = brands[0] if len(brands) == 1 and not _ANY_BRAND_RE.search(fold_diacritics(text)) else None
+    wifi = _wished(_WIFI_WANTED_FOLDED_RE)
+    sets = [_cheapest_set(r * SIZING["kw_per_m2"] * SIZING["undersize_ratio"], wifi, brand) for r in rooms]
+    return sets if all(sets) else None
+
+
+def _cheaper_separate_sets(fit_lines, text):
+    """The descriptions of the cheapest sets per room when they cost clearly (5 %+) less than the multi-split or the
+    commercial units in `fit_lines`, else None."""
+    sets = _cheapest_room_sets(text)
+    indoors = sum(qty for _, _, qty, cat in fit_lines if cat in ("multi_split_indoor", "commercial_indoor"))
+    if not sets or indoors < len(sets):
+        return None
+    quoted = sum((_unit_price(rec) or 0) * qty for rec, _, qty, _ in fit_lines)
+    if sum(x["price"] for x in sets) / len(sets) * indoors >= quoted * 0.95:  # twelve rooms of one size name one size
+        return None
+    return [f"{x['description']} {x['codes']}" for x in sets]
 
 
 def _server_room_errors(fit_lines):
@@ -1288,7 +1362,7 @@ def _fit_check(fit_lines, override_reason=None):
     residential = sorted({c for _, codes, _, cat in fit_lines if cat in _RESIDENTIAL_CATEGORIES for c in codes})
     place = "serverovňa" if _SERVER_ROOM_RE.search(text) else next(
         (p for p, rx in _EXPLICIT_COMMERCIAL_RES.items() if rx.search(text)), None)
-    m2 = _customer_numbers(_CUSTOMER_M2_RE)
+    m2 = _customer_m2()
     if place:
         if residential:
             errors.append(f"zákazník uviedol priestor '{place}', rezidenčné jednotky {residential} sa sem nehodia "
@@ -1314,10 +1388,7 @@ def _fit_check(fit_lines, override_reason=None):
         # Rooms named one by one ("kuchyňa 30, spálňa 24 m²"): the largest one needs a unit that covers it (live demo
         # 2026-10-24: 3× 2.5 kW with a 30 m² kitchen). A total next to the rooms ("spolu 54 m²") is not a room,
         # and a single size next to a total is a room's ("Byt má 50 m2", "Každá izba má 20 M2").
-        totals = {float(t.replace(",", ".")) for t in _M2_TOTAL_RE.findall(_all_user_text())}
-        rooms = sorted(set(m2) - totals)
-        if len(rooms) >= 2 and abs(rooms[-1] - sum(rooms[:-1])) <= 1:
-            rooms = rooms[:-1]
+        rooms, totals = _customer_rooms()
         room_m2 = rooms[-1] if len(rooms) >= 2 or (totals and rooms) else 0
         largest = room_m2 or max(m2)
         # One set bigger than the room needs, when the same series has a smaller size that still covers it
@@ -1334,7 +1405,9 @@ def _fit_check(fit_lines, override_reason=None):
                               f"(tento má {kw:g} kW) — naceň menšiu, je lacnejšia")
         units = [r["raw"].get("cooling_kW") or 0 for r, _, _, c in fit_lines if c == "multi_split_indoor"]
         room_need = room_m2 * SIZING["kw_per_m2"]
-        if units and room_need and max(units) < room_need * SIZING["undersize_ratio"]:
+        # Fewer indoor units than rooms: one of several systems (six rooms on two outdoor units), which may be the small one.
+        indoors = sum(qty for _, _, qty, cat in fit_lines if cat == "multi_split_indoor")
+        if units and room_need and indoors >= len(rooms) and max(units) < room_need * SIZING["undersize_ratio"]:
             errors.append(f"poddimenzované: najväčšia miestnosť, ktorú zákazník uviedol, má {room_m2:g} m² a "
                           f"potrebuje približne {room_need:g} kW, najväčšia vnútorná jednotka má {max(units):g} kW — "
                           "do nej daj väčšiu jednotku")
@@ -1400,6 +1473,12 @@ def _fit_check(fit_lines, override_reason=None):
                     f"zákazník chce lacné riešenie a {codes} nie je najlacnejší vhodný set: lacnejší je "
                     f"{best['description']} {best['codes']}" + (" (s Wi-Fi)" if best["wifi"] else "")
                     + (f", značka {best['brand']}" if best["brand"] else "") + " — ponúkni ho a cenu zisti cez quote")
+        if categories & {"multi_split_outdoor", "commercial_indoor"}:
+            separate = _cheaper_separate_sets(fit_lines, text)
+            if separate:
+                kind = "multi-split" if "multi_split_outdoor" in categories else "komerčná zostava"
+                warnings.append(f"zákazník chce lacné riešenie a {kind} nie je najlacnejší variant: samostatné sety vyjdú "
+                                f"lacnejšie ({'; '.join(separate)}) — naceň ich cez quote a ukáž obe možnosti")
     cassettes = sorted({c for rec, codes, _, cat in fit_lines
                         if cat in ("commercial_indoor", "multi_split_indoor") and _CASSETTE_PATH_RE.search(rec["category_path"])
                         for c in codes})
@@ -1575,7 +1654,7 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
     if _industrial_case():
         log_event("quote_refused_industrial")
         return {"error": (
-            "Priemyselný priestor (hala, výroba) tento chatbot nenaceňuje ani nenavrhuje — rieši ho projektový "
+            "Priemyselný priestor (hala, výroba) ani technologické chladenie (vínna pivnica, chladiareň) tento chatbot nenaceňuje ani nenavrhuje — rieši ho projektový "
             "manažér individuálne. Nenaceňuj a nenavrhuj modely; daj zákazníkovi kontakt alebo ponúkni, že ak "
             "nechá meno a telefón či e-mail, projektový manažér sa mu ozve.")}
     if len(items or []) > 20:
@@ -1888,14 +1967,15 @@ def _type_units(text, cap=True):
         # brand and kind, else every size in one answer.
         again = _type_units(_SIZE_KW_RE.sub("", text), cap=False)
         if again and again.get("units"):
-            bigger = [u for u in again["units"] if (u["cooling_kW"] or 0) >= kw]
+            # 85 %: "podstropná 4 kW" skipped the 3.6 kW unit, and the bot called 5 kW the smallest (QA 2026-11-01).
+            bigger = [u for u in again["units"] if (u["cooling_kW"] or 0) >= kw * SIZING["undersize_ratio"]]
             if bigger:
                 key = lambda u: (u["description"].split(" ", 1)[0], u["kind"])  # noqa: E731
                 smallest = {}
                 for u in bigger:
                     smallest[key(u)] = min(smallest.get(key(u), u["cooling_kW"]), u["cooling_kW"])
                 found = [u for u in bigger if u["cooling_kW"] == smallest[key(u)]]
-                size_note = f"Veľkosť {kw:g} kW tento typ nemá — tu je najbližšia väčšia veľkosť. "
+                size_note = f"Veľkosť {kw:g} kW tento typ nemá — tu je najbližšia vhodná veľkosť. "
             else:
                 found, size_note = again["units"], f"Veľkosť {kw:g} kW tento typ nemá — tu sú všetky veľkosti. "
     if not found:
@@ -1912,6 +1992,31 @@ def _type_units(text, cap=True):
         "Komerčná potrebuje vonkajšiu jednotku RAV / CAC (outdoor_options). Kazeta potrebuje "
         "dekoračný panel (panel_options) a ovládač, kanálová a podstropná ovládač (controller_options) — pošli ich do "
         "toho istého `quote`, bez nich ponuku odmietne. Cenu zisti iba cez `quote`.")}
+
+
+_NOISE_FIELDS = ("indoor_outdoor_dB", "sound_pressure_dB", "noise_cool_dB", "sound_dB")
+_NOISE_NOTE = ("indoor_outdoor_dB a sound_pressure_dB: vnútorná/vonkajšia jednotka v dB(A) v 1 m (najnižšia hodnota "
+               "vnútornej jednotky); noise_cool_dB: vnútorná jednotka pri chladení.")
+
+
+def _code_specs(code):
+    """What the price lists say about a code, from all its records. The index keeps the first record, for a wall unit
+    often the multi-split row, which has no SEER: the bot said "v podkladoch nie je" for Comfort S2 and that HAORI has
+    no set (QA 2026-11-01)."""
+    out = {}
+    for rec in _RECORDS_BY_CODE.get(code, []):
+        for field in ("SEER", "SCOP"):
+            if out.get(field) is None and rec.get(field) is not None:
+                out[field] = rec[field]
+        for field in _NOISE_FIELDS:
+            if field in rec["raw"]:
+                out.setdefault(field, rec["raw"][field])
+    if any(f in out for f in _NOISE_FIELDS):
+        out["noise_note"] = _NOISE_NOTE
+    sets = sorted(sorted(codes) for codes in _SETS if code in codes)
+    if sets:
+        out["sold_as_set"] = sets[:3]
+    return out
 
 
 def _series_sets(text):
@@ -1931,11 +2036,14 @@ def _series_sets(text):
         raw = rec["raw"]
         if kw is not None and abs((raw.get("cooling_kW") or 0) - kw) > 0.3:
             continue
+        specs = {k: v for k, v in _code_specs(str(raw.get("indoor", "")).upper()).items()
+                 if k in ("SEER", "SCOP", *_NOISE_FIELDS)}
         sets.append({"description": _describe(rec, as_set=True), "series": _series_key(rec),
-                     "codes": sorted(codes), "cooling_kW": raw.get("cooling_kW")})
+                     "codes": sorted(codes), "cooling_kW": raw.get("cooling_kW"), **specs})
         features.setdefault(_series_key(rec), _series_features(rec))
     note = ("Kódy setu pošli do `quote` (vnútorná + vonkajšia jednotka); cenu zisti iba cez `quote`. Funkcie radu "
-            "(series_features) uvádzaj presne tak — čo tam nie je alebo je „voliteľne“, netvrď ako súčasť setu.")
+            "(series_features) uvádzaj presne tak — čo tam nie je alebo je „voliteľne“, netvrď ako súčasť setu. "
+            + _NOISE_NOTE)
     if not sets and kw is not None:
         # No set of that size: all sizes in one answer saves the model a second round trip.
         all_sizes = _series_sets(_SIZE_KW_RE.sub("", text))
@@ -2001,7 +2109,7 @@ def lookup_product(model_code):
         return {"ambiguous": True, "candidates": matches}
     safe = {k: v for k, v in rec.items() if k != "raw"}
     safe["raw_excerpt"] = {k: v for k, v in rec["raw"].items() if k not in ("operating_range_cool_C", "operating_range_heat_C")}
-    return safe
+    return {**safe, **_code_specs(rec["model_code"])}
 
 
 def _storable_state():
@@ -2050,7 +2158,8 @@ def _split_model_selected_into_shown():
 
 
 # Consent fields belong to code (_record_consent). Model writes to them are dropped.
-_CONSENT_FIELDS = ("consent_given", "consent_ts", "consent_source", "consent_purpose", "consent_refused")
+_CONSENT_FIELDS = ("consent_given", "consent_ts", "consent_source", "consent_purpose", "consent_refused",
+                   "consent_withdrawal_requested")
 
 
 # The state is re-sent on every call and shown to the model as data, so its size is
@@ -2217,6 +2326,7 @@ def compare_products(model_codes):
         for f in raw_extras:
             if f in raw:
                 row[f] = raw[f]
+        row.update(_code_specs(rec["model_code"]))
         rows.append(row)
     return {"comparison": rows}
 
@@ -2330,9 +2440,10 @@ def _eur(amount):
     return f"{amount:,.2f} €".replace(",", " ").replace(".", ",")
 
 
-def _render_quotes(quotes):
+def _render_quotes(quotes, chosen=()):
     """Every distinct price quote from the conversation, as computed by quote().
-    A variant quoted again moves to the end, so the last one is the most recent."""
+    A variant quoted again moves to the end, so the last one is the most recent. `chosen`: the codes the customer
+    picked; their variant is marked instead (QA 2026-11-01: Samsung chosen, Toshiba marked as the last offer)."""
     latest = {}
     for q in quotes:
         key = _quote_key(q)
@@ -2343,7 +2454,9 @@ def _render_quotes(quotes):
     blocks = []
     for i, q in enumerate(latest.values(), 1):
         promo = f", akcia {q['promotion']}" if q.get("promotion") else ""
-        last = " — **posledná ponuka zákazníkovi**" if i == len(latest) and len(latest) > 1 else ""
+        picked = [x for x in latest.values() if set(chosen) & {c for line in x["lines"] for c in line["codes"]}]
+        last = (" — **variant, ktorý si zákazník vybral**" if q in picked[-1:] else
+                " — **posledná ponuka zákazníkovi**" if not picked and i == len(latest) and len(latest) > 1 else "")
         rows = [f"**Variant {i}** (segment {q['segment']}{promo}){last}:"]
         for line in q["lines"]:
             rows.append(f"- {line['qty']}× {line['description']} ({' + '.join(line['codes'])}): "
@@ -2367,6 +2480,17 @@ def _render_quotes(quotes):
             rows.append(f"- **Lacnejšia vhodná alternatíva:** {alt['description']} ({' + '.join(alt['codes'])})")
         blocks.append("\n".join(rows))
     return "\n\n".join(blocks)
+
+
+_PLACE_WORDS = (("spaln", "spálňa"), ("obyvac", "obývačka"), ("detsk", "detská izba"), ("kuchyn", "kuchyňa"),
+                ("pracovn", "pracovňa"), ("kancelar", "kancelária"))
+
+
+def _customer_place():
+    """The rooms the customer named, when the model stored no place type (QA 2026-11-01: "neuvedené" for a bedroom)."""
+    text = fold_diacritics(_all_user_text()).lower()
+    found = [name for stem, name in _PLACE_WORDS if stem in text]
+    return f"{', '.join(found)} (podľa zákazníka)" if found else "neuvedené"
 
 
 # The customer's own words about the company (d04: an s.r.o. with an IČO was briefed as retail).
@@ -2413,8 +2537,8 @@ def _render_handoff_sections(record):
 
     # Facts from the customer's own words when the model didn't store them (a03: budget and m² missing).
     size = _state_get(st, 'place_m2', 'room_size_m2', 'm2', default=None)
-    if size is None and _customer_numbers(_CUSTOMER_M2_RE):
-        size = " + ".join(f"{v:g} m²" for v in _customer_numbers(_CUSTOMER_M2_RE)) + " (podľa zákazníka)"
+    if size is None and _customer_m2():
+        size = " + ".join(f"{v:g} m²" for v in _customer_m2()) + " (podľa zákazníka)"
     budget = _customer_budget()
     all_text = _all_user_text()
     budget_md = "neuvedený"
@@ -2444,7 +2568,7 @@ def _render_handoff_sections(record):
     notes = _state_get(st, 'notes', default=None)
     priestor = (
         "## Priestor a požiadavky\n"
-        f"- **Typ priestoru:** {_fmt_value(_state_get(st, 'place_type', 'priestor_type', 'priestor'))}"
+        f"- **Typ priestoru:** {_fmt_value(_state_get(st, 'place_type', 'priestor_type', 'priestor', default=_customer_place()))}"
         + (f" ({_state_get(st, 'place_subtype')})" if _state_get(st, 'place_subtype', default=None) else "") + "\n"
         f"- **Rozpočet zákazníka:** {budget_md}\n"
         f"- **Veľkosť:** {_fmt_value(size, fmt='m2')}, "
@@ -2473,7 +2597,9 @@ def _render_handoff_sections(record):
     kalk = (
         "## Pre PM – cenové ponuky z rozhovoru\n"
         "_Sumy vypočítal nástroj quote z cenníka a cenovej politiky; bot ich neprepisoval._\n\n"
-        + _render_quotes(record.get("quotes") or [])
+        # A quote made after the lead is the customer's latest word, whatever the lead named (_refresh_lead_brief).
+        + _render_quotes(record.get("quotes") or [], () if record.get("updated") else
+                         _codes_named(str(st.get("model_selected") or (interested[0] if interested else ""))))
     )
 
     prose = (record.get("summary") or "").strip()
@@ -2508,9 +2634,12 @@ def _write_handoff_markdown(record):
     previous = S().handoff_path
     is_regeneration = path.exists() or (previous is not None and previous.exists())
 
+    withdrawn = record.get("consent_withdrawal_requested")
     header = (
         "# Handoff záznam pre projektového manažéra Samuel Malíšek Klimabot\n\n"
-        f"**Vytvorený:** {record['ts']}"
+        + (f"**⛔ NEKONTAKTOVAŤ — zákazník {withdrawn} odvolal súhlas alebo žiada vymazanie údajov. "
+           "Vybaví operátor.**\n\n" if withdrawn else "")
+        + f"**Vytvorený:** {record['ts']}"
         + ("  \n**⚠ Záznam aktualizovaný** — zákazník opravil/doplnil údaje. Toto je najnovšia verzia.\n\n" if is_regeneration else "\n\n")
         + "---\n\n"
     )
@@ -2518,8 +2647,9 @@ def _write_handoff_markdown(record):
     footer = (
         "\n\n---\n\n"
         "_Záznam vytvoril predaj-bot Samuel Malíšek Klimabot automaticky pri zachytení leadu. "
-        "PM nech zákazníka osloví do **1 pracovného dňa**, potvrdí ponuku "
-        "a dohodne obhliadku / montáž._\n"
+        + ("Zákazníka neoslovujte — pozri upozornenie na začiatku._\n" if withdrawn else
+           "PM nech zákazníka osloví do **1 pracovného dňa**, potvrdí ponuku "
+           "a dohodne obhliadku / montáž._\n")
     )
     path.write_text(header + body + footer, encoding="utf-8")
     if previous is not None and previous != path and previous.exists():
@@ -2834,6 +2964,10 @@ _CHOSE_CHEAPER_RE = re.compile(
 
 
 def capture_lead(name, contact, summary, interested_in=None):
+    if S().consent_withdrawal_requested:
+        log_event("capture_lead_blocked_gdpr", reason="consent_withdrawal_requested")
+        return {"error": "capture_lead blokovaný (GDPR): zákazník odvolal súhlas alebo žiada vymazanie údajov. Lead "
+                         "nezapisuj a o kontakt nežiadaj."}
     if S().lead_calls >= 3:
         log_event("capture_lead_blocked_limit")
         return {"error": "Lead je v tomto rozhovore už zapísaný (aj s opravami). Ďalšie zmeny dorieši PM telefonicky."}
@@ -3618,7 +3752,10 @@ def dispatch_tool(name, inp):
             result = search_knowledge(inp["query"], inp.get("k"))
             return result["results"] or "Znalostná báza k tomuto dotazu nič nenašla.", False
         if name == "lookup_product":
-            result = lookup_product(inp["model_code"])
+            # Haiku 5.5 on the API sometimes sends compare_products' argument name here.
+            codes = inp.get("model_code") or inp["model_codes"]
+            result = (lookup_product(codes) if isinstance(codes, str)
+                      else {"products": [lookup_product(c) for c in codes[:6]]})
             return json.dumps(result, ensure_ascii=False), "error" in result
         if name == "quote":
             result = quote(**inp)
@@ -3830,6 +3967,9 @@ def _hallucinated_model_codes(text):
         # Text doesn't have /EU but DB might. Check common suffixes.
         if any((code + suf) in PRODUCT_BY_CODE for suf in ("/EU", "/NG", "/KG")):
             continue
+        # The revision left out, one real code fits ("RAS-B10N4KVRG" for -E2, the customer's own spelling).
+        if len([c for c in PRODUCT_BY_CODE if c.startswith(code + "-")]) == 1:
+            continue
         out.append(code)
     return out
 
@@ -3913,7 +4053,8 @@ _HEALTH_CLAIM_RE = re.compile(
     r"\bzdravš\w*|\blekársk\w*\s+odporúč\w*|\bzdravotn\w*\s+(?:účin|prínos|benefit|problém)\w*|"
     r"\b(?:chráni|prospieva)\s+(?:vášmu\s+|vaše\s+)?zdrav\w*|\bodstráni\s+(?:všetky\s+)?alergén\w*",
     re.IGNORECASE)
-_HEALTH_CLAIM_OK_RE = re.compile(r"\blekár(?!sk)\w*|\bnesľub\w*|\bnetvrd\w*|\bnemôž\w*|\bneporad\w*|\bdoctor\b|\bcan'?t\b",
+_HEALTH_CLAIM_OK_RE = re.compile(r"\blekár(?!sk)\w*|\bpediatr\w*|\bnesľub\w*|\bnetvrd\w*|\bnemôž\w*|\bneporad\w*|\bnedokáž\w*|\bneviem\b|"
+                                 r"\bnevieme\b|\bdoctor\b|\bcan'?t\b",
                                  re.IGNORECASE)
 
 
@@ -4092,7 +4233,9 @@ def _fix_wifi_claims(text, language="sk"):
             current = named[0]
         elif named or other_brand:
             current = None  # two series, or another brand: the line isn't about the remembered one
-        if (current in no_wifi and _WIFI_CLAIM_RE.search(line) and not _OPTIONAL_FEATURE_RE.search(line)
+        # "…ovládanie cez Wi-Fi alebo dizajn?" under an offer: the question got the suffix (QA 2026-11-01).
+        claims = [x for x in _SENTENCE_SPLIT_RE.split(line) if _WIFI_CLAIM_RE.search(x) and not x.rstrip().endswith("?")]
+        if (current in no_wifi and claims and not _OPTIONAL_FEATURE_RE.search(line)
                 and line.strip()):
             # "Wi-Fi v základe." became "Wi-Fi v základe. — iba s voliteľným…" (scenario dom_multisplit_wifi)
             line = _WIFI_STANDARD_WORDS_RE.sub("", line).rstrip()
@@ -4108,6 +4251,28 @@ _WITH_VAT_AND_FEE_RE = re.compile(r"\b(?:s|vrátane|vratane)\s+DPH(\**)\s+a\s+(?
 _APPROX_AFTER_AMOUNT_RE = re.compile(r"(\d\s*€)\s*\(\s*(?:približne|pribl\.|cca\.?|okolo|zhruba|approx\.?|approximately)\s*\)",
                                      re.I)
 _WITH_VAT_AND_FEE_EN_RE = re.compile(r"\bincl(?:uding|\.)?\s+VAT\s+and\s+(?:the\s+)?recycling\s+fees?", re.I)
+
+
+_SAFETY_BOILERPLATE_RE = re.compile(r"\bvolajte\s+\*{0,2}112\b|\bističom\b|\botvoren\w+\s+oheň\b", re.IGNORECASE)
+_CALL_US_RE = re.compile(r",?\s*(?:alebo|prípadne|or)\s+(?:nám\s+|us\s+)?(?:zavolaj\w*|zavolali|call)\b(?:,?\s*ak\s+máte[^.?!\n]*)?", re.IGNORECASE)
+_SK_EUR_RE = re.compile(r"(?<![\d.,])(\d{1,3}(?:[ \u00a0]\d{3})+|\d+)\.(\d{2})(?=\s*€)")
+_SK_TYPOS = {"Vďakujem": "Ďakujem", "vďakujem": "ďakujem", "nviem": "neviem", "Nviem": "Neviem"}
+_SK_TYPO_RE = re.compile(r"\b(?:" + "|".join(_SK_TYPOS) + r")\b")
+_REPEAT_GREETING_RE = re.compile(r"^\s*Dobrý\s+deň[,.!]?\s+(?=\S)")
+
+
+def _drop_unprompted_safety(text):
+    """The danger steps belong to a reported danger: a customer who wanted refrigerant got "dym, iskrenie… 112" in every
+    reply (QA 2026-11-01)."""
+    if _DANGER_RE.search(_all_user_text()) or not _SAFETY_BOILERPLATE_RE.search(text):
+        return text
+    lines = [" ".join(x for x in _SENTENCE_SPLIT_RE.split(line) if not _SAFETY_BOILERPLATE_RE.search(x)) if line.strip() else line
+             for line in text.split("\n")]
+    return _tidy_after_cut("\n".join(lines))
+
+
+def _sk_amount(m):
+    return f"{int(re.sub(r'[ \u00a0]', '', m.group(1))):,}".replace(",", " ") + f",{m.group(2)}"
 
 
 def sanitize_reply(text, language="sk"):
@@ -4155,6 +4320,15 @@ def sanitize_reply(text, language="sk"):
     text = _WITH_VAT_AND_FEE_EN_RE.sub("incl. VAT, excluding the recycling fee", text)
     text = _APPROX_AFTER_AMOUNT_RE.sub(r"\1", text)
     text = _fix_wifi_claims(text, language)
+    text = _drop_unprompted_safety(text)
+    if not COMPANY_PHONE:  # "alebo zavolajte" with no number to call
+        text = _CALL_US_RE.sub("", text)
+    if language == "sk":
+        text = _SK_EUR_RE.sub(_sk_amount, text)
+        text = _SK_TYPO_RE.sub(lambda m: _SK_TYPOS[m.group(0)], text)
+    if len(S().user_inputs) >= 2 and _REPEAT_GREETING_RE.match(text):  # no "Dobrý deň" in the middle of a conversation
+        rest = _REPEAT_GREETING_RE.sub("", text, count=1)
+        text = rest[0].upper() + rest[1:]
     text = text.replace("🔧", "")  # looks like the debug view's tool chip (q04)
     if language == "sk":
         text = re.sub(r"\b[Tt]echnician(s)?\b", lambda m: ("T" if m.group(0)[0] == "T" else "t") + "echnik"
@@ -4563,10 +4737,17 @@ def _misattributed_amounts(text):
 _VAT_LABEL_CUT_RE = re.compile(r"[,;|]|\.\s+(?=[A-ZÁ-Ž])|\s(?:[aA]|alebo|oproti|vs\.?)\s")
 
 
+_LABEL_OPENS_BRACKET_RE = re.compile(r"[\s*_€]*\([^)]*$")  # after the number: the match stops before "€"
+
+
 def _vat_label(line, start, end, prev_end=0, next_start=None):
     """'with' / 'without' for the DPH label of the amount at line[start:end]: right after it, else
     just before — within the amount's own clause."""
     after = line[end:min(end + 22, len(line) if next_start is None else next_start)]
+    # "Cena s DPH: 895,56 € (bez DPH 728,10 €)": the bracket's label is the next amount's. API replies write it this
+    # way, and it cost 13 regenerations and cut correct prices (docs/api_vs_subscription_2026-11-01.md).
+    if next_start is not None and _LABEL_OPENS_BRACKET_RE.match(line[end:next_start]):
+        after = ""
     cut = _VAT_LABEL_CUT_RE.search(after)
     if cut:
         after = after[:cut.start()]
@@ -4625,10 +4806,16 @@ def _codes_named(text):
     return {_canonical_code(m.group(0)) for m in _MODEL_CODE_LIKE_RE.finditer(text)} - {None}
 
 
+# "Názov AR30 v našej ponuke nemáme", about a series of the price list (replay 2026-11-01). A colour or Daikin passes.
+_SERIES_NOT_OFFERED_RE = re.compile(r"\b(?:názov|model|rad)\s+\S+(?:\s+\S+)?\s+(?:v\s+(?:našej\s+)?ponuke\s+nemáme|nemáme\s+v\s+(?:našej\s+)?ponuke)",
+                                    re.IGNORECASE)
+
+
 def _not_in_catalog_claims(text):
     recent = "\n".join(S().user_inputs[-3:])
     return [x for x in _sentences(text)
-            if _NOT_IN_CATALOG_RE.search(x) and (_codes_named(x) or _codes_named(recent))]
+            if (_NOT_IN_CATALOG_RE.search(x) and (_codes_named(x) or _codes_named(recent)))
+            or (_SERIES_NOT_OFFERED_RE.search(x) and any(rx.search(x) for rx in _SERIES_RES.values()))]
 
 
 # Savings, payback and spec figures with no tool output behind them (q04: invented SEER and
@@ -4642,6 +4829,8 @@ _SAVINGS_CLAIM_RE = re.compile(
     r"\bniž\w*\s+(?:náklad\w*|účt\w*|faktúr\w*)\s+(?:za|na)\s+(?:elektri\w*|energi\w*|prúd\w*)|"
     r"\bsave\w*[^.?!\n]{0,30}(?:electricity|energy|bills?)\b",
     re.IGNORECASE)
+_SAVINGS_DECLINE_RE = re.compile(r"\b(?:neviem|nevieme|nemôž\w*|nedokáž\w*|nemám\w*|neuvádz\w*|nevyčísl\w*|can'?t|cannot|don'?t\s+have)\b",
+                                 re.IGNORECASE)
 _SPEC_FIGURE_RE = re.compile(r"\b(?:SEER|SCOP)\b[^\d\n]{0,12}(\d{1,2}[.,]\d{1,2})|(?<![\d,.])(\d{2})\s*dB\b", re.IGNORECASE)
 
 
@@ -5061,7 +5250,8 @@ def _unsupported_figures(text):
     source = None
     for x in _sentences(text):
         if _SAVINGS_CLAIM_RE.search(x):
-            found.append(x)
+            if not _SAVINGS_DECLINE_RE.search(x):  # "úsporu neviem vyčísliť" is the right answer (QA 2026-11-01)
+                found.append(x)
             continue
         for m in _SPEC_FIGURE_RE.finditer(x):
             if source is None:
@@ -5349,6 +5539,14 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
             f"reklamacia-kontakt: pri reklamácii si pýtaš kontakt ('{support_asks[0].strip()[:80]}'). Reklamácie bot "
             f"nerieši ani si na ne nepýta údaje — zákazníkovi povedz, nech {_contact_offer()}."
         )
+    later = _LATER_MESSAGE_RE.search(text)
+    if later:
+        violations.append(f"neskorsia-sprava: sľubuješ správu, ktorú sám nepošleš ('{later.group(0)}'). Všetko povedz teraz "
+                          "alebo naceň cez `quote`; čo nevieš, povedz, že to upresní projektový manažér.")
+    noted = _health_noted_claims(text)
+    if noted:
+        violations.append(f"zdravie-zaznam: tvrdíš, že si zdravotný údaj zapísal ('{noted[0].strip()[:100]}'). Diagnózy "
+                          "sa do záznamu nezapisujú; napíš iba požiadavku na filtráciu.")
     health = _health_claim_sentences(text)
     if health:
         violations.append(
@@ -5477,7 +5675,17 @@ _HARD_RULES = ("cena-z-nastroja", "aplikacia-rabatov", "model-code-verifikacia",
                "interne-info", "slub-bez-suhlasu", "termin-slub", "cena-iny-produkt", "dph-zamena",
                "mimo-katalogu", "nepodlozene-udaje", "reklamacia-kontakt", "ai-identita", "brand-funkcia", "typ-jednotky",
                "sklad-tvrdenie", "farba", "porovnanie-smer", "funkcia-radu", "nenacenene", "zdravie-tvrdenie",
-               "zaruka-slub")
+               "zaruka-slub", "neskorsia-sprava", "zdravie-zaznam")
+# The bot can't write on its own: "presnú cenu vám pošlem v ďalšej správe" left the customer waiting (QA 2026-11-01).
+_LATER_MESSAGE_RE = re.compile(r"\bv\s+(?:ďalšej|dalsej|nasledujúcej|nasledujucej)\s+správe\b|\bpošlem\s+(?:vám|ti)\b|"
+                               r"\b(?:in|with)\s+(?:my|the)\s+next\s+message\b|\bI(?:'ll|\s+will)\s+send\s+you\b", re.IGNORECASE)
+# A diagnosis stays out of the PM's record, so the bot can't say it went there (QA 2026-11-01).
+_HEALTH_NOTED_RE = re.compile(r"\b(?:poznač|poznámk|zaznamena|zapísa|zapisa|odovzda)\w*", re.IGNORECASE)
+_NOT_NOTED_RE = re.compile(r"\bnezapis\w*|\bnezaznamen\w*|\bnepozna\w*|\bnemôž\w*|\bnie\b", re.IGNORECASE)
+
+
+def _health_noted_claims(text):
+    return [s for s in _sentences(text) if _HEALTH_RE.search(s) and _HEALTH_NOTED_RE.search(s) and not _NOT_NOTED_RE.search(s)]
 # The bot is an AI assistant and says so when asked (EU AI Act transparency): a sentence claiming
 # to be a person is regenerated or cut. "Nie som človek" / "I'm not a human" are fine.
 _HUMAN_CLAIM_RE = re.compile(
@@ -5500,9 +5708,45 @@ _DATE_PROMISE_RE = re.compile(
     re.IGNORECASE)
 # Whole-reply problems: worth a regeneration, but there is no sentence to cut.
 _REGEN_ONLY_RULES = ("jazyk-odpovede", "cena-neodpovedana", "kontakt-pred-ponukou", "prazdna-odpoved", "dve-moznosti",
-                     "zakazana-otazka", "cena-nezobrazena", "vykanie", "funkcia-bez-podkladu", "pravopis")
+                     "zakazana-otazka", "cena-nezobrazena", "vykanie", "funkcia-bez-podkladu", "pravopis",
+                     "samooprava", "najlacnejsie-tvrdenie")
+# Correcting itself inside the reply (QA 2026-11-01: "spolu 24 597,54 €... presnejšie podľa ponuky: 23 479,47 €").
+_SELF_CORRECTION_RE = re.compile(r"\.\.\.\s*presnejšie|…\s*presnejšie|\bpresnejšie\s+(?:podľa|povedané)|\bvlastne\s+nie\b|"
+                                 r"\boprava:|\bor\s+rather\b|\bscratch\s+that\b", re.IGNORECASE)
+# "lowest price" next to a set `quote` itself said isn't the cheapest suitable one (QA 2026-11-01, three times).
+_CHEAPEST_CLAIM_RE = re.compile(r"\bnajlacnejš\w*|\bnajnižš\w*\s+cen\w*|\blowest[\s-]+pric\w*|\bcheapest\b", re.IGNORECASE)
+_CHEAPEST_PAREN_RE = re.compile(r"\s*\((?:[^()\n]*\b(?:najlacnejš\w*|najnižš\w*\s+cen\w*|lowest[\s-]+pric\w*|cheapest)\b[^()\n]*)\)", re.IGNORECASE)
+
+
+def _wrong_cheapest_sentences(reply):
+    """ "Najlacnejší je multi-split Toshiba" while a quote for as many units costs less (replay 2026-11-01)."""
+    def units(q):
+        return (q.get("recycling_fee_per_unit") or {}).get("units")
+    def names(q):
+        return " ".join(line["description"] for line in q["lines"])
+    quotes, wrong = S().quotes, []
+    for x in _sentences(reply):
+        if not _CHEAPEST_CLAIM_RE.search(x):
+            continue
+        named = [rx for rx in (*_SERIES_RES.values(), *_BRAND_RES.values()) if rx.search(x)]
+        claimed = [q for q in quotes if any(rx.search(names(q)) for rx in named)]
+        if not claimed:
+            continue
+        best = min(claimed, key=lambda q: q["total_with_DPH_23pct_eur"])
+        if any(q not in claimed and units(q) == units(best)
+               and q["total_with_DPH_23pct_eur"] < best["total_with_DPH_23pct_eur"] - 1 for q in quotes):
+            wrong.append(x)
+    return wrong
+
+
+def _false_cheapest_claim(quotes_before, reply):
+    new = S().quotes[quotes_before:]
+    if not _CHEAPEST_CLAIM_RE.search(reply):
+        return False
+    return bool((new and all(any("nie je najlacnejší" in w for w in q.get("fit_warnings") or []) for q in new))
+                or _wrong_cheapest_sentences(reply))
 _PRICE_QUESTION_RE = re.compile(
-    r"\b(?:koľko|kolko|kolik)\b[^?\n]{0,60}(?:stoj|stál|stal|stát|bude|vyjde|zaplat|cen)|\bak[áa]\s+(?:je\s+)?cena\b|"
+    r"\b(?:koľko|kolko|kolik)\b[^?\n]{0,60}(?:stoj|stál|stal|stát|bude|vyjde|vyšl|vysl|zaplat|cen|\bdá\b|\bda\b)|\bak[áa]\s+(?:je\s+)?cena\b|"
     r"\bcenu\b|\bhow\s+much\b|\bwhat\s+(?:would|does|will)\b[^?\n]{0,40}\bcost\b|\bprice\b|"
     r"\blacnej\w*|\bni[žz]š\w*\s+(?:rad|model|tried)\w*|\bcheaper\b",
     re.IGNORECASE)
@@ -5519,11 +5763,14 @@ def _unanswered_price_question(user_input, quotes_before=0):
         return True
     if not _PRICE_QUESTION_RE.search(user_input):
         return False
-    size_known = _customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)
+    size_known = _customer_m2() or _customer_numbers(_CUSTOMER_KW_RE)
     if not (size_known or _codes_named(_all_user_text())):
         return False
     return (not sess.quotes or bool(_codes_named(user_input) or _CUSTOMER_M2_RE.search(user_input)
                                     or _CHEAPER_RE.search(fold_diacritics(user_input))))
+
+
+_COLOUR_WORD_RE = re.compile(r"\b(?:White|Black|Wood)\b")
 
 
 def _single_first_offer(user_input, quotes_before, reply):
@@ -5531,7 +5778,9 @@ def _single_first_offer(user_input, quotes_before, reply):
     (2026-10-20); one is right when the customer asked for a specific model or series."""
     sess = S()
     new = sess.quotes[quotes_before:]
-    if quotes_before or len({_quote_key(q) for q in new}) != 1 or _industrial_case():
+    # White and black of one series aren't two options (QA 2026-11-01).
+    if quotes_before or len({_COLOUR_WORD_RE.sub("", " ".join(x["description"] for x in q["lines"])) for q in new}) != 1 or (
+            not new or _industrial_case()):
         return False
     if _codes_named(user_input) or _SERIES_NAMED_RE.search(user_input):
         return False
@@ -5550,7 +5799,7 @@ def _offer_due(user_input):
     what matters, then offer; the bot kept asking "which variant?" instead)."""
     if S().quotes or _industrial_case() or _wished(_OWN_INSTALL_RE, user_input):  # a how-to-install question
         return False
-    if not (_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)):
+    if not (_customer_m2() or _customer_numbers(_CUSTOMER_KW_RE) or _size_unknown()):
         return False
     return bool(_PREFERENCE_RE.search(fold_diacritics(user_input)) or _wished(_WIFI_WANTED_FOLDED_RE, user_input)
                 or _wished(_CHEAP_WISH_RE, user_input) or _wished(_ALLERGY_RE, user_input)
@@ -5577,7 +5826,7 @@ def _contact_before_price(reply):
     text = _all_user_text()
     if _contact_in(text) or _CONTACT_WISH_RE.search(text):
         return False
-    return bool(_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE) or _codes_named(text))
+    return bool(_customer_m2() or _customer_numbers(_CUSTOMER_KW_RE) or _codes_named(text))
 
 
 MAX_REGENS_PER_TURN = 2
@@ -5596,6 +5845,12 @@ _INTERNAL_LEAK_RE = re.compile(
     r"\bčakám\s+na\b[^.?!\n]{0,40}(?:zákazník|server)|zákazníkov\w*\s+(?:odpove|správ)|"
     r"\b(?:od|na|pre|so|zo)\s+zákazník(?:a|ovi|om)\b|\bnič\s+ďalšie\s+(?:sa\s+)?nep[íi]š|"
     r"\b(?:zo|od)\s+servera\b|\bserver\w*\s+(?:\w+\s+)?(?:pripoj|pripája|zaznamen|pridá|vyhodno|polož)\w*|"
+    # QA 2026-11-01: "Výsledok nástroja je jasný… Zákazníkovi dávam…", "podľa výstupu cenníka", "Kontrola zostavy ju
+    # odmietla", "otázku, ktorú pripojí systém nižšie"
+    r"\bnástroj\w*|\bbot\s+(?:nerieši|nevie|nemôže|nepomáha|neposkytuje|nesmie)\b|\bvýstup\w*\s+cenník\w*|"
+    r"\bkontrol\w*\s+zostav\w*|\bsystém\b[^.?!\n]{0,30}\b(?:pripoj\w*|nižšie)|\bpripoj\w*\s+systém|"
+    r"\bzákazníkovi\s+dávam\b|\bsi\s+zákazník\b|\bzákazník\s+(?:zároveň|zvažuje|sa\s+pýta|žiada|potrebuje)\b|"
+    r"\bnič\s+nesľubujem\b|\bnepýtam\s+(?:si\s+)?údaje\b|"
     # "server ti postaví GDPR otázku" (live demo 2026-10-21)
     r"\bserver\s+(?:ti|vám|vam|ťa|vás|vas)\b|\bGDPR\s+otázk\w*",
     re.IGNORECASE)
@@ -5690,17 +5945,19 @@ _BRAND_QUESTION_RE = re.compile(
     r"preferenci\w*\s+(?:\w+\s+)?značk|(?:ktor\w*|ak[úáa]|akej)\s+značk\w*|samsung\w*\s+alebo\s+toshib\w*|"
     r"toshib\w*\s+alebo\s+samsung\w*|preferujete\s+(?:samsung|toshib)|which\s+brand|brand\s+preference|"
     r"samsung\s+or\s+toshiba|toshiba\s+or\s+samsung", re.IGNORECASE)
+_BRAND_PROMPT_RE = re.compile(r"\bak\s+máte\s+preferenci\w*\s+(?:\w+\s+)?značk", re.IGNORECASE)
 _BUDGET_QUESTION_RE = re.compile(r"rozpo[čc]\w*|\bbudget\b", re.IGNORECASE)
 
 
 def _forbidden_questions(reply):
     """The brand question at any time (live demo 2026-10-24 asked it after the first offer); the budget
     question before the first quote once the size is known."""
-    if _industrial_case() or _support_case():
+    if _industrial_case():
         return []
-    budget_too = not S().quotes and (_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE))
-    return [s for s in _sentences(reply) if "?" in s and (
-        _BRAND_QUESTION_RE.search(s) or (budget_too and _BUDGET_QUESTION_RE.search(s)))]
+    budget_too = not S().quotes and (_customer_m2() or _customer_numbers(_CUSTOMER_KW_RE))
+    # A brand prompt needs no question mark: "Ak máte preferenciu pre značku…, napíšte mi to" (QA 2026-11-01).
+    return [s for s in _sentences(reply) if _BRAND_PROMPT_RE.search(s) or ("?" in s and (
+        _BRAND_QUESTION_RE.search(s) or (budget_too and _BUDGET_QUESTION_RE.search(s))))]
 
 
 # Brand trademarks (knowledge/rules/feedback_brand_specificke_funkcie.md): a Samsung-only term in a
@@ -5833,7 +6090,8 @@ def _sentence_is_hard(sentence, trusted, bad_values=()):
                 or _support_contact_requests(sentence) or _HUMAN_CLAIM_RE.search(sentence)
                 or _brand_term_mixups(sentence) or _wall_called_cassette(sentence) or _false_stock_claims(sentence)
                 or _color_claims(sentence) or _wrong_comparisons(sentence) or _unpriced_multi_claims(sentence)
-                or _health_claim_sentences(sentence) or _free_repair_promises(sentence))
+                or _health_claim_sentences(sentence) or _free_repair_promises(sentence)
+                or _LATER_MESSAGE_RE.search(sentence) or _health_noted_claims(sentence))
 
 
 def _approx_amount(text):
@@ -5850,20 +6108,29 @@ def _drop_hard_sentences(text):
     bad_lines = {line.strip() for line in _wrong_energy_classes(text) + _wrong_filtration_claims(text)
                  + _wrong_feature_claims(text)}
     lines, dropped = [], []
+    after_cut = False  # "Jeho cena je…" with the sentence naming the product gone opened a reply (QA 2026-11-01)
     for line in text.split("\n"):
         if line.strip() in bad_lines and line.strip().startswith("|"):
             dropped.append(line.strip())
             continue
         sentences = _SENTENCE_SPLIT_RE.split(line)
-        keep = [x for x in sentences if not _sentence_is_hard(x, trusted, bad_values)
-                and not (line.strip() in bad_lines and (_ENERGY_CLASS_RE.search(x) or _WEAK_FILTER_RE.search(x)
-                                                        or _BEST_FILTER_RE.search(x) or _ANY_SERIES_FEATURE_RE.search(x)))]
+        keep = []
+        for x in sentences:
+            if (_sentence_is_hard(x, trusted, bad_values)
+                    or (line.strip() in bad_lines and (_ENERGY_CLASS_RE.search(x) or _WEAK_FILTER_RE.search(x)
+                                                       or _BEST_FILTER_RE.search(x) or _ANY_SERIES_FEATURE_RE.search(x)))
+                    or (after_cut and _ORPHAN_START_RE.match(x))):
+                after_cut = True
+            else:
+                keep.append(x)
+                after_cut = after_cut and not x.strip()
         dropped += [x.strip() for x in sentences if x not in keep]
         if keep or not line.strip():
             lines.append(" ".join(keep))
     return _tidy_after_cut("\n".join(lines)), dropped
 
 
+_ORPHAN_START_RE = re.compile(r"\W*(?:Jeho|Jej|Ich|Tento|Táto|Toto|Tieto|Ten\s+ist\w+|\w+\s+(?:ju|ho|ich))\s")
 _LEFTOVER_LINE_RE = re.compile(r"^\s*(?:\d+[.)]|[-*•])?\s*[\W_]*\s*$")
 
 
@@ -5993,6 +6260,11 @@ def _regen_note(violations):
                                 "obec) požiadaj až po cene. Na cenu obec ani kontakt nepotrebuješ.",
         "zdravie-tvrdenie": "Opíš, čo zariadenie technicky robí (napr. chladí bez priameho prievanu, filter zachytáva "
                             "častice); bolesť, prechladnutie, astmu ani iný zdravotný účinok nesľubuj.",
+        "neskorsia-sprava": "Nič nesľubuj na ďalšiu správu: naceň teraz cez `quote`, alebo povedz, čo sa nedá.",
+        "zdravie-zaznam": "Nepíš, že si diagnózu zapísal ani odovzdal; spomeň iba požiadavku na filtráciu.",
+        "samooprava": "Napíš každú sumu raz a správne, bez opráv priamo v texte; každá možnosť má svoju sumu z `quote`.",
+        "najlacnejsie-tvrdenie": "`quote` upozornil, že to nie je najlacnejšia možnosť: naceň set, ktorý v `fit_warnings` "
+                                 "uviedol, alebo slovo „najlacnejší“ nepoužívaj.",
         "zaruka-slub": "Uveď iba záručnú dobu z podkladov; či je oprava alebo servis bezplatný, nesľubuj — podmienky "
                        "potvrdí projektový manažér v ponuke.",
         "vykanie": "Zákazník ti netyká: celú odpoveď napíš vykaním (vám, vás, chcete, máte, ak ste si vybrali).",
@@ -6039,10 +6311,11 @@ def _session_language():
 # "reklamácia / reklamovať" is a complaint, "reklama" an advert ("videl som vašu reklamu").
 _COMPLAINT_RE = re.compile(
     r"\breklam(?:áci|aci|ova|uj|ačn|acn)\w*|\bcomplain\w*|\bwarranty\s+claim|\brefund\b|"
-    r"\bvrátenie\s+(?:peňazí|tovaru)", re.IGNORECASE)
+    r"\bvrátenie\s+(?:peňazí|tovaru)|\bodškodn\w*|\bodskodn\w*|\bžalob\w*|\bzalob\w*|\bna\s+súd\b|\bcompensation\b",
+    re.IGNORECASE)
 # A unit we supplied — not "chceme novú od vás" (a sale).
 _OUR_INSTALL_RE = re.compile(
-    r"\bste\s+(?:nám\s+|mi\s+)?(?:montovali|inštalovali|namontovali|nainštalovali|dodali|predali)|"
+    r"\bste\s+(?:nám\s+|mi\s+)?(?:montovali|inštalovali|namontovali|nainštalovali|dodali|predali)|\bvaš\w*\s+montáž\w*\s+(?:mi|nám)\b|"
     r"\b(?:kúpil\w*|kúpen\w*|zakúpen\w*|objednal\w*|objednan\w*|dodan\w*|namontovan\w*|nainštalovan\w*)\s+"
     r"(?:sme\s+|som\s+|ste\s+)?(?:\w+\s+){0,2}od\s+vás\b|\byou\s+(?:installed|sold|supplied|fitted)\b|"
     r"\b(?:bought|purchased|got)\s+(?:\w+\s+){0,2}from\s+you\b",
@@ -6241,12 +6514,15 @@ _CONTACT_REQUEST_RE = re.compile(
 # the consent question to a reply about features (live demo 2026-10-19).
 _PHONE_AS_DEVICE_RE = re.compile(
     r"\b(?:cez|zo?|v|na|do|mobiln\w*|smart)\s+(?:telef[óo]n\w*|mobil\w*|smartf[óo]n\w*|aplik[áa]ci\w*)|"
-    r"\btelef[óo]nom\b|\bvia\s+(?:your\s+)?(?:phone|app)\b|\bphone\s+app\b", re.IGNORECASE)
+    r"\btelef[óo]nom\b|\b(?:via|from|on|with)\s+(?:your\s+|a\s+)?(?:phone|app)\b|\bphone\s+(?:app|control)\b", re.IGNORECASE)
+# "Meno a súkromné čísla… dať nemôžem" declines, it asks for nothing (QA 2026-11-01: the consent question followed).
+_CONTACT_DECLINE_RE = re.compile(r"[^.!?\n]*\b(?:dať\s+nemôžem|nemôžem\s+(?:vám\s+|ti\s+)?(?:dať|poskytnúť|prezradiť)|neposkyt\w*|"
+                                 r"nezdieľa\w*|can'?t\s+(?:give|share))\b[^.!?\n]*", re.IGNORECASE)
 
 
 def _asks_contact(text):
     """A request for contact details, with phone-as-device phrases blanked out first."""
-    return _CONTACT_REQUEST_RE.search(_PHONE_AS_DEVICE_RE.sub(" ", text))
+    return _CONTACT_REQUEST_RE.search(_CONTACT_DECLINE_RE.sub(" ", _PHONE_AS_DEVICE_RE.sub(" ", text)))
 
 
 def _contact_in(text):
@@ -6256,7 +6532,8 @@ def _contact_in(text):
 def _record_consent(purpose, evidence):
     sess = S()
     ts = datetime.datetime.now().isoformat(timespec="seconds")
-    sess.consent = {"purpose": purpose, "ts": ts, "evidence": evidence.strip()[:200],
+    # The evidence is quoted in the PM brief: a diagnosis in the same message stays out of it (QA 2026-11-01).
+    sess.consent = {"purpose": purpose, "ts": ts, "evidence": _redact_health(evidence.strip()[:200]),
                     "question": CONSENT_QUESTIONS[purpose]["sk"]}
     sess.consent_refused = False
     sess.customer_state.update(consent_given=True, consent_purpose=purpose, consent_ts=ts,
@@ -6278,6 +6555,49 @@ def _record_refusal(evidence):
     _persist_customer_state()
 
 
+def _consent_withdrawal(text):
+    """A withdrawal of consent or an erasure request. Not in no_re: the audits read that one as a refusal of the
+    question, and these words were neither (QA 2026-11-01: "vymažte moje údaje" went unnoticed)."""
+    return bool(_CONSENT_WITHDRAWAL_RE.search(text))
+
+
+def _record_withdrawal(evidence):
+    """After consent: mark the lead, keep it away from the PM's mail and put the request in the operator's queue."""
+    sess = S()
+    first = not sess.consent_withdrawal_requested
+    sess.consent_withdrawal_requested = True
+    evidence = _redact_health(evidence[:200])
+    ts = datetime.datetime.now().isoformat(timespec="seconds")
+    log_event("consent_withdrawal_requested", evidence=evidence)
+    sess.customer_state["consent_withdrawal_requested"] = True
+    _persist_customer_state()
+    if not first:
+        return
+    _write_handoff({"ts": ts, "reason": "consent_withdrawal", "purpose": "gdpr", "urgency": "high",
+                    "customer_question": evidence, "customer_state": _storable_state(),
+                    "handoff_record": _rel(sess.handoff_path) if sess.handoff_path else None,
+                    "log_file": sess.log_path.name})
+    if sess.lead_record is None:
+        return
+    sess.lead_record = {**sess.lead_record, "consent_withdrawal_requested": ts,
+                        "customer_state": dict(sess.customer_state)}
+    with LEADS_PATH.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(sess.lead_record, ensure_ascii=False) + "\n")
+    try:
+        sess.handoff_path = _write_handoff_markdown(sess.lead_record)
+    except Exception as e:
+        log_event("handoff_md_failed", error=str(e))
+
+
+def _withdrawal_text(language):
+    """Written by code: nothing here may depend on the model. It says what happened, not that data is gone."""
+    if language == "en":
+        return ("Understood. We have recorded your request and marked your record so that the project manager does "
+                f"not contact you. Our team handles the deletion of your data; you can ask for a confirmation at {COMPANY_CONTACT}.")
+    return ("Rozumiem. Vašu žiadosť sme zaznamenali a záznam sme označili, aby vás projektový manažér nekontaktoval. "
+            f"Vymazanie údajov vybaví náš tím; potvrdenie si môžete vyžiadať na {COMPANY_CONTACT}.")
+
+
 def _consent_refusal(text):
     """An explicit refusal of consent — not a disagreement with the price, the offer or a model."""
     return bool(_CONSENT_NO_RE.search(_CONSENT_NO_NOT_REFUSAL_RE.sub(" ", text)))
@@ -6287,16 +6607,16 @@ def _process_consent_reply(user_input):
     """Decide consent from the customer's message — code, never the model. Only the
     message right after the latest canonical question can give consent; an explicit
     refusal counts at any time and wins over a 'yes' in the same message.
-    Returns 'given', 'refused' or None."""
+    Returns 'given', 'refused', 'withdrawn' or None."""
     sess = S()
     text = unicodedata.normalize("NFC", user_input)
     in_window = sess.consent_ask_index is not None and len(sess.user_inputs) == sess.consent_ask_index + 1
     if sess.consent is not None:
-        if _consent_refusal(text):
-            sess.consent_withdrawal_requested = True
-            log_event("consent_withdrawal_requested", evidence=text[:200])
+        if _consent_refusal(text) or _consent_withdrawal(text):
+            _record_withdrawal(text)
+            return "withdrawn"
         return None
-    if _consent_refusal(text) or (in_window and _CONSENT_NO_IN_WINDOW_RE.search(text)):
+    if _consent_refusal(text) or _consent_withdrawal(text) or (in_window and _CONSENT_NO_IN_WINDOW_RE.search(text)):
         _record_refusal(text)
         return "refused"
     if in_window and _CONSENT_YES_RE.search(_CONSENT_YES_NOT_CONSENT_RE.sub(" ", text)):
@@ -6308,6 +6628,10 @@ def _process_consent_reply(user_input):
 def _consent_status_text():
     """What the server knows about consent (and complaints), and what to do — part of the server context."""
     sess = S()
+    if sess.consent_withdrawal_requested:
+        return ("Zákazník odvolal súhlas alebo žiada vymazanie údajov. capture_lead nevolaj, o kontakt nežiadaj a "
+                "netvrď, že údaje sú vymazané ani že ich má projektový manažér. Nech potvrdenie vyžiada na "
+                f"{COMPANY_CONTACT}.")
     if _support_case():
         return ("Toto je reklamácia / oprava / servis: bot ju nerieši. Nepýtaj si meno, telefón ani iné údaje a nič "
                 f"nesľubuj (záruku, termín, postup). Povedz zákazníkovi, nech {_contact_offer()}; ak sa pýta aj na "
@@ -6506,7 +6830,7 @@ def _suggested_sets():
             or _SERIES_NAMED_RE.search(text) or _MULTI_TEXT_RE.search(text) or _ROOMS_COUNT_RE.search(folded)
             or _FLAT_ROOMS_RE.search(folded) or _wished(_INDOOR_TYPE_WISH_RE) or _TASTE_WISH_RE.search(folded)):
         return None
-    m2 = _customer_numbers(_CUSTOMER_M2_RE)
+    m2 = _customer_m2()
     if not m2 or len(set(m2)) > 1:
         return None
     min_kw = m2[0] * SIZING["kw_per_m2"] * SIZING["undersize_ratio"]
@@ -6573,9 +6897,15 @@ _NEW_VARIANT_RE = re.compile(
     r"klim\w*)|\b(?:mate|chcem|chcel\w*|ukazte|ponuknite|dajte)\b[^?.]{0,30}\blacnej\w*|\bcheaper\b|"
     r"\b(?:kolko|kolik)\b[^?\n]{0,60}(?:stoj|stal|bude|vyjde|zaplat|cen)|\bak[aá]\s+(?:je\s+)?cena\b|\bcenu\b|"
     r"\bhow\s+much\b|\bprice\b|"
+    # agreeing to an offer the bot made: "Áno, pripravte ponuku", "Dobre, tak dve nezávislé jednotky" (QA 2026-11-01)
+    r"\b(?:priprav\w*|spravte|urobte|posl\w*)\s+(?:mi\s+)?(?:\w+\s+){0,4}(?:ponuk\w*|nacenen\w*)|\bnacen\w*|\btak\s+(?:tie\s+)?(?:dve|dva)\b|"
     # "čo najlacnejšie" after an offer asks for the cheapest variant (direction metrics of 2026-10-28: answered and
     # asked for the contact instead); "tá / tú najlacnejšiu" only points at an offer shown
     r"(?<!\bta )(?<!\btu )(?<!\bten )(?<!\btej )(?<!\btou )\bnajlacnej\w*", re.IGNORECASE)
+# A question about a product shown, not a new variant (folded): "Koľko dB má AR35?", "Aká je záruka?", "Čo je WindFree?".
+_SPEC_QUESTION_RE = re.compile(r"\bco\s+(?:to\s+)?je\b|\bako\s+funguj\w*|\brozdiel\w*|\bdb\b|\bdecibel\w*|\bhluk\w*|\bhlucn\w*|\bseer\b|\bscop\b|"
+                               r"\btried\w*|\bzaruk\w*|(?:^|[.?!]\s*)ma\s|\bvie\b|\bpodporuj\w*", re.IGNORECASE)
+_ASKED_ROOMS_RE = re.compile(r"\bktor\w*\s+(?:izb|miestnost)|\bkoľko\s+(?:izieb|miestnost)", re.IGNORECASE)
 _MANY_ROOMS_RE = re.compile(r"\b(?:[2-9]|dve|dva|tri|styri|pat|obe|obidve|oba|vsetky)\s+(?:izb|izieb|miestnost)\w*|"
                             r"\bkazd\w*\s+(?:izb\w*\s+)?(?:ma|je|po)\b", re.IGNORECASE)
 
@@ -6593,9 +6923,19 @@ _OFFER_CHOSEN_TEXT = (
 _EXACT_AMOUNTS = (" Sumy prepíš presne, ako ich vrátil `quote` (aj s centami): nezaokrúhľuj, nesčítavaj ani nenásob; recyklačný poplatok ber z `recycling_fee_per_unit` (za všetky kusy `total_min_eur`–`total_max_eur`). Pri každej možnosti uveď iba funkcie a údaje zo `series_features` (`lookup_product`) — žiadnu energetickú triedu, hlučnosť ani úsporu, ktorá tam nie je.")
 
 
+# The customer doesn't know the area (folded text): the live customer of QA 2026-11-01 asked for a price five times, the
+# bot estimated the rooms itself and still refused to price them.
+_SIZE_UNKNOWN_RE = re.compile(r"\bneviem\b[^.?!\n]{0,30}(?:\bm2\b|metr\w*|ploch\w*|velk\w*|kolko\s+(?:m\b|ma\b|to\s+ma))|\bnetusim\b|"
+                              r"\bodhadni\w*|\b(?:taka|taky|take)\s+(?:normaln|bezn)\w*|\bbezn\w*\s+(?:dvoj|troj)izbov\w*", re.IGNORECASE)
+
+
+def _size_unknown():
+    return bool(_SIZE_UNKNOWN_RE.search(fold_diacritics(_all_user_text())))
+
+
 def _size_known():
-    return bool(_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)
-                or _codes_named(_all_user_text()))
+    return bool(_customer_m2() or _customer_numbers(_CUSTOMER_KW_RE)
+                or _codes_named(_all_user_text()) or _size_unknown())
 
 
 def _decline_text(latest):
@@ -6625,38 +6965,75 @@ def _decline_text(latest):
     return " ".join(out)
 
 
+# Contact only when the customer chose: a request for four details ended every second offer (QA 2026-11-01).
+_NO_CONTACT_YET = " O kontakt nežiadaj, kým si zákazník nevyberie."
+_NO_KW_YET = " Výkon v kW ešte nespomínaj."
+
+
+def _chose_quoted_series(latest):
+    """ "Beriem Avant Black": a verb of choice and a series the customer has a quote for."""
+    return bool(_CHOOSE_VERB_RE.search(latest)) and any(
+        rx.search(line["description"]) for rx in _SERIES_RES.values() if rx.search(latest)
+        for q in S().quotes for line in q["lines"])
+
+
+_CHOOSE_VERB_RE = re.compile(r"\b(?:beriem|objednám|objednam|vyberám|vyberam)\b", re.IGNORECASE)
+
+
+def _rooms_limit_note():
+    """More rooms than one outdoor unit takes (QA 2026-11-01: "jedna vonkajšia na 6 izieb" promised, then taken back)."""
+    if len(_customer_rooms()[0]) < 6:
+        return ""
+    return (" Miestností je viac než päť: jedna vonkajšia jednotka unesie najviac päť vnútorných, takže netvrď, že ich "
+            "pokryje jedna. Navrhni dva systémy a každý naceň vlastným `quote`.")
+
+
 def _sales_move(latest):
     """The next step of the sale: space → rooms → what matters → two priced options → answers / another variant →
     the contact (the order of knowledge/rules/feedback_overit_potreby_pred_ponukou.md)."""
     sess = S()
     folded = fold_diacritics(_all_user_text())
     if sess.quotes:
-        if sess.consent is None and _OFFER_CHOSEN_RE.search(latest):
+        if sess.consent is None and (_OFFER_CHOSEN_RE.search(latest) or _chose_quoted_series(latest)):
             return Move("kontakt", _OFFER_CHOSEN_TEXT, None)
-        if (_NEW_VARIANT_RE.search(fold_diacritics(latest)) or _codes_named(latest) or _SERIES_NAMED_RE.search(latest)
-                or _CUSTOMER_M2_RE.search(latest) or _CUSTOMER_KW_RE.search(latest)):
+        folded_latest = fold_diacritics(latest)
+        spec_question = bool(_SPEC_QUESTION_RE.search(folded_latest))
+        if (_NEW_VARIANT_RE.search(folded_latest)
+                or (not spec_question and (_codes_named(latest) or _SERIES_NAMED_RE.search(latest)
+                                           or _CUSTOMER_M2_RE.search(latest) or _CUSTOMER_KW_RE.search(latest)))):
             return Move("nova-ponuka", "Zákazník chce iný variant (lacnejší, iný rad, inú veľkosť alebo konkrétny kód): "
                         "naceň ho cez `quote` (kódy z `lookup_product`) a uveď cenu s DPH; ktorý je lacnejší, ber z "
-                        "`comparison_with_earlier_quotes`. Na nič, čo už povedal, sa znova nepýtaj." + _EXACT_AMOUNTS, "any")
+                        "`comparison_with_earlier_quotes`. Na nič, čo už povedal, sa znova nepýtaj."
+                        + _rooms_limit_note() + _NO_CONTACT_YET + _EXACT_AMOUNTS, "any")
         if "?" in latest or _TECH_QUESTION_RE.search(latest):
             return Move("odpoved", "Zákazník sa pýta na podrobnosti: odpovedz iba podľa výsledkov nástrojov (funkcie "
-                        "radu z `lookup_product`, pravidlá zo `search_knowledge`); čo v nich nie je, netvrď. Potom "
-                        "jednou vetou nadviaž na nacenené možnosti.", None)
+                        "radu a SEER, SCOP, hlučnosť z `lookup_product`, pravidlá zo `search_knowledge`); čo v nich nie "
+                        "je, netvrď. Potom jednou vetou nadviaž na nacenené možnosti." + _NO_CONTACT_YET, None)
         return Move("pokracuj", "Odpovedz stručne na to, čo zákazník napísal, a posuň rozhovor ďalej: nech si vyberie "
                     "z nacenených možností; o kontakt požiadaj, keď prejaví záujem.", None)
     if not _size_known():
         return Move("zisti-priestor", "Zákazník ešte nepovedal, aký priestor chce chladiť. Opýtaj sa na typ priestoru "
                     "a plochu v m² (pri byte či dome aj na to, ktoré izby chce chladiť) — najviac dve otázky, krátko. "
-                    "Nenaceňuj, neodporúčaj modely a nepýtaj sa na značku ani rozpočet.", None)
-    if _FLAT_ROOMS_RE.search(folded) and not _ROOMS_ANSWERED_RE.search(folded):
+                    "Nenaceňuj, neodporúčaj modely a nepýtaj sa na značku ani rozpočet." + _NO_KW_YET, None)
+    rooms, totals = _customer_rooms()
+    # "Dom má 120 m2" names no rooms: the live customer got 4, then 6 rooms the bot made up (QA 2026-11-01). Asked once.
+    whole_place_only = bool(totals and not rooms and not _customer_numbers(_CUSTOMER_KW_RE))
+    if ((_FLAT_ROOMS_RE.search(folded) or (whole_place_only and not _ASKED_ROOMS_RE.search(_recent_assistant_text(n=50))))
+            and not _ROOMS_ANSWERED_RE.search(folded)):
         return Move("zisti-izby", "Zákazník má viacizbový byt alebo dom: pred ponukou sa opýtaj, koľko a ktoré izby "
                     "chce chladiť a koľko m² má každá — od toho závisí, či stačí jeden set, alebo treba multi-split či "
-                    "viac setov. Nenaceňuj ešte.", None)
+                    "viac setov. Nenaceňuj ešte." + _NO_KW_YET, None)
     price_question = bool(_PRICE_QUESTION_RE.search(latest))
-    if not (_offer_due(latest) or price_question or _preferences_known()):
-        return Move("zisti-priority", "Plochu poznáš. Pred prvou ponukou sa jednou otázkou opýtaj, čo je pre zákazníka "
-                    "dôležité (tichý chod, filtrácia vzduchu, Wi-Fi ovládanie z mobilu, dizajn, čo najnižšia cena), "
-                    "a podľa toho vyber rad. Nenaceňuj ešte a nepýtaj sa na značku ani rozpočet.", None)
+    text = _all_user_text()
+    if not (_offer_due(latest) or price_question or _preferences_known() or _SERVER_ROOM_RE.search(text)):
+        # Wi-Fi and design are no priorities in a practice or an office (QA 2026-11-01).
+        commercial = _INFERRED_COMMERCIAL_RE.search(text) or any(rx.search(text) for rx in _EXPLICIT_COMMERCIAL_RES.values())
+        wishes = ("Je to komerčný priestor: opýtaj sa, či má podhľad, a čo je dôležité (tichý chod, filtrácia vzduchu, cena)"
+                  if commercial else
+                  "Pred prvou ponukou sa jednou otázkou opýtaj, čo je pre zákazníka dôležité (tichý chod, filtrácia "
+                  "vzduchu, Wi-Fi ovládanie z mobilu, dizajn, čo najnižšia cena)")
+        return Move("zisti-priority", f"Plochu poznáš. {wishes}, a podľa toho vyber rad. Nenaceňuj ešte a nepýtaj sa na "
+                    "značku ani rozpočet." + _rooms_limit_note() + _NO_KW_YET, None)
     directive = ("Teraz príde prvá ponuka: naceň dve možnosti, každú vlastným `quote`, a uveď ich ceny s DPH; potom sa "
                  "jednou otázkou opýtaj, ktorá mu vyhovuje. Na nič, čo už zákazník povedal, sa znova nepýtaj. "
                  # the A/B of 2026-10-27 asked for name and phone in the first offer
@@ -6664,14 +7041,27 @@ def _sales_move(latest):
     if price_question and not _preferences_known():
         directive += (" Po cenách sa opýtaj, čo je preň dôležité (tichý chod, filtrácia vzduchu, Wi-Fi, dizajn), "
                       "aby si ponuku spresnil.")
-    if _FLAT_ROOMS_RE.search(folded) or _MANY_ROOMS_RE.search(folded):
+    if not (_customer_m2() or _customer_numbers(_CUSTOMER_KW_RE) or _codes_named(text)):
+        directive += (" Zákazník plochu nevie: naceň nástenné sety 2,5 kW ako typickú veľkosť pre jednu izbu a povedz, že "
+                      "je to odhad a výkon potvrdí projektový manažér pri bezplatnej obhliadke.")
+    elif whole_place_only:
+        directive += (" Izby zákazník nevymenoval: nevymýšľaj ich počet ani veľkosť. Naceň príklad pre jednu izbu a "
+                      "povedz, že celý dom alebo byt navrhne projektový manažér pri bezplatnej obhliadke.")
+    if _FLAT_ROOMS_RE.search(folded) or _MANY_ROOMS_RE.search(folded) or len(rooms) >= 2:
         directive += (" Na 2–5 izieb naceň multi-split (vonkajšia + vnútorné jednotky; kódy cez `lookup_product` "
                       "'<značka> multi-split <výkon jednej jednotky v kW>') a ako druhú možnosť multi-split druhej "
                       "značky alebo samostatné sety.")
+    room_sets = _cheapest_room_sets(text) if _wished(_CHEAP_WISH_RE) else None
+    if room_sets:  # replay 2026-11-01: "lowest price" got a multi-split, the separate sets only when challenged
+        directive += (" Zákazník chce najnižšiu cenu: ako prvú možnosť naceň samostatné sety do izieb ("
+                      + "; ".join(f"{x['description']} {x['codes']}" for x in room_sets) + "), ako druhú multi-split.")
     picks = _suggested_sets()
     if picks:
         directive += _picks_text(picks)
-    return Move("ponuka", directive + _EXACT_AMOUNTS, "any")
+    return Move("ponuka", directive + _rooms_limit_note() + _EXACT_AMOUNTS, "any")
+
+
+_NEW_UNIT_WISH_RE = re.compile(r"\b(?:chcel\w*|chcem|potrebuj\w*|kupil\w*)\b[^.?!\n]{0,40}\b(?:este\s+jed\w*|druh\w*|dals\w*|nov\w*)\b", re.IGNORECASE)
 
 
 def next_move():
@@ -6683,12 +7073,18 @@ def next_move():
                     "bezpečnosť: nech vypne istič, na jednotku nesiaha a pri ohni alebo úniku plynu volá 112. Nič "
                     f"nepredávaj; potom mu daj kontakt na firmu: {_contact_offer()}.", None)
     if _support_case():
-        return Move("reklamacia", "Toto je reklamácia, oprava alebo servis — bot ich nerieši. Nepýtaj si údaje, nič "
-                    f"nesľubuj a povedz zákazníkovi, nech {_contact_offer()}.", None)
+        directive = ("Toto je reklamácia, oprava alebo servis — bot ich nerieši. Nepýtaj si údaje, nič "
+                     f"nesľubuj a povedz zákazníkovi, nech {_contact_offer()}.")
+        # A complaint and a new unit in one conversation: the sale goes on (QA 2026-11-01: three turns to a price).
+        if _NEW_UNIT_WISH_RE.search(fold_diacritics(_all_user_text())) and _size_known():
+            sale = _sales_move(latest)
+            return Move(sale.name, f"{directive} Potom k novej klimatizácii: {sale.directive}", sale.tool_choice)
+        return Move("reklamacia", directive, None)
     if _industrial_case():
         return Move("priemysel", (
             "Zákazník chce chladiť priemyselný alebo poľnohospodársky priestor (hala, výroba, továreň, chliev, "
-            "maštaľ, farma, skleník). Tento chatbot ho nerieši: nenavrhuj systém, výkon ani modely, nehľadaj a "
+            "maštaľ, farma, skleník) alebo potrebuje technologické chladenie (vínna pivnica, chladiareň). Tento "
+            "chatbot ho nerieši: nenavrhuj systém, výkon ani modely, netvrď, že to klimatizácia zvládne, nehľadaj a "
             "nenaceňuj, nepýtaj sa na plochu ani zóny. Krátko napíš, že také priestory navrhuje individuálne "
             f"projektový manažér, a ponúkni dve možnosti: kontakt ({_contact_offer()}), alebo nech nechá meno a "
             "telefón či e-mail — napíš to ako podmienku: „Ak mi necháte meno a telefón či e-mail, projektový manažér "
@@ -6723,6 +7119,17 @@ def _turn_move():
     return next_move()
 
 
+_REFRIGERANT_ASK_RE = re.compile(r"\b(?:freon\w*|chladiv\w*|r32|r410a?|r134a?|r407c?)\b", re.IGNORECASE)
+_NON_VAT_PAYER_RE = re.compile(r"\bneplatitel\w*\s+(?:dph|dane)", re.IGNORECASE)
+# Ukrainian and Hungarian customers got Slovak questions after saying they don't understand them (QA 2026-11-01).
+_HUNGARIAN_RE = re.compile(r"\b(?:szeretn\w*|kérem|mennyibe|légkondi\w*|klímát|magyarul|jó\s+napot|köszön\w*|legolcsóbb)\b", re.IGNORECASE)
+_OTHER_LANGUAGE_NOTE = "I can reply in Slovak or English only.\nOdpovedám iba po slovensky alebo po anglicky."
+
+
+def _other_language(text):
+    return len(re.findall(r"[А-Яа-яЁёІіЇїЄєҐґ]", text)) >= 6 or bool(_HUNGARIAN_RE.search(text))
+
+
 def build_server_context(note=None):
     """This call's server context (see the caching note above), with an optional server note."""
     # The direction first: one move, decided by code (see "Conversation policy").
@@ -6752,6 +7159,18 @@ def build_server_context(note=None):
     folded_text = fold_diacritics(_all_user_text())
     if _COLOR_WISH_RE.search(folded_text):
         status += "\n" + _colors_text()
+    latest = S().user_inputs[-1] if S().user_inputs else ""
+    if _NON_VAT_PAYER_RE.search(folded_text):
+        status += ("\nZákazník je neplatiteľ DPH: zaplatí cenu s DPH, tá je presná, nie orientačná. Nepíš, že kupuje bez "
+                   "DPH; cena bez DPH je iba údaj.")
+    if _REFRIGERANT_ASK_RE.search(fold_diacritics(latest)):
+        status += ("\nChladivo bot nepredáva ani nenaceňuje (F-plyny, nariadenie EÚ 517/2014): povedz to jednou vetou a "
+                   f"odkáž zákazníka na certifikovaného inštalatéra alebo na firmu: {_contact_offer()}.")
+    if _HEALTH_RE.search(latest):
+        status += "\nDiagnózy sa do záznamu pre projektového manažéra nezapisujú: nepíš, že si ju poznačil alebo odovzdal."
+    if _other_language(latest):
+        status += ("\nZákazník píše jazykom, v ktorom neodpovedáme: odpovedz krátko a jednoducho po slovensky, nie v "
+                   "inom jazyku ani transliterácii, a prekladač neodporúčaj. Vetu o jazykoch pripojí server.")
     if _SUN_HEAT_RE.search(folded_text):
         # 2ef94e: "slnečná strana bez izolácie — 1 kW na 10 m² nebude stačiť, cena sa zvýši"
         status += ("\nZákazník spomenul slnko, prehrievanie, izoláciu alebo podkrovie. Dimenzuj podľa pravidla na m² "
@@ -6865,6 +7284,9 @@ def _auto_extract_lead_info(user_input):
         state["lead_name"] = " ".join(words)
         S().pii_seen.update(words)
         extracted.append("lead_name")
+    # "volám sa Jozo": the name isn't stored, but the log must not keep it after a refusal (QA 2026-11-01).
+    for m in _NAME_INTRO_RE.finditer(text):
+        S().pii_seen.update(w for w in m.groups() if w and w.lower() not in _NOT_NAME_WORDS)
     if phone or email:
         # The name typed next to the contact ("Dobrý deň, Jozef Mráz, 0907…") is masked in the log
         # even when the model never stores it (a02, q03) — remembered for masking, not stored.
@@ -6882,13 +7304,17 @@ def _auto_extract_lead_info(user_input):
     return extracted
 
 
+_NAME_WORD = r"[A-ZÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ][a-záäčďéíĺľňóôŕšťúýž]{2,}"
+_NAME_INTRO_RE = re.compile(rf"\b(?i:vol[áa]m\s+sa|moje\s+meno\s+je|my\s+name\s+is|som)\s+({_NAME_WORD})(?:\s+({_NAME_WORD}))?")
+
+
 def _should_auto_capture():
     """Auto-capture fires on the code-recorded state, never on readiness words in the
     customer's text (in c14 an 'áno' after a complaint became a lead): sales consent
     recorded, a contact known, no lead yet, no support handoff. Checked after every turn,
     including a failed one, so a yes given in a turn that then broke still reaches the PM."""
     sess = S()
-    if sess.handoff_path is not None or sess.auto_capture_attempts >= 2:
+    if sess.handoff_path is not None or sess.auto_capture_attempts >= 2 or sess.consent_withdrawal_requested:
         return False
     if not sess.consent or sess.consent["purpose"] != "sales":
         return False
@@ -7072,6 +7498,8 @@ def run_user_turn_streaming(user_input):
         yield ("notice", {"text": f"Súhlas zaznamenaný serverom (účel: {sess.consent['purpose']})."})
     elif consent_event == "refused":
         yield ("notice", {"text": "Zákazník súhlas odmietol — osobné údaje sa neuložia."})
+    elif consent_event == "withdrawn":
+        yield ("notice", {"text": "Zákazník odvolal súhlas alebo žiada vymazanie — záznam označený, vybaví operátor."})
     if consent_event or contact_fields:
         yield ("state", dict(sess.customer_state))
     language = _session_language()
@@ -7082,6 +7510,14 @@ def run_user_turn_streaming(user_input):
 
     turn_start = len(sess.conversation)  # rollback point if the API fails mid-turn
     sess.conversation.append({"role": "user", "content": user_input})
+
+    if consent_event == "withdrawn":  # a data-subject request: code answers, without a model call
+        if sess.handoff_path is not None and sess.handoff_path.exists():
+            yield ("handoff", {"markdown": sess.handoff_path.read_text(encoding="utf-8"), "path": _rel(sess.handoff_path)})
+        yield from _close_turn(_withdrawal_text(language), "withdrawal")
+        yield ("done", {"session_tokens": sess.input_tokens, "session_usd": round(sess.cost_usd, 4),
+                        "messages": len(sess.conversation)})
+        return
 
     # Budget gate before any model call: the account is paused, or the conversation is spent.
     if breaker_open():
@@ -7264,6 +7700,11 @@ def run_user_turn_streaming(user_input):
             if answering and not force_final and not attempt_text.strip() and not shown_this_turn:
                 violations.append("prazdna-odpoved: odpoveď je prázdna. Napíš zákazníkovi odpoveď na jeho poslednú "
                                   "správu — výsledky nástrojov už máš, nevolaj ich znova.")
+            if answering and attempt_text.strip() and _SELF_CORRECTION_RE.search(attempt_text):
+                violations.append("samooprava: opravuješ sumu priamo v odpovedi. Každú sumu napíš raz a správne.")
+            if answering and attempt_text.strip() and _false_cheapest_claim(quotes_before, attempt_text):
+                violations.append("najlacnejsie-tvrdenie: označuješ ponuku za najlacnejšiu, hoci `quote` vo `fit_warnings` "
+                                  "uvádza lacnejší vhodný variant.")
             if answering and attempt_text.strip() and _single_first_offer(user_input, quotes_before, attempt_text):
                 violations.append(
                     "dve-moznosti: ukazuješ iba jednu nacenenú možnosť. Pri prvej ponuke ukáž dve, obe nacenené "
@@ -7307,10 +7748,11 @@ def run_user_turn_streaming(user_input):
                 spelling_regen_used = spelling_regen_used or any(v.startswith("pravopis:") for v in regen_worthy)
                 # A price question left without a quote: the next attempt must call a tool (d04 made no
                 # tool call in 7 turns and told the customer real codes weren't in the price list).
-                force_tool = any(v.startswith(("cena-neodpovedana", "dve-moznosti", "funkcia-bez-podkladu"))
+                force_tool = any(v.startswith(("cena-neodpovedana", "dve-moznosti", "funkcia-bez-podkladu",
+                                               "najlacnejsie-tvrdenie"))
                                  for v in regen_worthy) or (
                     any(v.startswith("zakazana-otazka") for v in regen_worthy) and not sess.quotes
-                    and bool(_customer_numbers(_CUSTOMER_M2_RE) or _customer_numbers(_CUSTOMER_KW_RE)))
+                    and bool(_customer_m2() or _customer_numbers(_CUSTOMER_KW_RE)))
                 log_event("bot_reply_regen_triggered", violations=regen_worthy, bad_reply_excerpt=attempt_text[:200],
                           stop_reason=response.stop_reason)
                 u_bad = response.usage
@@ -7348,6 +7790,8 @@ def run_user_turn_streaming(user_input):
             log_event("bot_reply_sentences_dropped", violations=hard, dropped=dropped)
             yield ("notice", {"text": f"Server odstránil {len(dropped)} vet(u/y) s porušením: "
                                       + "; ".join(v.split(":", 1)[0] for v in hard)})
+        if any(v.startswith("najlacnejsie-tvrdenie") for v in soft):  # regenerations used up: drop the label
+            attempt_text = _CHEAPEST_PAREN_RE.sub("", attempt_text)
         if language == "sk" and any(v.startswith("cena-dph-a-recyklacne-poplatky") for v in soft):
             attempt_text = _add_recycling_note(attempt_text)
             soft = [v for v in soft if not v.startswith("cena-dph-a-recyklacne-poplatky")]
@@ -7418,6 +7862,9 @@ def run_user_turn_streaming(user_input):
                 sess.consent_reasks += 1
             log_event("consent_question_appended", purpose=purpose,
                       reason="contact_without_consent" if contact_in_message else "reask" if reask else "contact_request")
+        if is_final and attempt_text.strip() and not sess.language_note_shown and _other_language(user_input):
+            sess.language_note_shown = True
+            attempt_text = f"{_OTHER_LANGUAGE_NOTE}\n\n{attempt_text}"
         # Danger first: when the customer reports smoke, sparks, a burning or gas smell or a shock,
         # the reply opens with the safety steps if the model left them out.
         if is_final and _DANGER_RE.search(user_input) and "112" not in attempt_text \

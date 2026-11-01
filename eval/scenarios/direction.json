@@ -238,6 +238,9 @@
          "should": "Dve možnosti triedy 1 filtrácie s Wi-Fi, obe s cenou s DPH (ak ju odpoveď stratí, server ju doplní z quote)."}
       ],
       "final": {"quotes_min": 2, "price_shown": true}
-    }
+    },
+    {"id": "zoznam_izieb", "title": "Tri izby jedným zoznamom m², QA 2026-11-01", "turns": [{"customer": "Dobrý deň, chcem klímu do troch izieb, majú 25, 15 a 12 m2. Hlavne čo najlacnejšie.", "expect": ["ponuka"], "should": "Dve nacenené možnosti pre všetky tri izby (multi-split alebo samostatné sety), nie cena za jednu izbu."}], "final": {"quotes_min": 1, "price_shown": true, "any_lacks": ["osobitne", "izba má 12 m²"]}},
+    {"id": "plocha_neznama", "title": "Zákazník nevie plochu, QA 2026-11-01", "turns": [{"customer": "dobry den, byt 2 izby, spalna a obyvacka, neviem kolko m2 taka normalna", "expect": ["zisti-priority"], "should": "Bez ďalšej otázky na m²: čo je dôležité."}, {"customer": "hlavne lacno. daj cenu", "expect": ["ponuka"], "should": "Cena za typickú veľkosť s poznámkou, že výkon potvrdí projektový manažér pri obhliadke."}], "final": {"quotes_min": 1, "price_shown": true}},
+    {"id": "sest_izieb", "title": "Šesť izieb na jednu vonkajšiu, QA 2026-11-01", "turns": [{"customer": "Rodinný dom, 6 miestností: 30, 22, 18, 15, 14 a 12 m2, všetko na jednu vonkajšiu jednotku.", "expect": ["zisti-priority"], "should": "Povie, že jedna vonkajšia jednotka unesie najviac päť vnútorných, a nesľúbi šesť."}], "final": {"any_lacks": ["dá klimatizovať jednou vonkajšou"]}}
   ]
 }

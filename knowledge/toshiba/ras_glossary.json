@@ -30,7 +30,7 @@
   },
 
   "feature_aliases": {
-    "WiFi": ["wifi", "wi-fi", "wireless", "smart", "aplikacia", "ovladanie cez telefon", "remote app", "smartphone control"],
+    "WiFi": ["wifi", "wi-fi", "wireless", "smart", "aplikacia", "ovladanie cez telefon", "remote app", "smartphone control", "alexa", "google assistant", "google home", "hlasove ovladanie"],
     "Energy Monitoring": ["energy monitoring", "monitoring spotreby", "spotreba energie", "elektricka spotreba", "kwh meranie"],
     "Plazmový ionizátor": ["plazma", "plazmovy", "ionizator", "plasma", "ionizer", "plazmovy filter"],
     "Filter Ultra Pure": ["ultra pure", "ultra pure 2.5", "PM2.5", "PM 2.5", "jemny prach", "fine particles", "antialergicky filter"],
@@ -91,6 +91,7 @@
     "ake_klimatizacie_predavate": "Toshiba RAS HOME – domáce nástenné, parapetné a kazetové klimatizácie. 8 rád od entry SEIYA Classic 2 (1 000 €) po PREMIUM DAISEIKAI 10 Wood (2 600 €).",
     "co_je_lepsie_shorai_alebo_daiseikai": "DAISEIKAI 10 má vyššiu účinnosť (SEER 10,7 vs 8,6), HADA careflow a Smart Sensing, ale je o ~50 % drahší. SHORAI je top voľba ak nepotrebujete extra účinnosť.",
     "rozdiel_seiya_vs_seiya_classic_2": "SEIYA Classic 2 je entry CLASSIC Line (A++/A+, SEER 6,1). SEIYA je BASIC Line (A++/A++, SEER 7,0) s lepšou účinnosťou aj vykurovaním (-A++ namiesto A+).",
+    "ma_toshiba_hlasove_ovladanie": "Wi-Fi modul RB-N105S-G (TOSHIBA Home AC Control) má podľa cenníka príslušenstva hlasové ovládanie cez Google Assistant a Amazon Alexa.",
     "ma_toshiba_wifi": "Áno – v SHORAI CURVE, HAORI, DAISEIKAI 10 je WiFi štandardne. V SEIYA Classic 2 a SEIYA je voliteľné (RB-N105S-G, 115 €).",
     "potrebujem_ovladac_extra": "IR ovládač je v balení každého setu. Voliteľne RB-RXS33-E (105 €) s týždenným časovačom.",
     "co_je_haori_special": "HAORI má textilný kryt v 6 farbách (2 v cene, 4 voliteľné po 125 €), plazmový ionizátor, Ultra Pure filter a štandardne WiFi."

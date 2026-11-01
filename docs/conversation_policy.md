@@ -39,12 +39,12 @@ flowchart TD
 | move | when | what the reply does |
 |---|---|---|
 | `bezpecnost` | danger in the latest message (`_DANGER_RE`) | safety steps first (code also prepends them), nothing sold, the company contact |
-| `reklamacia` | `_support_case()` | the company contact; no personal data asked, nothing promised |
-| `priemysel` | `_industrial_case()` | no design or price; the PM designs it — contact, or name and phone as a condition |
+| `reklamacia` | `_support_case()` | the company contact; no personal data asked, nothing promised. With a wish for a new unit and a known size, the sale's move follows the same directive |
+| `priemysel` | `_industrial_case()`: an industrial or agricultural space, a wine cellar, a cold room | no design or price; the PM designs it — contact, or name and phone as a condition |
 | `vlastna-montaz` | the customer installs a unit themselves | no advice; the PM or the company contact |
 | `zapis` / `po-zapise` | sales consent recorded, lead not yet / already written | only the missing contact details, `capture_lead`; afterwards follow-up questions |
-| `zisti-priestor` | no m², kW or code yet | the type of space and its m², at most two questions, no prices |
-| `zisti-izby` | a multi-room flat or house without an answer about the rooms | which rooms and their m² |
+| `zisti-priestor` | no m², kW or code yet, and the customer didn't say they don't know | the type of space and its m², at most two questions, no prices |
+| `zisti-izby` | a multi-room flat or house without an answer about the rooms; a whole house or flat named only by its total, asked once | which rooms and their m² |
 | `zisti-priority` | size known, no price question, no wish, not asked yet | one question about what matters |
 | `ponuka` | the first offer is due (`_offer_due`, a price question or wishes known) | two options, each priced by `quote` (code-picked sets when `_suggested_sets` finds them; multi-split for 2–5 rooms) |
 | `kontakt` | an offer exists and the customer picked one | the contact request; code appends the consent question |

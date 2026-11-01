@@ -2,6 +2,7 @@
   "_about": "Retrieval test set for search_knowledge (tests/test_guards.py RetrievalTests). Each query is written the way the bot's model searches (keywords, Slovak). `expect` lists the files that answer it; a query hits when one of them is among the top-k results (k = dynamic_k). RULES_INDEX.md and the brand index files don't count for a rule or a feature: they only hold a one-line summary. `out_of_kb` are questions the knowledge base doesn't answer: search_knowledge must flag them as a weak match (SEARCH_MIN_SCORE).",
   "queries": [
     {"q": "kazetová jednotka dekoračný panel a ovládač sú povinné", "expect": ["knowledge/rules/feedback_kazety_potrebuju_panel.md"]},
+    {"q": "Toshiba hlasové ovládanie Alexa Google Assistant", "expect": ["knowledge/toshiba/ras_glossary.json", "knowledge/toshiba/accessories/ras_accessories.json"]},
     {"q": "multi-split maximálny počet vnútorných jednotiek kompatibilita", "expect": ["knowledge/rules/feedback_multi_split_pravidla.md"]},
     {"q": "dimenzovanie výkonu kW na m2 izolácia slnečná strana", "expect": ["knowledge/rules/feedback_dimenzovanie_kapacity.md"]},
     {"q": "chladivo R32 alebo R410A rozdiel", "expect": ["knowledge/rules/feedback_chladivo_r32_r410a.md"]},

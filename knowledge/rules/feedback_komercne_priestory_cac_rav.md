@@ -117,6 +117,7 @@ Postup:
 - ❌ Pre serverovňu deliť záťaž na 2× polovičné jednotky — pri zlyhaní zostane 50 % kapacity.
 - ❌ **NIKDY multi-split pre serverovňu** — ani FJM, ani RAV multi, ani Twin/Triple/Double-Twin/DPM, ani 2× indoor na 1× outdoor. Zdieľaný okruh = iluzórna redundancia.
 - ❌ Nástennú klimu nad sedacie miesto klienta (kaderníctvo, manikúra, ambulancia) — fúka do hlavy. Preferuj kazety/podstropné.
+- ✅ Bez podhľadu je podstropná jednotka prvá voľba: visí zo stropu a podhľad nepotrebuje. Podhľad potrebuje iba kazeta.
 - ❌ Zabudnúť na filtre v zdravotníckych/kozmetických priestoroch — Plazma, Air Purification, UltraPure = silný argument.
 - ❌ Uvádzať rezidenčný cenník pre komerčný projekt — komerčný set je drahší, ak skryješ a predajca to dohovorí, zákazník sa cíti oklamaný.
 
