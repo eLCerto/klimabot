@@ -6,6 +6,7 @@
   },
   "kw_per_m2": 0.1,
   "undersize_ratio": 0.85,
+  "_undersize_note": "Spodná hranica. Väčšia veľkosť sa odmietne, iba keď menšia splní pravidlo celé (m² × kw_per_m2); pod celé pravidlo ide ponuka len pri želaní najnižšej ceny (majiteľ, 2026-11-01).",
   "server_room": {
     "triggers": ["serverov", "server room", "serverroom", "rack", "it miestnos", "dátov", "datov"],
     "min_independent_systems": 2,
@@ -25,6 +26,10 @@
   "technological": {
     "note": "Technologické chladenie (vínna pivnica, chladiareň): stála nízka teplota, ktorú podklady nepotvrdzujú. Chatbot ho nenavrhuje ani nenaceňuje, rieši ho projektový manažér ako priemyselný priestor (QA 2026-11-01).",
     "triggers": ["vínn", "vinn", "vinotek", "vínotek", "chladiar", "chladiren", "chladiareň", "mraziar", "mraziren"]
+  },
+  "accommodation": {
+    "note": "Hotel, penzión a podobné ubytovanie: správne riešenie navrhne projektový manažér, chatbot nenavrhuje ani nenaceňuje (majiteľ, 2026-11-01).",
+    "triggers": ["hotel", "penzión", "penzion", "hostel", "ubytovň", "ubytovn", "ubytovac", "guesthouse", "guest house"]
   },
   "office_words": ["kancelári", "kancelari", "coworking"],
   "office_residential_ok_up_to_m2": 25,

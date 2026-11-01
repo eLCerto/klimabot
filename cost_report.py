@@ -140,6 +140,7 @@ def summarize(path):
         "consent_refused": False,
         "lead_before_consent": False,
         "lead_without_sales_consent": False,
+        "complaints": 0,                       # complaint handovers (complaint_captured)
     }
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -201,6 +202,13 @@ def summarize(path):
                 s["lead_before_consent"] = True
             elif s["consent_purpose"] != "sales":
                 s["lead_without_sales_consent"] = True
+        elif ev == "complaint_captured":
+            # A second kind of handover, with the same chain and its own purpose: sales consent doesn't cover it.
+            s["complaints"] += 1
+            if s["consent_purpose"] is None:
+                s["lead_before_consent"] = True
+            elif s["consent_purpose"] != "complaint":
+                s["lead_without_sales_consent"] = True
         elif ev == "auto_lead_capture_triggered":
             s["auto_leads"] += 1
         elif ev == "handoff_regenerated":
@@ -240,13 +248,14 @@ def summarize(path):
     s["duration_min"] = (end - start).total_seconds() / 60 if (start and end) else None
     s["transcript_logged"] = s["bot_replies"] > 0
 
-    # GDPR audit per session (question < explicit yes < lead, sales purpose):
+    # GDPR audit per session (question < explicit yes < handover, the purpose of that handover: sales for a lead,
+    # complaint for a complaint):
     #   - no leads → not applicable
     #   - leads + no transcript → "unverifiable" (pre-logging era)
-    #   - a lead before the yes, or with support-only consent → VIOLATION
+    #   - a handover before the yes, or with consent for the other purpose → VIOLATION
     #   - otherwise OK
     s["gdpr_status"] = "n/a"
-    if s["leads"] > 0:
+    if s["leads"] > 0 or s["complaints"] > 0:
         if not s["transcript_logged"]:
             s["gdpr_status"] = "unverifiable"
         elif s["lead_before_consent"] or s["lead_without_sales_consent"]:
@@ -321,7 +330,8 @@ def print_gdpr_audit(rows):
     print("=== GDPR / ÚOOÚ compliance audit ===")
     print(f"  ✓ OK (consent recorded before lead):  {len(ok)}")
     print(f"  ⚠ Unverifiable (no transcript log):   {len(unverif)}")
-    print(f"  ✗ Violations (lead w/o GDPR):         {len(violations)}")
+    print(f"  ✗ Violations (handover w/o GDPR):     {len(violations)}")
+    print(f"  Complaint handovers (audited too):    {sum(s['complaints'] for _, s in rows)}")
     if violations:
         print()
         print("  Violation sessions — investigate:")

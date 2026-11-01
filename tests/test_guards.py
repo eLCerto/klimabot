@@ -253,37 +253,127 @@ class ConsentTests(BotTest):
 
 # ---------- support path ----------
 
-class SupportTests(BotTest):
-    """Complaints are not handled by the bot (the owner's decision, 2026-10-11): no consent
-    question, no personal data, the company's e-mail / phone instead."""
+COMPLAINT_Q = bot.CONSENT_QUESTIONS["complaint"]["sk"]
 
-    def test_complaint_gets_the_company_contact_and_no_data_request(self):  # a01
+
+class SupportTests(BotTest):
+    """A complaint is the second kind of handover (the owner, 2026-11-01): the bot doesn't solve it, it collects the
+    contact under its own consent question and hands it to the team; without consent the company contact."""
+
+    def complaint(self, name="Eva Malá", contact="0905 000 444", capture=True):
+        self.turn("Reklamácia: klíma od vás kvapká vodu do izby.",
+                  resp(text("Je mi to ľúto. Ak mi necháte meno, telefón, e-mail a obec a odsúhlasíte otázku nižšie, odovzdám "
+                            "reklamáciu nášmu tímu.")))
+        if capture:
+            block = tool("capture_lead")
+            block.input = {"name": name, "contact": contact, "summary": "Jednotka kvapká vodu do izby."}
+            _, shown = self.turn(f"Áno, súhlasím. {name}, {contact}, Nitra.", resp(block), resp(text("Odovzdávam reklamáciu tímu.")))
+            return shown
+
+    def test_a_complaint_asks_for_the_contact_under_its_own_question(self):  # a01
         _, shown = self.turn("V apríli ste nám montovali Toshibu a od pondelka nechladí.",
-                             resp(text("Mrzí ma to. Na spätné zavolanie potrebujem vaše meno a telefónne číslo.")),
-                             resp(text("Mrzí ma to, že klimatizácia nechladí.")))
+                             resp(text("Mrzí ma to. Na spätné zavolanie potrebujem vaše meno a telefónne číslo.")))
+        self.assertIn(COMPLAINT_Q, shown)
         self.assertNotIn(SALES_Q, shown)
-        self.assertIn(bot.COMPANY_EMAIL, shown)
-        self.assertNotIn("telefónne číslo", shown)
+        self.assertEqual(self.sess.consent_ask_purpose, "complaint")
         self.sess.user_inputs[:] = ["Stará klíma nám nefunguje, chceme novú do obývačky."]
         self.assertFalse(bot._support_case(), "a broken old unit to replace is a sale")
 
-    def test_complaint_never_collects_contact_or_becomes_a_lead(self):  # c14
-        _, shown = self.turn(
-            "Reklamácia: klíma od vás kvapká vodu do izby.",
-            resp(tool("request_human_handoff", reason="complaint", customer_question="kvapká voda")),
-            resp(text("Je mi ľúto, že klimatizácia kvapká.")))
+    def test_code_asks_when_the_reply_forgot_to(self):
+        _, shown = self.turn("Reklamácia: klíma od vás kvapká.", resp(text("Je mi to veľmi ľúto.")))
+        self.assertIn("meno, telefón, e-mail a obec", shown)
+        self.assertIn(COMPLAINT_Q, shown)
+
+    def test_a_promise_before_consent_is_still_refused(self):
+        _, shown = self.turn("Reklamácia: klíma od vás kvapká.", *[resp(text("Vašu reklamáciu som odovzdal tímu.")) for _ in range(3)])
+        self.assertNotIn("odovzdal", shown)
+
+    def test_consent_writes_a_complaint_not_a_lead(self):
+        shown = self.complaint()
+        self.assertIn("Odovzdávam", shown)
+        record = json.loads(bot.LEADS_PATH.read_text(encoding="utf-8").splitlines()[-1])
+        self.assertEqual((record["type"], record["consent"]["purpose"]), ("complaint", "complaint"))
+        brief = self.sess.handoff_path.read_text(encoding="utf-8")
+        self.assertTrue(brief.startswith("# Reklamácia"))
+        self.assertIn("kvapká vodu do izby", brief)
+        self.assertNotIn("cenové ponuky", brief)
+        self.assertIn('"event": "complaint_captured"', self.log_text())
+        self.assertNotIn('"event": "lead_captured"', self.log_text())
+
+    def test_a_lead_stays_a_lead(self):
+        self.turn("Chcem klímu, volajte mi.", resp(text("Aké je vaše meno a telefónne číslo?")))
+        self.turn("Áno, súhlasím. Peter Hudák, 0905123456.", resp(text("Ďakujem.")))
+        self.sess.handoff_path = None
+        bot.capture_lead("Peter Hudák", "0905123456", "Spálňa.")
+        self.assertEqual(self.sess.lead_record["type"], "lead")
+        self.assertIn('"event": "lead_captured"', self.log_text())
+
+    def test_a_refusal_stores_nothing_and_gives_the_contact(self):
+        self.complaint(capture=False)
+        _, shown = self.turn("Nie, nesúhlasím.", resp(text("Rozumiem, prepáčte.")))
         self.assertIn(bot.COMPANY_EMAIL, shown)
-        self.assertNotIn(SALES_Q, shown)
-        _, shown = self.turn("0905 000 444, zavolajte mi", resp(text("Rozumiem.")))
-        self.assertNotIn(SALES_Q, shown, "no consent question in a complaint")
-        self.assertIsNone(self.sess.consent)
         self.assertIsNone(self.sess.handoff_path)
         self.assertIn("error", bot.capture_lead("X", "0905000444", "x"))
-        queue = [json.loads(l) for l in bot.HANDOFF_PATH.read_text(encoding="utf-8").splitlines()]
-        mine = [q for q in queue if q["log_file"] == self.sess.log_path.name]
-        self.assertEqual(mine[-1]["purpose"], "support")
-        self.assertNotIn("lead_phone", mine[-1]["customer_state"])
+
+    def test_a_contact_without_yes_is_not_a_handover(self):
+        self.complaint(capture=False)
+        self.turn("0905 000 444, zavolajte mi", resp(text("Ďakujem, potrebujem ešte vaše áno.")))
+        self.assertIsNone(self.sess.consent)
         self.assertNotIn("0905 000 444", self.log_text())
+
+    def test_the_safety_net_writes_a_complaint_the_model_forgot(self):
+        self.complaint(capture=False)
+        self.turn("Áno, súhlasím. Eva Malá, 0905 000 444, Nitra.", resp(text("Ďakujem.")))
+        self.assertEqual(self.sess.lead_record["type"], "complaint")
+        self.assertIn("kvapká vodu", self.sess.handoff_path.read_text(encoding="utf-8"))
+
+    def test_what_the_customer_adds_reaches_the_complaint(self):
+        self.complaint()
+        self.assertEqual(self.move_name("voda tečie hlavne večer po zapnutí"), "po-zapise")
+        self.turn("voda tečie hlavne večer po zapnutí", resp(text("Poznačil som to.")))
+        self.assertIn("hlavne večer", self.sess.handoff_path.read_text(encoding="utf-8"))
+
+    def move_name(self, message):
+        self.sess.user_inputs.append(message)
+        name = bot.next_move().name
+        self.sess.user_inputs.pop()
+        return name
+
+    def test_a_withdrawal_marks_the_complaint(self):
+        self.complaint()
+        _, shown = self.turn("Prosím vymažte moje údaje.")
+        self.assertIn("NEKONTAKTOVAŤ", self.sess.handoff_path.read_text(encoding="utf-8"))
+
+    def test_a_sale_after_a_complaint_needs_its_own_consent(self):
+        self.complaint()
+        path = self.sess.handoff_path
+        bot.quote([{"code": c} for c in AR30_SET])
+        _, shown = self.turn("A chcem aj novú do spálne 14 m2, beriem tento model, pošlite ponuku.",
+                             resp(text("Pošlite mi meno a telefón.")))
+        self.assertIn(SALES_Q, shown)
+        self.assertIsNone(self.sess.consent)
+        self.assertTrue(path.exists(), "the complaint stays")
+        self.assertIn("error", bot.capture_lead("Eva Malá", "0905 000 444", "Spálňa."), "complaint consent is no sales consent")
+
+    def test_the_details_are_asked_once(self):
+        self.complaint(capture=False)
+        _, shown = self.turn("Dajte mi adresu, prídem osobne.", resp(text(
+            "Mrzí ma to. Adresu v tomto chate nemám. Potrebujem vaše meno, telefón, e-mail a obec.")))
+        self.assertNotIn("Potrebujem", shown)
+        self.assertNotIn(COMPLAINT_Q, shown)
+        self.assertIn("Adresu", shown)
+        self.say_move = bot.next_move().directive
+        self.assertIn("znova ich nepýtaj", self.say_move)
+
+    def test_details_given_later_still_get_the_question(self):
+        self.complaint(capture=False)
+        self.turn("Dobre, tak si to rozmyslím.", resp(text("Rozumiem.")))
+        _, shown = self.turn("Eva Malá, 0905 000 444, Nitra.", resp(text("Ďakujem.")))
+        self.assertIn(COMPLAINT_Q, shown)
+
+    def test_the_mail_says_which_kind_it_is(self):
+        self.complaint()
+        self.assertIn("Nová reklamácia", bot._lead_mail_message(self.sess)["Subject"])
 
     def test_new_unit_after_a_complaint_is_a_normal_sale(self):  # q05
         self.turn("Reklamácia: klíma od vás kvapká.", resp(text("Je mi ľúto.")))
@@ -1422,6 +1512,21 @@ class AuditTests(unittest.TestCase):
             {"event": "user_input", "text": "áno"},
             {"event": "lead_captured", "name": "Peter"},
         ]), "violation")
+
+    def test_a_complaint_needs_its_own_question(self):
+        complaint_q = bot.CONSENT_QUESTIONS["complaint"]["sk"]
+        self.assertEqual(self.write_log([
+            {"event": "assistant_reply", "text": complaint_q}, {"event": "user_input", "text": "Áno, súhlasím."},
+            {"event": "complaint_captured", "name": "Peter"}]), "ok")
+        self.assertEqual(self.write_log([
+            {"event": "assistant_reply", "text": SALES_Q}, {"event": "user_input", "text": "Áno, súhlasím."},
+            {"event": "complaint_captured", "name": "Peter"}]), "violation")
+        self.assertEqual(self.write_log([
+            {"event": "assistant_reply", "text": complaint_q}, {"event": "user_input", "text": "Áno, súhlasím."},
+            {"event": "lead_captured", "name": "Peter"}]), "violation")
+        self.assertEqual(self.write_log([
+            {"event": "assistant_reply", "text": complaint_q}, {"event": "user_input", "text": "Peter, 0905 000 101"},
+            {"event": "complaint_captured", "name": "Peter"}]), "violation")
 
     def test_question_yes_lead_is_ok(self):
         self.assertEqual(self.write_log([
@@ -2655,7 +2760,7 @@ class QaFixTests(BotTest):
         self.assertEqual(shown, "Predávame Samsung a Toshiba.")
 
     def test_f06_the_cheapest_set_is_per_room(self):
-        self.say("Penzión, izby 20 m2 a recepcia 40 m2. Chcem najlacnejšie riešenie.")
+        self.say("Rodinný dom, izby 20 m2 a obývačka 40 m2. Chcem najlacnejšie riešenie.")
         result = bot.quote([{"code": c, "qty": 12} for c in ("AR70F09C1AWNEU", "AR70F09C1AWXEU")])
         self.assertTrue(any("nie je najlacnejší" in w and "AR40H09C" in w for w in result["fit_warnings"]), result["fit_warnings"])
         self.assertTrue(bot._false_cheapest_claim(0, "**Možnosť 1 (najnižšia cena)**"))
@@ -2670,10 +2775,35 @@ class QaFixTests(BotTest):
         self.assertFalse(any("multi-split nie je najlacnejší" in w for w in bot.quote(lines).get("fit_warnings", [])))
 
     def test_f06_commercial_units_are_not_the_cheapest_for_rooms(self):
-        self.say("Penzión, izby 20 m2 a recepcia 40 m2. Chcem najlacnejšie riešenie.")
+        self.say("Rodinný dom, izby 20 m2 a obývačka 40 m2. Chcem najlacnejšie riešenie.")
         result = bot.quote([{"code": "AC071RNNDKG/EU", "qty": 2}, {"code": "PC4SUFMAN", "qty": 2}, {"code": "MWR-SH11N", "qty": 2},
                             {"code": "AC071BXAPKG/EU", "qty": 2}])
         self.assertTrue(any("komerčná zostava nie je najlacnejší" in w for w in result.get("fit_warnings", [])), result)
+
+    def test_a_bigger_size_is_refused_only_when_a_smaller_one_meets_the_rule(self):  # the owner, 2026-11-01
+        avant = {2.0: "AR70F07C1AWNEU", 2.5: "AR70F09C1AWNEU", 3.5: "AR70F12C1AWNEU"}
+        outdoor = {2.0: "AR70F07C1AWXEU", 2.5: "AR70F09C1AWXEU", 3.5: "AR70F12C1AWXEU"}
+        def set_of(kw):
+            return [{"code": avant[kw]}, {"code": outdoor[kw]}]
+        for m2, kw, refused in ((23, 2.5, False), (28, 3.5, False), (20, 2.5, True), (16, 2.5, True), (25, 3.5, True)):
+            self.say(f"Obývačka {m2} m2.")
+            self.assertEqual("error" in bot.quote(set_of(kw)), refused, (m2, kw))
+        self.say("Obývačka 23 m2, najlacnejšie.")
+        self.assertNotIn("error", bot.quote(set_of(2.0)), "the cheapest may go down to the lower limit")
+        self.assertEqual(bot._offer_min_kw(23), 1.96)
+        self.say("Obývačka 23 m2.")
+        self.sess.quotes.clear()
+        self.assertEqual(bot._offer_min_kw(23), 2.3)
+        kw = [rec["raw"]["cooling_kW"] for rec, _ in bot._suggested_sets() or []]
+        self.assertTrue(kw and min(kw) >= 2.3, kw)
+
+    def test_hotels_and_penzions_go_to_the_pm(self):  # the owner, 2026-11-01
+        for text in ("Staviame penzión s 12 izbami.", "Máme malý hotel, 20 izieb.", "Ubytovňa pre robotníkov, 10 izieb."):
+            self.assertEqual(self.move(text).name, "priemysel", text)
+        self.say("Staviame penzión, 12 izieb po 20 m2.")
+        self.assertIn("error", bot.quote([{"code": c} for c in AR30_SET]))
+        self.assertTrue(bot._industrial_contact_text("sk").startswith("Takéto priestory"))
+        self.assertEqual(self.move("Spálňa 15 m2.").name, "zisti-priority", "an ordinary room stays a sale")
 
     def test_f07_lookup_tells_what_the_price_lists_say(self):
         comfort = bot.lookup_product("AR60F12C1AWNEU")
@@ -2857,6 +2987,337 @@ class QaFixTests(BotTest):
 
     def test_repeated_typos(self):
         self.assertEqual(bot.sanitize_reply("Vďakujem, to nviem.")[0], "Ďakujem, to neviem.")
+
+
+class CsatFixTests(BotTest):
+    """The customer-satisfaction QA of 2026-11-01 (docs/qa_csat_2026-11-01.md): one test per finding."""
+
+    def say(self, *messages):
+        self.sess.user_inputs[:] = list(messages)
+
+    def move(self, *messages):
+        self.say(*messages)
+        return bot.next_move()
+
+    def quoted(self, *codes, qty=1):
+        q = bot.quote([{"code": c, "qty": qty} for c in codes])
+        self.assertNotIn("error", q)
+        return q
+
+    def test_c01_a_real_room_stays_in_the_list(self):
+        for message, rooms in (("Spálňu 14 m2, detskú izbu 11 m2 a obývačku 24 m2", [11, 14, 24]),
+                               ("majú 10, 15 a 25 m2", [10, 15, 25]), ("dve izby, 14 a 15 m2", [14, 15]),
+                               ("spálňa 20 m2 a obývačka 21 m2", [20, 21]), ("14 m2, 11 m2, 25 m2", [11, 14, 25])):
+            self.say(message)
+            self.assertEqual(bot._customer_rooms()[0], rooms, message)
+
+    def test_c01_a_total_the_customer_states_is_no_room(self):
+        for message, rooms in (("Máme 54 m2: 25 m2, 15 m2 a 14 m2", [14, 15, 25]), ("spolu 54 m2, izby 25, 15 a 14 m2", [14, 15, 25]),
+                               ("byt v Trnave, asi 55 m2, spálňa 14 m2", [14]), ("flat in Bratislava (about 45 m2 total)", []),
+                               ("the flat is 45 m2 total, bedroom 17 m2", [17])):
+            self.say(message)
+            self.assertEqual(bot._customer_rooms()[0], rooms, message)
+
+    def test_room_sizes_keep_repeats(self):
+        for message, sizes in (("spálňa 14 m2 a detská 14 m2", [14, 14]), ("dve izby, každá 20 m2", [20, 20]),
+                               ("Obe izby, každá má 20 m2", [20, 20]), ("tri izby, každá 15 m2", [15, 15, 15])):
+            self.say(message)
+            self.assertEqual(bot._room_sizes(), sizes, message)
+
+    def test_code_picked_multi_splits_pass_quote(self):
+        rooms = ((14, 11, 24), (14, 16, 12), (28, 17), (20, 20), (12, 12, 12, 12), (30, 25, 20, 15, 10), (40, 35), (9, 9, 9))
+        for sizes in rooms:
+            for wish in ("", " s wifi", " čo najlacnejšie", " najlepšiu"):
+                self.setUp()
+                self.say(", ".join(f"izba {r} m2" for r in sizes) + wish)
+                options = bot._suggested_multis()
+                self.assertEqual(sorted(o["brand"] for o in options), ["Samsung", "Toshiba"], (sizes, wish))
+                for o in options:
+                    self.assertNotIn("error", bot.quote(o["items"]), (sizes, wish, o["items"]))
+
+    def test_multi_picks_are_the_cheapest_with_wifi_and_cover_each_room(self):
+        self.say("Spálňu 14 m2, detskú izbu 11 m2 a obývačku 24 m2 s ovládaním cez mobil.")
+        for o in bot._suggested_multis():
+            self.assertNotRegex(o["series"], "Premiere|DAISEIKAI")
+            for room, kw in o["rooms"]:
+                self.assertGreaterEqual(kw, room * bot.SIZING["kw_per_m2"])
+
+    def test_multi_picks_respect_a_named_brand_series_and_type(self):
+        self.say("Toshiba, izby 20 m2 a 15 m2")
+        self.assertEqual({o["brand"] for o in bot._suggested_multis()}, {"Toshiba"})
+        self.say("HAORI, izby 20 m2 a 15 m2")
+        self.assertEqual(bot._suggested_multis(), [])
+        self.say("kazetové, izby 20 m2 a 15 m2")
+        self.assertEqual(bot._suggested_multis(), [])
+
+    def test_c01_c02_the_offer_goes_straight_to_the_picked_sets(self):
+        m = self.move("Dobrý deň, chceme klimatizovať byt - spálňu 14 m2, detskú izbu 11 m2 a obývačku 24 m2. "
+                      "Ideálne jednou vonkajšou jednotkou a s ovládaním cez mobil.")
+        self.assertEqual((m.name, m.tool_choice), ("ponuka", "any"))
+        self.assertIn("Server vybral multi-split", m.directive)
+
+    def test_a_bare_size_narrows_a_multi_split_lookup(self):
+        self.assertLess(len(json.dumps(bot.lookup_product("Samsung multi-split 2.5"))), 6000)
+        self.assertEqual({u["cooling_kW"] for u in bot.lookup_product("Samsung multi-split 2.5")["units"]}, {2.5})
+
+    def test_c02_an_identical_lookup_runs_once_per_turn(self):
+        calls = []
+        real = bot.lookup_product
+        bot.lookup_product = lambda code: calls.append(code) or real(code)
+        self.addCleanup(setattr, bot, "lookup_product", real)
+        self.move()
+        self.turn("Aké rady máte?", resp(tool("lookup_product", model_code="HAORI 2,5 kW")),
+                  resp(tool("lookup_product", model_code="HAORI 2,5 kW")), resp(text("Máme HAORI.")))
+        self.assertEqual(len(calls), 1)
+        self.assertIn('"limit": "repeat_lookup"', self.log_text())
+        assert_no_dangling_tool_use(self.sess.conversation)
+
+    def test_c02_refused_quotes_stop_and_the_last_call_has_no_tools(self):
+        bad = [tool("quote", items=[{"code": f"NEEXISTUJE{i}", "qty": 1}]) for i in range(6)]
+        events, shown = self.turn("Spálňa 14 m2, koľko to stojí?", *[resp(b) for b in bad[:5]],
+                                  resp(text("Túto zostavu v chate nenacením, napíšte nám prosím.")))
+        self.assertEqual(bot.client.calls[-1]["tool_choice"], {"type": "none"})
+        self.assertIn("nástroje sú vypnuté", json.dumps(bot.client.calls[-1]["messages"][-1], ensure_ascii=False))
+
+    def test_c02_a_refused_quote_is_not_run_again(self):
+        same = dict(items=[{"code": "NEEXISTUJE", "qty": 1}])
+        self.turn("Spálňa 14 m2, koľko stojí NEEXISTUJE?", resp(tool("quote", **same)), resp(tool("quote", **same)),
+                  *[resp(text("Ten model nemáme.")) for _ in range(3)])  # a price question left unpriced regenerates twice
+        self.assertIn('"limit": "repeat_refused_quote"', self.log_text())
+
+    def test_c02_an_offer_without_tools_closes_honestly_with_no_model_call(self):
+        self.sess.last_call_input = 116_000
+        self.sess.cost_usd = 0.038
+        events, shown = self.turn("Spálňa 14 m2, koľko to stojí?")
+        self.assertTrue(self.sess.limit_reached)
+        self.assertIn(bot.COMPANY_EMAIL, shown)
+        self.assertNotRegex(shown, "skúsim|pripravím")
+
+    def test_c03_process_talk_is_a_leak_in_both_languages(self):
+        for line in ("The customer's last message wasn't in this turn, so I'll respond to the open question.",
+                     "The tool did not accept this combination.", "Prices are from our quote tool.",
+                     "Its message said the unit is oversized, and the tool flagged it as a fit warning.",
+                     "Čo viem spoľahlivo: pre byt s tromi izbami sa hodí multi-split.", "Mrzí ma, že nacenenie stále nefunguje.",
+                     "Skúsim to znova s oboma zostavami.", "Otázku nájdete pod touto správou.", "Má filtráciu tretej triedy.",
+                     "Je to filtrácia najvyššej triedy v rade (poradie 1)."):
+            self.assertTrue(bot._internal_leak_sentences(line), line)
+        for line in ("Installation is priced by our project manager after a free site visit.", "Energetická trieda A+++.",
+                     "Our customers like it.", "Cena s DPH je uvedená nižšie."):
+            self.assertFalse(bot._internal_leak_sentences(line), line)
+
+    def test_c04_only_one_room_ends_the_room_questions(self):
+        flat = "Mám dvojizbový byt v Trnave, asi 55 m2."
+        for answer in ("Len do spálne, tá má 14 m2.", "Iba spálňa, 14 m2.", "tá jedna spálňa 14 m2", "Only the bedroom, 14 m2.",
+                       "V spálni 14 m2, obývačku nechám tak."):
+            self.assertEqual(self.move(flat, answer + " Koľko to stojí?").name, "ponuka", answer)
+
+    def test_c04_the_room_question_is_asked_once(self):
+        self.assertEqual(self.move("Mám dvojizbový byt, 55 m2.").name, "zisti-izby")
+        self.sess.conversation.append({"role": "assistant", "content": [{"type": "text", "text": "Ktoré izby chcete chladiť?"}]})
+        self.assertEqual(self.move("Mám dvojizbový byt, 55 m2.", "Tak koľko to stojí?").name, "ponuka")
+
+    def test_c04_one_room_of_a_flat_gets_code_picked_sets(self):
+        m = self.move("Mám dvojizbový byt v Trnave, asi 55 m2.", "Len spálňa, 14 m2. Cena?")
+        self.assertIn("Server vybral dve možnosti", m.directive)
+        self.assertNotIn("multi-split", m.directive)
+
+    def test_c05_the_cheapest_variant_prices_separate_sets_on_a_later_offer(self):
+        self.say("su to 3 spalne, 14, 16 a 12 m2")
+        self.sess.quotes.append({"lines": [], "total_eur": 0})
+        m = self.move("su to 3 spalne, 14, 16 a 12 m2", "5000 je dost vela, co je najlacnejsie co by slo?")
+        self.assertEqual(m.name, "nova-ponuka")
+        self.assertIn("samostatné sety", m.directive)
+        self.assertRegex(m.directive, r"\d× ")
+
+    def test_c05_a_multi_split_is_called_the_better_deal_only_on_quotes(self):
+        self.say("spálne 14, 16 a 12 m2")
+        multi = bot._suggested_multis()[0]
+        self.assertNotIn("error", bot.quote(multi["items"]))
+        claim = "Pri troch spálňach sa oplatí multi-split."
+        self.assertTrue(bot._false_multi_value_claim(claim))
+        self.assertFalse(bot._false_multi_value_claim("Multi-split sa neoplatí."))
+        self.assertFalse(bot._false_multi_value_claim("Multi-split má jednu vonkajšiu jednotku."))
+
+    def test_c06_no_claim_of_a_handover_in_a_complaint(self):
+        self.say("Klimatizácia, ktorú ste mi montovali, tečie.")
+        for line in ("Váš prípad bol už odovzdaný nášmu tímu.", "Váš prípad je už zaznamenaný.", "Reklamáciu som ju odovzdal tímu.",
+                     "Your case has been forwarded."):
+            self.assertTrue(bot._premature_promise_sentences(line), line)
+        result = bot.request_human_handoff("complaint", "tečie", purpose="support")
+        self.assertNotIn("handoff_recorded", result)
+        self.assertIn("netvrď", result["message"])
+
+    def test_c06_what_the_customer_adds_after_the_lead_reaches_the_brief(self):
+        self.turn("Spálňa, volajte mi.", resp(text("Aké je vaše meno a telefónne číslo?")))
+        self.turn("Áno, súhlasím. Peter Hudák, 0905123456.", resp(text("Ďakujem.")))
+        self.sess.handoff_path = None
+        self.assertIn("ok", bot.capture_lead("Peter Hudák", "0905123456", "Spálňa."))
+        events, _ = self.turn("este jedna vec, cez den nedviham, volajte po 17:00", resp(text("Poznačil som to.")))
+        self.assertIn("volajte po 17:00", self.sess.handoff_path.read_text(encoding="utf-8"))
+        self.assertIn("handoff", [e for e, _ in events])
+        self.assertIn("volajte po 17:00", bot.LEADS_PATH.read_text(encoding="utf-8").splitlines()[-1])
+        events, _ = self.turn("ok dik", resp(text("Rado sa stalo.")))
+        self.assertNotIn("handoff", [e for e, _ in events])
+
+    def test_c07_the_customers_questions_reach_the_offer_move(self):
+        m = self.move("Spálňa 16 m2, hlavne tichý chod. Koľko dB to má? Je to tichšie ako chladnička?")
+        self.assertEqual(m.name, "ponuka")
+        self.assertIn("Koľko dB to má?", m.directive)
+        self.assertIn("vonkajšiu jednotku", m.directive)
+        self.assertNotIn("Koľko to stojí", self.move("Spálňa 16 m2. Koľko to stojí?").directive)
+
+    def test_c07_known_answers_come_with_the_question(self):
+        self.assertIn("chladia aj kúria", self.move("Spálňa 14 m2, da sa tym kurit v zime?").directive)
+        self.assertIn("vždy navyše", self.move("Spálňa 14 m2, tichá. A tá cena je s recyklačným poplatkom?").directive)
+        self.assertIn("o vplyve na zvieratá".capitalize(), self.move("Spálňa 14 m2, tichá. A co ten pes?").directive)
+        self.assertIn("posúdi projektový manažér", self.move("Spálňa 14 m2, tichá. Do I need the landlord's permission?").directive)
+
+    def test_a_tenant_asking_gets_a_real_answer(self):
+        self.assertIn("nájomnej zmluve", self.move("Spálňa 14 m2, tichá. Som v prenájme, potrebujem súhlas prenajímateľa?").directive)
+        self.assertNotIn("nájomnej zmluve", self.move("Spálňa 14 m2, tichá. Bývam v prenájme, koľko to stojí?").directive)
+        self.assertNotIn("nájomnej zmluve", self.move("Spálňa 14 m2, tichá. Treba povolenie od správcu domu?").directive)
+
+    def test_c08_noise_for_both_brands_and_both_units(self):
+        sets = bot.lookup_product("Samsung 3,5 kW")["series_sets"]
+        self.assertTrue(all("sound_pressure_dB" in x for x in sets))
+        haori = bot.lookup_product("Toshiba HAORI 2,5 kW")["series_sets"][0]
+        self.assertEqual((haori["outdoor_noise_cool_dB"], haori["noise_cool_dB"]), ("44", "19/-/41"))
+        self.assertEqual(bot.lookup_product("Toshiba SEIYA 2,5 kW")["series_sets"][0]["outdoor_noise_cool_dB"], "47")
+        self.assertEqual(bot._code_specs("RAS-10P2AVSG-E")["outdoor_noise_cool_dB"], "44")
+
+    def test_c09_a_flat_total_doesnt_excuse_an_oversized_set(self):
+        self.say("Mám byt v Trnave, asi 55 m2, len spálňa 14 m2.")
+        self.assertIn("error", bot.quote([{"code": "AR70F12C1AWNEU"}, {"code": "AR70F12C1AWXEU"}]))
+
+    def test_c09_english_flats_ask_about_rooms(self):
+        self.assertEqual(self.move("Hi, I rent a 2-room flat (about 45 m2 total). What would an AC cost?").name, "zisti-izby")
+        self.assertEqual(self.move("Hi, I rent a two-bedroom flat, 60 m2. Cost?").name, "zisti-izby")
+
+    def test_c10_budget_and_price_wishes(self):
+        m = self.move("mám na klimatizáciu do izby 18 m2 maximálne 900 eur aj s montážou. Zmestím sa do toho?")
+        self.assertEqual(m.name, "ponuka")
+        self.assertIn("budget.status", m.directive)
+        self.say("Izba 18 m2. Nechcem sa rozprávať o dizajne. Ide mi hlavne o cenu.")
+        self.assertTrue(bot._wished(bot._CHEAP_WISH_RE))
+        self.assertTrue(bot._suggested_sets())
+
+    def test_c11_a_complaint_in_other_words(self):
+        for message in ("Klimatizácia, ktorú ste mi minulý rok montovali, mi tečie na stenu.",
+                        "Montovali ste mi klímu a nefunguje.", "Už druhý týždeň sa mi nikto neozval.", "Mám sťažnosť."):
+            self.setUp()
+            self.assertEqual(self.move(message).name, "reklamacia", message)
+        self.assertIn("ospravedlň", self.move("Mám sťažnosť.").directive)
+        self.assertIn("v tomto chate nie je", self.move("Mám sťažnosť. Dajte mi telefón na niekoho živého.").directive)
+        self.assertEqual(self.move("Stará klíma nefunguje, chceme novú do spálne.").name, "zisti-priestor")
+
+    def test_c12_picking_an_offer_in_other_words(self):
+        q = SEIYA_SET
+        self.quoted(*q)
+        for message in ("Tá lacnejšia mi stačí, ďakujem.", "ta lacnejsia je ok. kedy to viete namontovat?",
+                        "Dobre, nech príde obhliadka na ten model.", "Dobre, ideme do toho s Toshibou.", "Beriem Toshibu.",
+                        "Ján Hudec, 0915333444, Nitra."):
+            self.assertEqual(self.move("Spálňa 20 m2.", message).name, "kontakt", message)
+        self.assertNotEqual(self.move("Spálňa 20 m2.", "Má tá lacnejšia filter?").name, "kontakt")
+
+    def test_c12_a_customer_who_leaves_gets_no_forced_offer(self):
+        for message in ("Zabudnite na to, idem inde.", "No thanks, I'll look elsewhere.", "Musím si to premyslieť, ozvem sa."):
+            m = self.move("Spálňa 14 m2.", message)
+            self.assertEqual((m.name, m.tool_choice), ("pokracuj", None), message)
+
+    def test_c13_a_later_contact_mention_brings_no_consent_paragraph(self):
+        for line in ("Ak sa rozhodnete, požiadam vás o meno, telefón, e-mail a obec.",
+                     "If you decide to proceed, I'll need your name and phone number."):
+            self.assertFalse(bot._asks_contact(line), line)
+            self.assertTrue(bot._asks_contact(line, later_counts=True), line)
+        self.assertTrue(bot._asks_contact("Napíšte mi prosím meno a telefón."))
+
+    def test_c13_an_offer_drops_a_contact_request(self):
+        self.quoted(*SEIYA_SET)
+        self.sess.quotes.clear()
+        q = tool("quote", items=[{"code": c, "qty": 1} for c in SEIYA_SET])
+        _, shown = self.turn("Toshiba SEIYA 2,5 kW, koľko stojí?", resp(q), resp(text(
+            f"Cena s DPH je {priced(SEIYA_SET)}. Pred tým potrebujem vaše meno, telefón a obec.")))
+        self.assertNotIn("meno", shown)
+        self.assertNotIn(bot.CONSENT_QUESTIONS["sales"]["sk"], shown)
+
+    def test_c14_the_fee_is_never_included(self):
+        self.assertEqual(bot.sanitize_reply("Ponuku bez DPH, vrátane recyklačných poplatkov.")[0],
+                         "Ponuku bez DPH, bez recyklačného poplatku.")
+        self.assertIn("excluding the recycling fee", bot.sanitize_reply("Price including the recycling fee.", "en")[0])
+        same = "Cena nie je vrátane recyklačného poplatku."
+        self.assertEqual(bot.sanitize_reply(same)[0], same)
+
+    def test_c16_the_bot_speaks_in_the_masculine(self):
+        for before, after in (("Rada vám pomôžem.", "Rád vám pomôžem."), ("rada ti ho pripravím", "rád ti ho pripravím"),
+                              ("Účinnosť som ale z podkladov nepotvrdila.", "Účinnosť som ale z podkladov nepotvrdil."),
+                              ("Overila som to.", "Overil som to.")):
+            self.assertEqual(bot.sanitize_reply(before)[0], after)
+        for same in ("Naša rada znie jednoducho.", "Biela farba je k dispozícii.", "Táto rada vám pomôže."):
+            self.assertEqual(bot.sanitize_reply(same)[0], same)
+
+    def test_c16_mixed_address_regenerates_for_a_customer_who_tyka(self):
+        self.say("ahoj, kolko to stoji, mozes mi povedat?")
+        found = bot.validate_assistant_reply("Môžeš si vybrať a pošlite mi, čo vám vyhovuje.")
+        self.assertTrue(any(v.startswith("oslovenie-mix") for v in found), found)
+        self.assertIn("oslovenie-mix", bot._REGEN_ONLY_RULES)
+
+    def test_c16_an_orphan_after_a_cut(self):
+        self.assertTrue(bot._ORPHAN_START_RE.match("Preto vám zatiaľ nemôžem uviesť sumy."))
+
+    def test_c16_a_brand_question_left_after_the_regenerations_is_cut(self):
+        q = [tool("quote", items=[{"code": c, "qty": 1} for c in SEIYA_SET])]
+        price = priced(SEIYA_SET)
+        bad = f"Cena s DPH je {price}. Ktorá značka vám viac vyhovuje, Samsung alebo Toshiba?"
+        _, shown = self.turn("Toshiba SEIYA 2,5 kW, koľko stojí?", resp(*q), resp(*[tool("lookup_product", model_code="HAORI 2,5 kW")]),
+                             resp(text(bad)), resp(tool("lookup_product", model_code="SEIYA 2,5 kW")), resp(text(bad)), resp(text(bad)))
+        self.assertIn(price, shown)
+        self.assertNotIn("Ktorá značka", shown)
+
+    def test_c17_the_brief_splits_phone_and_email(self):
+        self.turn("Spálňa, volajte mi.", resp(text("Aké je vaše meno a telefónne číslo?")))
+        self.turn("Áno, súhlasím. Jana Kováčová, 0905111222, jana@example.com.", resp(text("Ďakujem.")))
+        self.sess.handoff_path = None
+        self.assertIn("ok", bot.capture_lead("Jana Kováčová", "0905111222, jana@example.com", "Spálňa."))
+        brief = self.sess.handoff_path.read_text(encoding="utf-8")
+        self.assertIn("**Telefón:** 0905111222\n", brief)
+        self.assertIn("**Email:** jana@example.com", brief)
+
+    def test_replay_a_true_budget_claim_survives_a_dearer_second_option(self):
+        self.say("Izba 18 m2, maximálne 900 eur aj s montážou.")
+        self.quoted("AR40H09C1AMNEU", "AR40H09C1AMXEU")
+        self.quoted("RAS-10B2AVG-E2", "RAS-B10B2KVG-E2")
+        self.assertFalse(bot._budget_claim_unsupported("Samsung AR35: jednotky sa zmestia do vášho rozpočtu."))
+        self.assertFalse(bot._budget_claim_unsupported("Jednotky sa zmestia do vášho rozpočtu 900 €."))
+        self.assertTrue(bot._budget_claim_unsupported("Toshiba SEIYA: jednotky sa zmestia do vášho rozpočtu."))
+        self.assertTrue(bot._budget_claim_unsupported("Samsung AR35 sa zmestí do vášho rozpočtu aj s montážou."))
+
+    def test_replay_lead_wording_keeps_the_callback(self):
+        out = bot.sanitize_reply("Lead je zapísaný a projektový manažér sa vám ozve.")[0]
+        self.assertEqual(out, "Vaša žiadosť je zapísaná a projektový manažér sa vám ozve.")
+
+    def test_replay_a_flat_total_isnt_the_area_a_bedroom_set_must_cool(self):
+        self.say("Mám byt, 55 m2, len spálňa 14 m2.")
+        q = bot.quote([{"code": "AR40H09C1AMNEU"}, {"code": "AR40H09C1AMXEU"}])
+        self.assertFalse([w for w in q.get("fit_warnings", []) if "poddimenzované" in w], q.get("fit_warnings"))
+
+    def test_replay_whats_included_gets_the_fact(self):
+        self.assertIn("vždy navyše", self.move("Spálňa 14 m2, tichá. Čo je v cene?").directive)
+
+    def test_replay_no_orphan_after_a_dropped_contact_request(self):
+        out = bot._drop_contact_requests("Cena je uvedená. Potrebujem vaše meno a telefón. Na spracovanie ich potrebujem. Pekný deň.")
+        self.assertEqual(out, "Cena je uvedená. Pekný deň.")
+
+    def test_replay_a_complaint_reply_has_no_cheer_and_no_sale(self):
+        self.assertEqual(bot._complaint_tone("Výborne, rozumiem vám. Napíšte nám. Ak potrebujete novú klimatizáciu, rád pomôžem."),
+                         "Rozumiem vám. Napíšte nám.")
+        self.turn("Klimatizácia, ktorú ste mi montovali, tečie.", resp(tool("request_human_handoff", reason="complaint",
+                  customer_question="tečie", purpose="support")), resp(text("Výborne, je mi to ľúto. Ak chcete novú klimatizáciu, pomôžem.")))
+        self.assertNotIn("novú", self.sess.conversation[-1]["content"][0]["text"])
+
+    def test_c17_a_decimal_comma_isnt_a_list(self):
+        self.sess.customer_state["model_selected"] = "Samsung AR35 WIFI 2,6 kW (AR40H09C1AMNEU + AR40H09C1AMXEU)"
+        bot._split_model_selected_into_shown()
+        self.assertNotIn("models_shown", self.sess.customer_state)
 
 
 class RetrievalTests(BotTest):

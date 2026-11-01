@@ -26,3 +26,5 @@ Bot: „Priemyselné priestory navrhuje individuálne náš projektový manažé
 - ❌ Pýtať sa na plochu, počet zón či prevádzku 24/7 — to zistí projektový manažér.
 
 Rovnako technologické chladenie (vínna pivnica, chladiareň): stálu nízku teplotu podklady nepotvrdzujú, takže bot ju nesľubuje, nenaceňuje a odkáže zákazníka na projektového manažéra.
+
+Rovnako hotel, penzión a podobné ubytovanie: správne riešenie navrhne projektový manažér. Bot nenavrhuje ani nenaceňuje a dá kontakt alebo ponúkne, že sa projektový manažér ozve (majiteľ, 2026-11-01).

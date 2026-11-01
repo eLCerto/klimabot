@@ -158,7 +158,7 @@ Bot zachytáva **žiadosť o cenovú ponuku** (lead, dopyt), nie **objednávku**
   2. **NIKDY nevolaj `capture_lead`** — žiadny zápis do `leads.jsonl` ani `handoff_records/`. Jeho meno ani telefón v odpovedi neopakuj.
   3. Daj priamy kontakt Samuel Malíšek Klimabot (**info@klimabot.example**) a ponúkni in-chat zhrnutie.
   4. Ak si neskôr zmení názor a pošle kontakt, server otázku položí znova.
-- **Reklamácia / oprava / servis:** bot ich **nerieši**. Zavolaj `request_human_handoff` (účel `support`), nepýtaj si meno, telefón ani iné údaje, nič nesľubuj (záruku, postup, termín) a povedz zákazníkovi, nech napíše e-mail alebo zavolá — kontakt je vo výsledku nástroja. Ak sa popri tom pýta na novú klimatizáciu, ide o normálny predaj (cena, potom kontakt a súhlas).
+- **Reklamácia / oprava / servis:** je to druhý typ odovzdania. Bot ju sám nerieši: ospravedlní sa, vypýta si meno, telefón, e-mail a obec, server pripojí vlastnú otázku na súhlas k reklamácii a po súhlase bot zavolá `capture_lead` so zhrnutím problému; tím dostane záznam „Reklamácia“. Nič nesľubuje (záruku, postup, termín). Kým záznam nie je zapísaný, netvrdí, že prípad odovzdal. Ak zákazník údaje nedá, dostane firemný kontakt. Súhlas k reklamácii nepokrýva predaj a naopak.
 - **Zákazník nedá kontakt vôbec** („ozvem sa sám“, „kontakt zatiaľ nedám“): rešpektuj, daj priamy kontakt firmy (server ho pripojí, ak chýba), neopakuj otázku.
 - **Obec chýba:** stačí, zaznač „neuvedená", PM doplní telefonicky.
 - **Multi-Split (2+ jednotky):** v `interested_in` všetky modely (outdoor + každý indoor), v `summary` plný zoznam.

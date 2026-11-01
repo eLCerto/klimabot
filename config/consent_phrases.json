@@ -3,12 +3,16 @@
     "purpose": "Jediný zdroj GDPR otázky a slovníka súhlasu. Číta ho bot.py (otázku pripája a súhlas vyhodnocuje kód), cost_report.py (audit) aj eval/analyze.py.",
     "status": "NÁVRH — znenie a právny základ (súhlas vs. čl. 6 ods. 1 písm. b) schvaľuje DPO / právnik.",
     "edit_instructions": "Pri zmene otázky presuň doterajšie slovenské znenie do previous_questions, aby audit uznal aj staršie logy. Regexy sa vyhodnocujú bez ohľadu na veľkosť písmen, na texte v NFC.",
-    "history": "2026-10-11: do otázky pribudol e-mail (bot ho ukladá do zápisu pre PM). Otázka na podporu (reklamácie) bola zrušená: reklamácie bot nerieši, zákazníkovi dá e-mail a telefón firmy."
+    "history": "2026-10-11: do otázky pribudol e-mail (bot ho ukladá do zápisu pre PM). Otázka na podporu (reklamácie) bola zrušená: reklamácie bot nerieši, zákazníkovi dá e-mail a telefón firmy. 2026-11-01: reklamácia je druhý typ odovzdania (majiteľ), s vlastnou otázkou `complaint`; súhlas s jedným účelom nepokrýva druhý. Právny základ reklamácie (súhlas vs. zmluva / zákonná povinnosť) posúdi DPO."
   },
   "questions": {
     "sales": {
       "sk": "Súhlasíte so spracovaním osobných údajov (meno, telefón, e-mail, obec a vybraný model) spoločnosťou Samuel Malíšek Klimabot za účelom prípravy cenovej ponuky a kontaktovania projektovým manažérom?",
       "en": "Do you consent to Samuel Malíšek Klimabot processing your personal data (name, phone, e-mail, town and the chosen model) to prepare a quote and have a project manager contact you?"
+    },
+    "complaint": {
+      "sk": "Súhlasíte so spracovaním osobných údajov (meno, telefón, e-mail, obec a popis problému) spoločnosťou Samuel Malíšek Klimabot za účelom vybavenia vašej reklamácie a kontaktovania?",
+      "en": "Do you consent to Samuel Malíšek Klimabot processing your personal data (name, phone, e-mail, town and the description of the problem) to handle your complaint and contact you?"
     }
   },
   "previous_questions": {

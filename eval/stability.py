@@ -41,7 +41,7 @@ MOVE_DIRECTIONS = {
     "kontakt": {"kontakt"}, "neponukame": {"neponukame"},
     "odpoved": {"odpoved", "ponuka", "zisti-priority"}, "pokracuj": ALL,
     "zapis": {"odpoved", "kontakt", "odkaz"}, "po-zapise": ALL,  # the thanks may give the company contact
-    "bezpecnost": {"bezpecnost"}, "reklamacia": {"odkaz"},
+    "bezpecnost": {"bezpecnost"}, "reklamacia": {"kontakt", "odkaz"},
     "priemysel": {"odkaz", "kontakt", "odpoved"}, "vlastna-montaz": {"odkaz", "odpoved"},
 }
 _EUR_RE = re.compile(r"\d[\d\s.,]*\s*€|€\s*\d")
@@ -49,6 +49,8 @@ _QUESTION_SENTENCES_RE = re.compile(r"[^.!?\n]*\?")
 _DECLINE_RE = re.compile(r"neponúk|nepredáv|nezaober|nezahŕň|nerobíme|neposkytuj|nemôžeme|nie je (?:súčasť|predmet|naš)|"
                          r"nemáme (?:\w+ )?(?:informáci|podklad)|v podkladoch (?:som )?(?:to |nič )?(?:nemám|nemáme|nenašiel)|"
                          r"nevieme potvrdiť|neviem potvrdiť|nemôžem (?:vám )?(?:to )?potvrdiť")
+_OFFER_DECLINE_RE = re.compile(r"neponúk|nepredáv|nezaober|nerobíme")
+_ASKING_SENTENCES_RE = re.compile(r"[^.!?\n]*\b(?:povedzte|napíšte|tell me)\b[^.!?\n]*[.:]?[^.!?\n]*")  # a question without "?"
 _PRIORITY_WORDS_RE = re.compile(r"tich|filtr|wi-?fi|dizajn|najnižš")
 
 
@@ -57,10 +59,12 @@ def direction(reply, quoted, company_email, asks_contact):
     contact-request check. A first question about the type of space counts as zisti-priestor even when it also
     asks about the rooms (the directive asks both)."""
     low = reply.lower()
-    questions = " ".join(_QUESTION_SENTENCES_RE.findall(low))
+    questions = " ".join(_QUESTION_SENTENCES_RE.findall(low) + _ASKING_SENTENCES_RE.findall(low))
     if re.search(r"\b112\b", reply):
         return "bezpecnost"
-    if _DECLINE_RE.search(low):
+    # "v podkladoch nemám" next to a quoted price is an honest side answer, not a decline (a customer's question is
+    # answered on offer moves since the QA of 2026-11-01).
+    if _DECLINE_RE.search(low) and not (quoted and _EUR_RE.search(reply) and not _OFFER_DECLINE_RE.search(low)):
         return "neponukame"
     if asks_contact(reply):
         return "kontakt"

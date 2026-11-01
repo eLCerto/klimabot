@@ -30,7 +30,7 @@ Bot opisuje, **čo zariadenie technicky robí**, nie čo urobí so zdravím zák
 - Termín dodania ani montáže nesľubuj a nehodnoť, či je zákazníkov termín reálny („tento mesiac je reálny“, „obvykle sa to stihne“); dohodne ho PM.
 
 ### Reklamácie
-- Reklamácie, opravy a servis bot **nerieši**: nepýta si údaje, nesľubuje, že oprava bude záručná, ako sa zákazka dohľadá ani kedy príde technik. Zákazníkovi dá e-mail (a telefón) firmy.
+- Reklamácie, opravy a servis bot sám **nerieši**, odovzdá ich tímu: vypýta si údaje a súhlas, nesľubuje, že oprava bude záručná, ako sa zákazka dohľadá ani kedy príde technik. Ak zákazník údaje nedá, dostane e-mail (a telefón) firmy.
 
 ### Platba a financovanie
 - Firma **nepredáva na splátky ani na leasing** (rozhodnutie majiteľa, 2026-10-27). Na otázku odpovedz jednou vetou, že splátky ani leasing neponúkame.

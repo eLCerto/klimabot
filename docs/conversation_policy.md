@@ -39,18 +39,20 @@ flowchart TD
 | move | when | what the reply does |
 |---|---|---|
 | `bezpecnost` | danger in the latest message (`_DANGER_RE`) | safety steps first (code also prepends them), nothing sold, the company contact |
-| `reklamacia` | `_support_case()` | the company contact; no personal data asked, nothing promised. With a wish for a new unit and a known size, the sale's move follows the same directive |
-| `priemysel` | `_industrial_case()`: an industrial or agricultural space, a wine cellar, a cold room | no design or price; the PM designs it — contact, or name and phone as a condition |
+| `reklamacia` | `_support_case()` | an apology and a request for the contact details, under the complaint's own consent question; nothing promised, no claim of a handover before it happened, no sale offered. After a refusal the company contact; after consent `zapis` / `po-zapise` write the complaint handover. With a wish for a new unit and a known size, the sale's move follows the same directive |
+| `priemysel` | `_industrial_case()`: an industrial or agricultural space, a hotel or penzión, a wine cellar, a cold room | no design or price; the PM designs it — contact, or name and phone as a condition |
 | `vlastna-montaz` | the customer installs a unit themselves | no advice; the PM or the company contact |
-| `zapis` / `po-zapise` | sales consent recorded, lead not yet / already written | only the missing contact details, `capture_lead`; afterwards follow-up questions |
+| `zapis` / `po-zapise` | sales consent recorded, lead not yet / already written | only the missing contact details, `capture_lead`; afterwards follow-up questions, and code adds what the customer writes to the PM's brief |
 | `zisti-priestor` | no m², kW or code yet, and the customer didn't say they don't know | the type of space and its m², at most two questions, no prices |
-| `zisti-izby` | a multi-room flat or house without an answer about the rooms; a whole house or flat named only by its total, asked once | which rooms and their m² |
-| `zisti-priority` | size known, no price question, no wish, not asked yet | one question about what matters |
-| `ponuka` | the first offer is due (`_offer_due`, a price question or wishes known) | two options, each priced by `quote` (code-picked sets when `_suggested_sets` finds them; multi-split for 2–5 rooms) |
-| `kontakt` | an offer exists and the customer picked one | the contact request; code appends the consent question |
+| `zisti-izby` | a multi-room flat or house, or one named only by its total, with no answer about the rooms; asked once | which rooms and their m² |
+| `zisti-priority` | size known, no price question so far, no wish, not asked yet | one question about what matters |
+| `ponuka` | the first offer is due (`_offer_due`, a price question or wishes known) | two options, each priced by `quote` (code-picked sets when `_suggested_sets` finds them; code-picked multi-splits for 2–5 rooms, `_suggested_multis`) |
+| `kontakt` | an offer exists and the customer picked one or typed contact details | the contact request (nothing asked twice); code appends the consent question |
 | `nova-ponuka` | a cheaper / other series / other size / a code after an offer | quote it, compare with `comparison_with_earlier_quotes` |
 | `odpoved` | a question after an offer | the answer from tool results only, then back to the offer |
-| `pokracuj` | anything else after an offer | short, towards the choice |
+| `pokracuj` | anything else after an offer; a customer leaving or thinking it over, at any time | short, towards the choice; on leaving a goodbye and the contact, no offer and no contact request |
+
+Every sales move also lists the customer's own questions from the latest message, to answer first (`_questions_note`).
 
 The output gate still checks every reply; the moves make the first draft head the right way, and the gate demands a price (`cena-neodpovedana`) only on `ponuka` and `nova-ponuka` turns.
 

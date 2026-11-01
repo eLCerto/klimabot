@@ -54,7 +54,7 @@ Samuel Malíšek Klimabot zabezpečuje celú zákazku vrátane montáže — nep
 - ❌ Tvrdiť, že sa celá zákazka „aj s montážou" zmestí do rozpočtu.
 - ❌ Pýtať sa na vlastnú inštaláciu, vzdialenosť jednotiek, poschodie či fasádu — inštalačné detaily posúdi PM pri obhliadke ([[umiestnenie-vonkajsej-jednotky]]).
 - ❌ Sľubovať 7-ročnú záruku bez istoty pre konkrétny model.
-- ❌ Pri reklamácii sľubovať, že oprava bude záručná — reklamácie bot nerieši ([[schvalene-tvrdenia]]).
+- ❌ Pri reklamácii sľubovať, že oprava bude záručná — reklamáciu bot iba odovzdá tímu ([[schvalene-tvrdenia]]).
 
 ### Súvisiace pravidlá
 

@@ -421,7 +421,8 @@ def analyze(run_dir):
         # GDPR audit, independent of bot.py: canonical question < explicit yes in the next message < lead.
         if lead and (consent_turn is None or lead_turn is None or lead_turn < consent_turn):
             flags.append("GDPR: lead bez súhlasu (otázka → výslovné áno v nasledujúcej správe → lead)")
-        if lead and consent_purpose not in (None, "sales"):
+        complaint = lead and c["handoff_markdown"].startswith("# Reklamácia")
+        if lead and consent_purpose not in (None, "complaint" if complaint else "sales"):
             flags.append(f"GDPR: lead so súhlasom len na účel '{consent_purpose}'")
         if lead and c["final_state"].get("consent_given") is not True:
             flags.append("lead bez consent_given")

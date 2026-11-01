@@ -1,0 +1,191 @@
+[
+ {
+  "id": "q01",
+  "author": "qa_csat_2026-11-01",
+  "title": "Seniorka, dvojizbový byt, len spálňa",
+  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "Dobrý deň, dcéra mi povedala že by som si mala dať klimatizáciu lebo v lete to v byte nevydržím. Ja tomu ale vôbec nerozumiem, mám 71 rokov. Čo mám robiť?",
+   "Mám dvojizbový byt v Trnave, asi 55 m2. Najhoršie je to v spálni, tá bude mať tak 14 m2, obývačku nechám tak. Čo je to ten kW neviem. Koľko ma to bude stáť? A bude mi niekto vysvetľovať ako sa to ovláda? Mám len obyčajný telefón, nie smartfón.",
+   "Len do spálne, to som už písala. A áno, nech je to potichu. Tak koľko to bude stáť?",
+   "Áno, len tá jedna spálňa. Viac izieb nechcem. Prosím vás, povedzte mi už tú cenu, píšem to tretíkrát.",
+   "Áno, len spálňa, 14 m2, okno je na východ. Cena?",
+   "Tá lacnejšia mi stačí, ďakujem. Čo mám teraz robiť? Zavolá mi niekto? Som Mária Hudáková, 0903 777 888, Trnava. Mail nemám.",
+   "Áno, súhlasím."
+  ]
+ },
+ {
+  "id": "q02",
+  "author": "qa_csat_2026-11-01",
+  "title": "Rýchla cena do spálne, poznámka po leade",
+  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "kolko stoji klima do spalne? 14 m2. nemam cas na dotazniky, dajte mi cenu",
+   "ta lacnejsia je ok. kedy to viete namontovat?",
+   "Jana Kovacova, 0905 111 222, jana.kovacova@example.com, Senec. suhlasim",
+   "este jedna vec, cez den nedviham, volajte po 17:00. a ked si to rozmyslim tak to mozem zrusit?"
+  ]
+ },
+ {
+  "id": "q03",
+  "author": "qa_csat_2026-11-01",
+  "title": "Samsung alebo Toshiba, tichý chod",
+  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "Zdravím, vyberáme klímu do novostavby do obývačky s kuchyňou, 32 m2. Váhame medzi Samsungom a Toshibou. Čo je lepšie a prečo?",
+   "Hlavne aby bola tichá a pekná, pozeráme sa na ňu celý deň. Wi-Fi by bolo fajn.",
+   "Ďakujeme, ale stále neviem čo je lepšie. Ktorú by ste vybrali vy a prečo? Ktorá je tichšia? A čo znamená 'poradie 1'?",
+   "Dobre, ideme do toho s Toshibou. Čo sa bude diať ďalej a kedy by to mohlo byť namontované? Je to novostavba, predprípravu máme hotovú.",
+   "Lucia Horváthová, 0902 444 555, lucia.h@example.com, Pezinok. Áno, súhlasím."
+  ]
+ },
+ {
+  "id": "q04",
+  "author": "qa_csat_2026-11-01",
+  "title": "Rozpočet 900 € s montážou",
+  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "Dobrý deň, mám na klimatizáciu do izby 18 m2 maximálne 900 eur aj s montážou. Zmestím sa do toho?",
+   "Nechcem sa rozprávať o dizajne, pýtam sa jednoduchú vec - zmestím sa do 900 € aj s montážou, áno alebo nie? Ide mi hlavne o cenu.",
+   "Veď to je dvojnásobok toho čo mám. Nemáte nič lacnejšie? Aký je najlacnejší model ktorý by mi stačil?",
+   "A tá montáž, koľko tak bežne vychádza? Aspoň zhruba, nech viem či to má vôbec zmysel. Nechcem aby ku mne chodil technik zbytočne.",
+   "Dobre, nech príde obhliadka na ten AR35. Ján Hudec, 0915 333 444, hudec@example.com, Nitra. Súhlasím.",
+   "Veď som napísal že súhlasím. Áno."
+  ]
+ },
+ {
+  "id": "q05",
+  "author": "qa_csat_2026-11-01",
+  "title": "Tri izby, jedna vonkajšia",
+  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "Dobrý deň, chceme klimatizovať byt - spálňu 14 m2, detskú izbu 11 m2 a obývačku 24 m2. Ideálne jednou vonkajšou jednotkou a s ovládaním cez mobil.",
+   "Značka nám je jedno, chceme vidieť ceny oboch. A čo znamená 'čo viem spoľahlivo'? Napísali ste že pošlete záväznú cenu - kedy?",
+   "Už druhýkrát sa pýtam na cenu a stále nič. Vyberte vy čo je lacnejšie, nech to už mám. Obývačka 24 m2, spálňa 14, detská 11.",
+   "Haló? Tak to skúste.",
+   "Zabudnite na to, idem inde."
+  ]
+ },
+ {
+  "id": "q06",
+  "author": "qa_csat_2026-11-01",
+  "title": "Nahnevaná reklamácia",
+  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "Máte tam vôbec niekoho kompetentného? Klimatizácia, ktorú ste mi minulý rok montovali, mi tečie na stenu a už druhý týždeň sa mi nikto neozval!!!",
+   "Novú klimu nechcem!!! Chcem aby ste opravili tú čo mi tečie. Na ten mail som už písal dvakrát a nikto neodpovedal. Dajte mi telefón na niekoho živého.",
+   "Takže žiadny telefón. Výborne. Aká je to firma, čo sa nedá nikde dovolať? Dajte mi adresu, prídem osobne. A mám vôbec nárok na záruku?",
+   "Dobre, skúsim ten mail ešte raz. Ďakujem za nič."
+  ]
+ },
+ {
+  "id": "q07",
+  "author": "qa_csat_2026-11-01",
+  "title": "Kaderníctvo, s.r.o.",
+  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "Dobrý deň, mám kaderníctvo, asi 40 m2, sme s.r.o., potrebujeme klimatizáciu. Ponuku potrebujem na firmu bez DPH. Čo odporúčate?",
+   "Podhľad nemáme, klasický strop. Hlavne aby to nefúkalo na klientky a bolo to tiché. A tá cena je potom s recyklačným poplatkom alebo bez?",
+   "Dobre, beriem Samsung. Aká je záruka a ako dlho trvá dodanie? Faktúru potrebujem na firmu.",
+   "Peter Bielik, 0911 222 333, bielik@salonbielik.example, Žilina. IČO 12345678, DIČ 2021234567. Súhlasím."
+  ]
+ },
+ {
+  "id": "q08",
+  "author": "qa_csat_2026-11-01",
+  "title": "Obavy z hluku",
+  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "Dobrý deň, zvažujem klimatizáciu ale mám pár obáv. Spálňa 16 m2 v paneláku. Nebude to hučať, že nebudem môcť spať? A nebudem z toho chorý? Susedia sa tiež sťažujú na hluk.",
+   "Hlavne ten tichý chod. Koľko dB to má aby som si vedel predstaviť? Je to tichšie ako chladnička? A bude to počuť susedov?",
+   "Ale vy ste mi neodpovedali. Pýtal som sa koľko dB a či je to tichšie ako chladnička. A tá Samsung za 895 je tiež tichá, alebo je Toshiba lepšia?",
+   "Takže ak chcem aby ma nepočuli susedia tak Toshiba. Je nejaký lacnejší model ktorý je tiež tichý vonku? 2000 je dosť.",
+   "Dobre, ďakujem, musím si to premyslieť a poradiť sa s manželkou. Ozvem sa."
+  ]
+ },
+ {
+  "id": "q09",
+  "author": "qa_csat_2026-11-01",
+  "title": "English, renter",
+  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "Hi, I rent a 2-room flat in Bratislava (about 45 m2 total) and the summers are brutal. Can you tell me what an AC would cost and what's included in the price? I don't speak Slovak, sorry.",
+   "Thanks, but the living room is about 28 m2 and the bedroom about 17 m2 and I'd want both cooled. Would one unit do both? Also I'm renting, do I need the landlord's permission?",
+   "You didn't answer about the landlord. And the living room is 28 m2 and gets a lot of sun, is a 2.5 kW unit enough there?",
+   "Ok I'm confused now. First you said 2.5 kW, now 3.5. And what does 'the tool did not accept' mean? Just give me a real price for something that will actually cool my living room.",
+   "No thanks, this is too confusing. I'll look elsewhere."
+  ]
+ },
+ {
+  "id": "q10",
+  "author": "qa_csat_2026-11-01",
+  "title": "Rozvláčny, tri spálne",
+  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "ahoj, tak sme sa s manzelkou rozhodli ze uz toto leto nechceme prezit bez klimy. mame rodinny dom, hore su 3 spalne a dole obyvacka ale chceme zatial len hore lebo to je najhorsie. kolko to vychadza, ako dlho trva montaz, robite to aj cez vikend a da sa tym aj kurit? jo a mame psa, nevadi mu to?",
+   "su to 3 spalne, 14, 16 a 12 m2, vsetky tri. a co s tym kurenim, mozem tym kurit aj v zime? a tu cenu si mi este nepovedal",
+   "treti krat sa pytam, da sa tym kurit v zime ano alebo nie? a 5000 je dost vela, co je najlacnejsie co by slo na tie 3 spalne?",
+   "ale 3x 895 je menej ako 3564 nie? preco teda pises ze sa oplati multisplit?",
+   "ok tak tie 3 samostatne sety. ale este si nepovedal ako dlho trva montaz a ci to robite aj cez vikend. a co ten pes?",
+   "kontakt ti zatial nedam, ozvem sa sam ked sa dohodnem s manzelkou. dik"
+  ]
+ },
+ {
+  "id": "q11",
+  "author": "complaint_handover",
+  "title": "Reklamácia až po odovzdanie tímu",
+  "review": "Ospravedlnenie, údaje, otázka na súhlas k reklamácii, záznam Reklamácia.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "Dobrý deň, klimatizácia, ktorú ste mi vlani montovali, mi tečie na stenu.",
+   "Eva Malá, 0905 000 444, eva@example.com, Nitra. Montáž bola vlani v júni.",
+   "Áno, súhlasím.",
+   "Ešte dodám, že to tečie hlavne večer. Kedy sa mi niekto ozve?"
+  ]
+ },
+ {
+  "id": "q12",
+  "author": "complaint_handover",
+  "title": "Reklamácia, zákazník údaje nedá",
+  "review": "Bez záznamu, firemný kontakt.",
+  "expect": {
+   "max_usd": 0.07
+  },
+  "messages": [
+   "Klimatizácia, ktorú ste mi montovali, nechladí. Chcem to vyriešiť.",
+   "Nie, údaje vám nedám. Nesúhlasím."
+  ]
+ }
+]

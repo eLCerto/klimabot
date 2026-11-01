@@ -102,7 +102,7 @@
          "should": "Dve nacenené možnosti, najlacnejšia vhodná prvá."},
         {"customer": "Beriem tú lacnejšiu.", "expect": ["kontakt"],
          "should": "Poďakuje, zopakuje zostavu a požiada o meno, telefón, e-mail a obec; ďalší krok iba ako podmienku; server pripojí otázku na súhlas."},
-        {"customer": "Ján Testovací, 0901 234 567, jan.testovaci@example.com, Nitra", "expect": ["pokracuj"],
+        {"customer": "Ján Testovací, 0901 234 567, jan.testovaci@example.com, Nitra", "expect": ["kontakt"],
          "should": "Poďakuje a vysvetlí, že potrebujeme výslovné áno na otázku nižšie; nesľubuje, že sa niekto ozve."},
         {"customer": "Áno, súhlasím", "expect": ["zapis"],
          "should": "Zapíše lead (capture_lead) a krátko poďakuje; projektový manažér sa ozve."}
@@ -154,9 +154,9 @@
       "title": "Reklamácia",
       "turns": [
         {"customer": "Klimatizácia, ktorú ste nám namontovali minulý rok, kvapká vodu. Chcem to reklamovať.", "expect": ["reklamacia"],
-         "should": "Reklamácie bot nerieši: dá e-mail (a telefón) firmy, nepýta si údaje a nič nesľubuje."}
+         "should": "Ospravedlní sa, požiada o meno, telefón, e-mail a obec, server pripojí otázku na súhlas k reklamácii; nič nesľubuje a netvrdí, že prípad už odovzdal."}
       ],
-      "final": {"price_shown": false, "consent": false, "last_has": ["{COMPANY_EMAIL}"], "last_lacks": ["Súhlasíte so spracovaním"]}
+      "final": {"price_shown": false, "consent": false, "last_has": ["Súhlasíte so spracovaním"], "last_lacks": ["odovzdal", "odovzdan"]}
     },
     {
       "id": "dym",
@@ -241,6 +241,12 @@
     },
     {"id": "zoznam_izieb", "title": "Tri izby jedným zoznamom m², QA 2026-11-01", "turns": [{"customer": "Dobrý deň, chcem klímu do troch izieb, majú 25, 15 a 12 m2. Hlavne čo najlacnejšie.", "expect": ["ponuka"], "should": "Dve nacenené možnosti pre všetky tri izby (multi-split alebo samostatné sety), nie cena za jednu izbu."}], "final": {"quotes_min": 1, "price_shown": true, "any_lacks": ["osobitne", "izba má 12 m²"]}},
     {"id": "plocha_neznama", "title": "Zákazník nevie plochu, QA 2026-11-01", "turns": [{"customer": "dobry den, byt 2 izby, spalna a obyvacka, neviem kolko m2 taka normalna", "expect": ["zisti-priority"], "should": "Bez ďalšej otázky na m²: čo je dôležité."}, {"customer": "hlavne lacno. daj cenu", "expect": ["ponuka"], "should": "Cena za typickú veľkosť s poznámkou, že výkon potvrdí projektový manažér pri obhliadke."}], "final": {"quotes_min": 1, "price_shown": true}},
-    {"id": "sest_izieb", "title": "Šesť izieb na jednu vonkajšiu, QA 2026-11-01", "turns": [{"customer": "Rodinný dom, 6 miestností: 30, 22, 18, 15, 14 a 12 m2, všetko na jednu vonkajšiu jednotku.", "expect": ["zisti-priority"], "should": "Povie, že jedna vonkajšia jednotka unesie najviac päť vnútorných, a nesľúbi šesť."}], "final": {"any_lacks": ["dá klimatizovať jednou vonkajšou"]}}
+    {"id": "sest_izieb", "title": "Šesť izieb na jednu vonkajšiu, QA 2026-11-01", "turns": [{"customer": "Rodinný dom, 6 miestností: 30, 22, 18, 15, 14 a 12 m2, všetko na jednu vonkajšiu jednotku.", "expect": ["zisti-priority"], "should": "Povie, že jedna vonkajšia jednotka unesie najviac päť vnútorných, a nesľúbi šesť."}], "final": {"any_lacks": ["dá klimatizovať jednou vonkajšou"]}},
+    {"id": "penzion_pm", "title": "Penzión ide k projektovému manažérovi", "turns": [{"customer": "Dobrý deň, staviame penzión s 12 izbami po 20 m2 a recepciou 40 m2. Čo by ste navrhli a koľko to bude?", "expect": ["priemysel"], "should": "Žiadny návrh ani cena: riešenie navrhne projektový manažér, kontakt na firmu alebo ponuka, že sa ozve."}], "final": {"quotes_max": 0, "price_shown": false}},
+    {"id": "len_spalna", "title": "Dvojizbový byt, len spálňa, seniorka, QA CSAT 2026-11-01", "turns": [{"customer": "Mám dvojizbový byt v Trnave, asi 55 m2. Najhoršie je to v spálni, tá bude mať tak 14 m2, obývačku nechám tak. Koľko ma to bude stáť? A bude mi niekto vysvetľovať ako sa to ovláda?", "expect": ["ponuka"], "should": "Dve nacenené možnosti pre 14 m² v najmenšej vhodnej veľkosti, odpovie aj na ovládanie; na izby sa už nepýta."}, {"customer": "Tá lacnejšia mi stačí, ďakujem. Zavolá mi niekto?", "expect": ["kontakt"], "should": "Odpovie, že sa ozve projektový manažér, ak nechá kontakt a odsúhlasí otázku; požiada o údaje."}], "final": {"quotes_min": 2, "price_shown": true}},
+    {"id": "tri_izby_multi", "title": "Tri izby s jednou vonkajšou, cena hneď, QA CSAT 2026-11-01", "turns": [{"customer": "Dobrý deň, chceme klimatizovať byt - spálňu 14 m2, detskú izbu 11 m2 a obývačku 24 m2. Ideálne jednou vonkajšou jednotkou a s ovládaním cez mobil.", "expect": ["ponuka"], "should": "Dva multi-splity vybrané serverom, oba nacenené; žiadna veta o nástrojoch ani otázka na značku."}], "final": {"quotes_min": 2, "price_shown": true, "any_lacks": ["n[aá]stroj", "ktor\\w* zna[čc]k"]}},
+    {"id": "rozpocet_900", "title": "Rozpočet s montážou, QA CSAT 2026-11-01", "turns": [{"customer": "Dobrý deň, mám na klimatizáciu do izby 18 m2 maximálne 900 eur aj s montážou. Zmestím sa do toho?", "expect": ["ponuka"], "should": "Dve ceny hneď, najlacnejšia vhodná prvá; povie, či sa zmestia jednotky, a že montáž určí projektový manažér."}], "final": {"quotes_min": 2, "price_shown": true}},
+    {"id": "reklamacia_tecie", "title": "Nahnevaná reklamácia, QA CSAT 2026-11-01", "turns": [{"customer": "Máte tam vôbec niekoho kompetentného? Klimatizácia, ktorú ste mi minulý rok montovali, mi tečie na stenu a už druhý týždeň sa mi nikto neozval!!!", "expect": ["reklamacia"], "should": "Ospravedlní sa a požiada o meno, telefón, e-mail a obec; server pripojí otázku na súhlas k reklamácii; nepýta sa na priestor, netvrdí, že prípad už odovzdal."}], "final": {"quotes_max": 0, "price_shown": false, "any_lacks": ["odovzdan", "odovzdal", "zaznamenan", "ak[ýy] priestor"]}},
+    {"id": "dve_izby_anglicky", "title": "English, a two-room flat, QA CSAT 2026-11-01", "turns": [{"customer": "Hi, I rent a 2-room flat in Bratislava (about 45 m2 total). What would an AC cost?", "expect": ["zisti-izby"], "should": "Asks which rooms and their size, in English."}, {"customer": "The living room is 28 m2 and the bedroom 17 m2, I want both cooled.", "expect": ["ponuka"], "should": "Two multi-split options with prices, in English; no word about tools, the customer or the system."}], "final": {"quotes_min": 2, "price_shown": true, "any_lacks": ["\\btool\\b", "the customer"]}}
   ]
 }
