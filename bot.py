@@ -212,6 +212,7 @@ _CONSENT_YES_NOT_CONSENT_RE = re.compile(CONSENT_PHRASES["yes_not_consent_re"], 
 _CONSENT_NO_RE = re.compile(CONSENT_PHRASES["no_re"], re.IGNORECASE)
 _CONSENT_NO_NOT_REFUSAL_RE = re.compile(CONSENT_PHRASES["no_not_refusal_re"], re.IGNORECASE)  # "nesúhlasím s cenou"
 _CONSENT_NO_IN_WINDOW_RE = re.compile(CONSENT_PHRASES["no_in_window_re"], re.IGNORECASE)
+_CONSENT_RECONSIDER_RE = re.compile(CONSENT_PHRASES["reconsider_re"], re.IGNORECASE)  # after a refusal
 _CONSENT_WITHDRAWAL_RE = re.compile(CONSENT_PHRASES["withdrawal_re"], re.IGNORECASE)  # "odvolávam súhlas", "vymažte údaje"
 
 system_prompt = (
@@ -986,6 +987,21 @@ _M2_TOTAL_RE = re.compile(r"(?:(?:spolu|celkom|dokopy|celkov\w*|total\w*|togethe
                           r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m²)", re.IGNORECASE)
 _M2_TOTAL_AFTER_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:m{1,2}2|m²)\s*(?:spolu|celkom|dokopy|total|in\s+total|altogether)\b", re.IGNORECASE)
 _ROOM_WORD_RE = re.compile(r"\b(?:izb|spál|spal|obýv|obyv|detsk|kuchy|pracov|kancel|room|bedroom|living|kitchen|office)\w*", re.IGNORECASE)
+_AREA_FILLER = r"(?:(?:má|ma|je|asi|cca|okolo|približne|priblizne|has|is|about|around)\s+){0,2}"
+# "kuchyňa má 15m obývačka 20": the unit stands beside one room only. Read as 15 m², the 35 m² space got 2.5 kW and every
+# right size was refused as oversized (live conversation 2026-11-02). _m2_in() counts these only next to a stated area.
+_ROOM_BARE_M2_RE = re.compile(rf"{_ROOM_WORD_RE.pattern}\s+{_AREA_FILLER}(\d{{1,3}}(?:[.,]\d)?)\b"
+                              r"(?!\s*(?:kW|W\b|BTU|°|stup|rok|mesiac|ľud|ludi|osôb|osob|€|eur|%|cm|mm|min|hod))", re.IGNORECASE)
+# A kitchen open to the living room is one space, so one set cools the sum of the two. Matched on folded text by _wished().
+_OPEN_PLAN_RE = re.compile(r"\bspojen\w*|\bprepojen\w*|\botvoren\w*\s+(?:kuchyn\w*|priestor\w*|miestnost\w*)|"
+                           r"\bv\s+jednej\s+(?:otvorenej\s+)?miestnosti\b|\bjedna\s+(?:otvorena\s+)?miestnost\b|"
+                           r"\bjeden\s+(?:otvoreny\s+)?priestor\b|\bsu\s+spolu\b|\bopen[\s-]plan\b|\bkuchynsk\w*\s+kut\w*",
+                           re.IGNORECASE)
+_KITCHEN_WORD_RE = re.compile(r"\bkuchy\w*|\bkitchen\b", re.IGNORECASE)
+_LIVING_WORD_RE = re.compile(r"\bobyv\w*|\bliving\b", re.IGNORECASE)
+_NUMBER_AFTER = rf"\s+{_AREA_FILLER}(\d{{1,3}}(?:[.,]\d)?)(?!\d)"  # "15m" too
+_KITCHEN_M2_RE = re.compile(rf"(?:{_KITCHEN_WORD_RE.pattern}){_NUMBER_AFTER}", re.IGNORECASE)
+_LIVING_M2_RE = re.compile(rf"(?:{_LIVING_WORD_RE.pattern}){_NUMBER_AFTER}", re.IGNORECASE)
 _NO_CEILING_RE = re.compile(
     r"(?:nemáme|nemám|nie\s+je|bez)\s+(?:žiadn\w+\s+)?podhľad|podhľad\w*\s+(?:[^.?!\n]{0,30}\s)?(?:nemáme|nemám|nie\s+je)|"
     r"betónov\w*\s+strop|no\s+(?:suspended|false)\s+ceiling|without\s+(?:a\s+)?(?:suspended|false)\s+ceiling",
@@ -1008,8 +1024,32 @@ def _customer_numbers(regex):
 
 
 def _customer_m2():
-    """Every area the customer typed, each number of a room list included."""
-    return _m2_in(_all_user_text())
+    """Every area the customer typed, each number of a room list included; an open kitchen and living room as their sum."""
+    areas = _m2_in(_all_user_text())
+    parts = _open_plan_parts(areas)
+    if parts:
+        for part in parts:
+            areas.remove(part)
+        areas.append(sum(parts))
+    return areas
+
+
+def _open_plan():
+    """The customer said the kitchen and the living room are one space."""
+    folded = fold_diacritics(_all_user_text())
+    return bool(_KITCHEN_WORD_RE.search(folded) and _LIVING_WORD_RE.search(folded) and _wished(_OPEN_PLAN_RE))
+
+
+def _open_plan_parts(areas):
+    """The kitchen's and the living room's areas when they are one space and both were given, else None."""
+    if len(areas) < 2 or not _open_plan():
+        return None
+    folded = fold_diacritics(_all_user_text())
+    labelled = [rx.search(folded) for rx in (_KITCHEN_M2_RE, _LIVING_M2_RE)]
+    if all(labelled):
+        parts = [float(m.group(1).replace(",", ".")) for m in labelled]
+        return parts if all(areas.count(p) >= parts.count(p) for p in parts) else None
+    return list(areas) if len(areas) == 2 else None  # "Kuchyňa a obývačka sú spojené, 15 a 20 m2"
 
 
 def _m2_in(text):
@@ -1025,6 +1065,12 @@ def _m2_in(text):
         if m.group(2) and _NOT_AREA_BEFORE_RE.search(text[max(0, m.start() - 25):m.start()]):
             continue
         values.append(float((m.group(1) or m.group(2)).replace(",", ".")))
+        listed.append(m.span())
+    if values:  # "izba 12" is an area only next to a stated one
+        for m in _ROOM_BARE_M2_RE.finditer(text):
+            value = float(m.group(1).replace(",", "."))
+            if 5 <= value <= 500 and not any(a <= m.start(1) < b for a, b in listed):
+                values.append(value)
     return values
 
 
@@ -1447,8 +1493,12 @@ def _fit_check(fit_lines, override_reason=None):
         cooled = sum(_room_sizes()) if stated_totals and named_rooms else max(m2)
         need = cooled * SIZING["kw_per_m2"]
         if capacity and capacity < need * SIZING["undersize_ratio"]:
-            warnings.append(f"poddimenzované, ak zostava chladí celých {cooled:g} m²: {capacity:g} kW, "
-                            f"potrebné približne {need:g} kW")
+            if _open_plan():  # one space, so the set does cool all of it (live conversation 2026-11-02)
+                errors.append(f"poddimenzované: kuchyňa a obývačka sú jeden priestor, {cooled:g} m² potrebuje približne "
+                              f"{need:g} kW a zostava má {capacity:g} kW — naceň väčšiu")
+            else:
+                warnings.append(f"poddimenzované, ak zostava chladí celých {cooled:g} m²: {capacity:g} kW, "
+                                f"potrebné približne {need:g} kW")
         # Rooms named one by one ("kuchyňa 30, spálňa 24 m²"): the largest one needs a unit that covers it (live demo
         # 2026-10-24: 3× 2.5 kW with a 30 m² kitchen). A total next to the rooms ("spolu 54 m²") is not a room,
         # and a single size next to a total is a room's ("Byt má 50 m2", "Každá izba má 20 M2").
@@ -1589,6 +1639,18 @@ def _fit_check(fit_lines, override_reason=None):
         errors.append(f"zákazník nežiadal iný typ vnútornej jednotky, {non_wall} nie je nástenná — štandard je "
                       "nástenná: ponúkni nástennú, alebo sa ho opýtaj, či potrebuje iný typ (parapetná, kazetová, "
                       "kanálová)")
+    # White is the standard: the black SHORAI was offered unasked, dearer than the same set in white (live 2026-11-02).
+    if not _wished(_COLOUR_WISH_RE):
+        for rec, codes, _, cat in fit_lines:
+            colour = re.search(r"_(Black|Wood)$", _series_key(rec))
+            if cat != "single_split_sets" or not colour or any(c in text.upper() for c in codes):
+                continue
+            white_series = _series_key(rec)[:colour.start()] + "_White"
+            white = next(((sorted(c), o) for c, o in _SETS.items() if _series_key(o) == white_series
+                          and o["raw"].get("cooling_kW") == rec["raw"].get("cooling_kW")), None)
+            if white:
+                errors.append(f"zákazník farbu nežiadal, {codes} nie je biely set — štandard je biela: naceň "
+                              f"{_describe(white[1], as_set=True)} {white[0]}")
     # Salon / medical practice: a wall unit blows straight at clients (s04); the commercial
     # rule prescribes an under-ceiling unit, or a cassette where there is a suspended ceiling.
     wall = sorted({c for rec, codes, _, cat in fit_lines if cat == "commercial_indoor"
@@ -5685,6 +5747,10 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
     if later:
         violations.append(f"neskorsia-sprava: sľubuješ správu, ktorú sám nepošleš ('{later.group(0)}'). Všetko povedz teraz "
                           "alebo naceň cez `quote`; čo nevieš, povedz, že to upresní projektový manažér.")
+    included = _INSTALL_INCLUDED_RE.search(text)
+    if included:
+        violations.append(f"montaz-v-cene: tvrdíš, že montáž je v cene ('{included.group(0)}'). Cena je bez montáže; cenu "
+                          "montáže určí projektový manažér po bezplatnej obhliadke.")
     noted = _health_noted_claims(text)
     if noted:
         violations.append(f"zdravie-zaznam: tvrdíš, že si zdravotný údaj zapísal ('{noted[0].strip()[:100]}'). Diagnózy "
@@ -5817,10 +5883,14 @@ _HARD_RULES = ("cena-z-nastroja", "aplikacia-rabatov", "model-code-verifikacia",
                "interne-info", "slub-bez-suhlasu", "termin-slub", "cena-iny-produkt", "dph-zamena",
                "mimo-katalogu", "nepodlozene-udaje", "ai-identita", "brand-funkcia", "typ-jednotky",
                "sklad-tvrdenie", "farba", "porovnanie-smer", "funkcia-radu", "nenacenene", "zdravie-tvrdenie",
-               "zaruka-slub", "neskorsia-sprava", "zdravie-zaznam")
+               "zaruka-slub", "neskorsia-sprava", "zdravie-zaznam", "montaz-v-cene")
 # The bot can't write on its own: "presnú cenu vám pošlem v ďalšej správe" left the customer waiting (QA 2026-11-01).
 _LATER_MESSAGE_RE = re.compile(r"\bv\s+(?:ďalšej|dalsej|nasledujúcej|nasledujucej)\s+správe\b|\bpošlem\s+(?:vám|ti)\b|"
+                               # live 2026-11-02: "cenu ti spresním v ďalšom kroku", "otázku, ktorú ti pošlem nižšie"
+                               r"\b(?:cen\w*|sum\w*)\s+(?:ti|vám)\s+\w+\s+v\s+ďalšom\s+kroku\b|\b(?:ti|vám)\s+pošlem\b|"
                                r"\b(?:in|with)\s+(?:my|the)\s+next\s+message\b|\bI(?:'ll|\s+will)\s+send\s+you\b", re.IGNORECASE)
+# No installation price exists, so it can't be in the price: "Montáž je v cene len v tom zmysle…" (live 2026-11-02).
+_INSTALL_INCLUDED_RE = re.compile(r"\bmontáž\w*\s+(?:je|sú)\s+(?:v\s+cene|zahrnut\w*|započítan\w*|súčasťou\s+ceny)", re.IGNORECASE)
 # A diagnosis stays out of the PM's record, so the bot can't say it went there (QA 2026-11-01).
 _HEALTH_NOTED_RE = re.compile(r"\b(?:poznač|poznámk|zaznamena|zapísa|zapisa|odovzda)\w*", re.IGNORECASE)
 _NOT_NOTED_RE = re.compile(r"\bnezapis\w*|\bnezaznamen\w*|\bnepozna\w*|\bnemôž\w*|\bnie\b", re.IGNORECASE)
@@ -6023,7 +6093,10 @@ _INTERNAL_LEAK_RE = re.compile(
     # znova", "Otázku… nájdete pod touto správou"; the filtration tiers are internal too ("poradie 1", "tretej triedy")
     r"\bčo\s+viem\s+spoľahlivo\b|\bnacenen\w*\s+(?:\w+\s+){0,2}(?:nefung\w*|zlyhal\w*|nepreš\w*)|\bnepodarilo\s+(?:sa\s+)?nacen\w*|"
     r"\bskúsim\s+(?:\w+\s+){0,4}znova\b|\bpod\s+touto\s+správou\b|\bporadi\w*\s+\d\b|"
-    r"\bfiltrác\w*\s+(?:(?:\w+\s+)?(?:prvej|druhej|tretej|štvrtej)\s+triedy|triedy\s+[1-4])\b|\btried\w*\s+[1-4]\b",
+    r"\bfiltrác\w*\s+(?:(?:\w+\s+)?(?:prvej|druhej|tretej|štvrtej)\s+triedy|triedy\s+[1-4])\b|\btried\w*\s+[1-4]\b|"
+    # a made-up outage (live 2026-11-02): "Ďalšie volanie cenníka už nie je dostupné", "cenník vyhodnotil ako naddimenzované"
+    r"\bvolani\w*\s+cenník\w*|\bcenník\w*\s+(?:\w+\s+){0,3}(?:vyhodnot\w*|sprístupn\w*|hlási\w*|nevracia\w*)|"
+    r"\bbude\s+cenník\w*\s+dostupn\w*|\bvrátil\w*\s+limit\b|\bnedokázal\w*\s+(?:\w+\s+){0,2}nacen\w*",
     re.IGNORECASE)
 # Before consent nobody may be promised a call, and nothing may be called "recorded" (a03).
 # Matched on diacritic-folded text, so misspellings ("Záznamenávam", q05) don't slip through.
@@ -6437,6 +6510,7 @@ def _regen_note(violations):
         "zdravie-tvrdenie": "Opíš, čo zariadenie technicky robí (napr. chladí bez priameho prievanu, filter zachytáva "
                             "častice); bolesť, prechladnutie, astmu ani iný zdravotný účinok nesľubuj.",
         "neskorsia-sprava": "Nič nesľubuj na ďalšiu správu: naceň teraz cez `quote`, alebo povedz, čo sa nedá.",
+        "montaz-v-cene": "Napíš, že cena je bez montáže a cenu montáže určí projektový manažér po bezplatnej obhliadke.",
         "zdravie-zaznam": "Nepíš, že si diagnózu zapísal ani odovzdal; spomeň iba požiadavku na filtráciu.",
         "samooprava": "Napíš každú sumu raz a správne, bez opráv priamo v texte; každá možnosť má svoju sumu z `quote`.",
         "najlacnejsie-tvrdenie": "`quote` upozornil, že to nie je najlacnejšia možnosť: naceň set, ktorý v `fit_warnings` "
@@ -6825,7 +6899,9 @@ def _process_consent_reply(user_input):
     """Decide consent from the customer's message — code, never the model. Only the
     message right after the latest canonical question can give consent; an explicit
     refusal counts at any time and wins over a 'yes' in the same message.
-    Returns 'given', 'refused', 'withdrawn' or None."""
+    A customer who refused and then agrees gets the question again, so that yes still answers it (the customer of
+    2026-11-02 agreed three times and was told to send an e-mail).
+    Returns 'given', 'refused', 'withdrawn', 'reconsidered' or None."""
     sess = S()
     text = unicodedata.normalize("NFC", user_input)
     in_window = sess.consent_ask_index is not None and len(sess.user_inputs) == sess.consent_ask_index + 1
@@ -6840,7 +6916,18 @@ def _process_consent_reply(user_input):
     if in_window and _CONSENT_YES_RE.search(_CONSENT_YES_NOT_CONSENT_RE.sub(" ", text)):
         _record_consent(sess.consent_ask_purpose or _consent_purpose(), text)
         return "given"
+    if (sess.consent_refused and sess.consent_reasks < 2
+            and _CONSENT_RECONSIDER_RE.search(_CONSENT_YES_NOT_CONSENT_RE.sub(" ", text))):
+        sess.consent_reasks += 1
+        return "reconsidered"
     return None
+
+
+def _reconsider_text(purpose, language):
+    """Written by code, neutral to tykanie and vykanie: the question that counts follows."""
+    lead = ("Understood. For this to count, I need your explicit answer to this question:" if language == "en" else
+            "Rozumiem. Aby to platilo, potrebujem výslovnú odpoveď na túto otázku:")
+    return f"{lead}\n\n{_consent_question_block(purpose, language)}"
 
 
 def _consent_status_text():
@@ -6866,7 +6953,9 @@ def _consent_status_text():
         return f"Súhlas: UDELENÝ (účel {sess.consent['purpose']}). {todo}"
     if sess.consent_refused:
         return ("Súhlas: zákazník ODMIETOL. capture_lead nevolaj, jeho údaje neopakuj, nežiadaj ich znova; "
-                f"ponúkni zhrnutie v chate a priamy kontakt: {_contact_offer()}.")
+                f"zhrnutie v chate a priamy kontakt ({_contact_offer()}) ponúkni raz, potom ich neopakuj a odpovedz len na "
+                "to, čo napísal. Súhlas môže dať kedykoľvek: otázku položí server, keď napíše, že súhlasí. Netvrď, že je "
+                "zaznamenaný ako odmietnutý ani že sa nedá zmeniť.")
     if sess.customer_state.get("lead_phone") or sess.customer_state.get("lead_email"):
         return ("Súhlas: zatiaľ NIE, hoci zákazník už dal kontakt („dobre“, „ozvite sa“ ani „súhlasím s cenou“ nie je "
                 "súhlas). Poďakuj a jednou vetou povedz, že aby sa mu projektový manažér mohol ozvať, potrebujeme "
@@ -7052,6 +7141,8 @@ _ONE_ROOM_RE = re.compile(
     r"\b(?:len|iba|jedine|only|just)\s+(?:do\s+|v\s+|na\s+|tu\s+|ta\s+|tej\s+|tu\s+jednu\s+|the\s+|my\s+)?(?:jedn\w*\s+|one\s+)?"
     r"(?:spaln|obyvac|kuchyn|detsk|pracovn|izb|bedroom|living|room|kitchen)\w*|"
     r"\b(?:jedn\w*|one)\s+(?:izb|miestnost|spaln|obyvac|room|bedroom)\w*|\bnecham\s+tak\b", re.IGNORECASE)
+_COLOUR_WISH_RE = re.compile(r"\bciern\w*|\bblack\b|\bdrev\w*|\bwood\w*|\bfarb\w*|dizajn|design", re.IGNORECASE)
+_QUIET_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|\bquiet\w*|\bsilent\b", re.IGNORECASE)
 _TASTE_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|dizajn|design|\bfarb\w*|\bciern\w*|\bdrev\w*|textil", re.IGNORECASE)
 
 
@@ -7458,6 +7549,8 @@ def _sales_move(latest):
     picks = _suggested_sets()
     if picks:
         directive += _picks_text(picks)
+    if _wished(_QUIET_WISH_RE):  # the customer's first wish, and the offer of 2026-11-02 gave no figure
+        directive += " Zákazník chce tichý chod: pri každej možnosti uveď hlučnosť vnútornej jednotky v dB z `lookup_product`."
     return Move("ponuka", directive + _budget_note() + _rooms_limit_note() + _EXACT_AMOUNTS, "any")
 
 
@@ -7604,6 +7697,10 @@ def build_server_context(note=None):
     if _other_language(latest):
         status += ("\nZákazník píše jazykom, v ktorom neodpovedáme: odpovedz krátko a jednoducho po slovensky, nie v "
                    "inom jazyku ani transliterácii, a prekladač neodporúčaj. Vetu o jazykoch pripojí server.")
+    if _open_plan():
+        status += ("\nKuchyňa a obývačka sú jeden otvorený priestor: nie dve izby, ponúkni jeden set na celú plochu a nepýtaj "
+                   "sa na ňu znova. Pri ponuke jednou vetou povedz, že kuchyňa pridáva teplo, a preto konečnú veľkosť potvrdí "
+                   "projektový manažér pri bezplatnej obhliadke.")
     if _SUN_HEAT_RE.search(folded_text):
         # 2ef94e: "slnečná strana bez izolácie — 1 kW na 10 m² nebude stačiť, cena sa zvýši"
         status += ("\nZákazník spomenul slnko, prehrievanie, izoláciu alebo podkrovie. Dimenzuj podľa pravidla na m² "
@@ -7821,7 +7918,7 @@ _ERROR_REPLY = {
 def _final_call_note():
     """The turn's last call runs without tools: anything announced now would never happen."""
     return ("Toto je posledná odpoveď v tomto kroku, nástroje sú vypnuté. Nič neohlasuj ani nesľubuj (nepíš „skúsim“, "
-            "„pripravím“, „overím“). Sumy uveď iba tie, ktoré `quote` už vrátil; ak žiadnu nemáš, povedz jednou vetou, že "
+            "„pripravím“, „overím“) a o cenníku, nástrojoch ani limitoch nepíš. Sumy uveď iba tie, ktoré `quote` už vrátil; ak žiadnu nemáš, povedz jednou vetou, že "
             f"cenu v tomto chate nepripravíš, a daj kontakt: {_contact_offer()}.")
 
 
@@ -7978,6 +8075,8 @@ def run_user_turn_streaming(user_input):
         yield ("notice", {"text": "Zákazník súhlas odmietol — osobné údaje sa neuložia."})
     elif consent_event == "withdrawn":
         yield ("notice", {"text": "Zákazník odvolal súhlas alebo žiada vymazanie — záznam označený, vybaví operátor."})
+    elif consent_event == "reconsidered":
+        yield ("notice", {"text": "Zákazník si odmietnutie rozmyslel — server kladie otázku znova."})
     if consent_event or contact_fields:
         yield ("state", dict(sess.customer_state))
     language = _session_language()
@@ -7994,6 +8093,18 @@ def run_user_turn_streaming(user_input):
         if sess.handoff_path is not None and sess.handoff_path.exists():
             yield ("handoff", {"markdown": sess.handoff_path.read_text(encoding="utf-8"), "path": _rel(sess.handoff_path)})
         yield from _close_turn(_withdrawal_text(language), "withdrawal")
+        yield ("done", {"session_tokens": sess.input_tokens, "session_usd": round(sess.cost_usd, 4),
+                        "messages": len(sess.conversation)})
+        return
+
+    if consent_event == "reconsidered":  # code asks, without a model call; only the next message can answer
+        purpose = _consent_purpose()
+        yield from _close_turn(_reconsider_text(purpose, language), "consent_reask")
+        sess.consent_ask_index = len(sess.user_inputs)
+        sess.consent_ask_purpose = purpose
+        sess.gdpr_question_asked = True
+        log_event("consent_question_shown", purpose=purpose)
+        yield ("quick_replies", {"kind": "consent", "options": CONSENT_QUICK_REPLIES[language]})
         yield ("done", {"session_tokens": sess.input_tokens, "session_usd": round(sess.cost_usd, 4),
                         "messages": len(sess.conversation)})
         return
