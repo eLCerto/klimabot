@@ -2230,6 +2230,9 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
             "this_minus_other_with_DPH_eur": diff,
             "this_minus_other_eur": round(result["total_eur"] - other["total_eur"], 2),
             "cheaper": "táto ponuka" if diff < 0 else "predošlá ponuka" if diff > 0 else "rovnaká cena",
+            # In words: a signed difference was read backwards, "lacnejší o 1 304,05 €" about the dearer one (live 2026-11-02, d06).
+            "reads": ("rovnaká cena" if not diff else
+                      f"táto ponuka je o {_eur(abs(diff))} s DPH {'lacnejšia' if diff < 0 else 'drahšia'} než {i}. ponuka"),
         })
     if comparisons:
         result["comparison_with_earlier_quotes"] = comparisons[-4:]
@@ -2966,8 +2969,9 @@ def _render_handoff_sections(record):
     )
 
     # Facts from the customer's own words when the model didn't store them (a03: budget and m² missing).
+    # The customer's latest word first: the model's place_m2 kept 20 m² after "25 m2, nie 20" (live 2026-11-02, d08).
     size = _state_get(st, 'place_m2', 'room_size_m2', 'm2', default=None)
-    if size is None and _customer_m2():
+    if _customer_m2():
         size = " + ".join(f"{v:g} m²" for v in _customer_m2()) + " (podľa zákazníka)"
     budget = _customer_budget()
     all_text = _all_user_text()
@@ -4700,7 +4704,8 @@ _WITH_VAT_AND_FEE_EN_RE = re.compile(r"\bincl(?:uding|\.)?\s+VAT\s+and\s+(?:the\
 
 _SAFETY_BOILERPLATE_RE = re.compile(r"\bvolajte\s+\*{0,2}112\b|\bističom\b|\botvoren\w+\s+oheň\b", re.IGNORECASE)
 _CALL_US_RE = re.compile(r",?\s*(?:alebo|prípadne|or)\s+(?:nám\s+|us\s+)?(?:zavolaj\w*|zavolali|call)\b(?:,?\s*ak\s+máte[^.?!\n]*)?", re.IGNORECASE)
-_SK_EUR_RE = re.compile(r"(?<![\d.,])(\d{1,3}(?:[ \u00a0]\d{3})+|\d+)\.(\d{2})(?=\s*€)")
+_SK_EUR_RE = re.compile(r"(?<![\d.,])(\d{1,3}(?:[ \u00a0]\d{3})+|\d+)\.(\d{1,2})(?=\s*€)")
+_UNGROUPED_EUR_RE = re.compile(r"(?<![\d.,])(?<!\d[ \u00a0])(\d{1,3})(\d{3})(?=(?:,\d{2})?\s*€)")  # "2520 €", "3099,60 €" (live 2026-11-02, d07)
 _ONE_DECIMAL_EUR_RE = re.compile(r"(?<![\d.,])(\d{1,3}(?:[ \u00a0]\d{3})+|\d+),(\d)(?=\s*€)")  # "4 775,4 €" (QA 2026-11-02, d10)
 # The fee is always on top. "nie je vrátane…" says so already.
 _INCL_FEE_RE = re.compile(r"(?<!nie je )(?<!nie sú )(?<!nie )\b(?:vrátane|vratane|včetne|aj\s+s)\s+recyklačn\w+\s+poplatk\w+", re.IGNORECASE)
@@ -4722,6 +4727,12 @@ def _fix_self_gender(text):
     return _SELF_FEM_RE.sub(fem, _SELF_RADA_RE.sub(lambda m: "Rád" if m.group(1) == "R" else "rád", text))
 
 
+# "Cena… zahŕňa aj recyklačný poplatok": it is always added on top (live 2026-11-02, d03). "nezahŕňa" stays.
+_FEE_INCLUDED_VERB_RE = re.compile(r"\b(zahŕňa|zahŕňajú|obsahuje|obsahujú)\s+(?:už\s+|aj\s+|tiež\s+)*recyklačn\w+\s+poplatk?\w*", re.IGNORECASE)
+_FEE_IN_PRICE_RE = re.compile(r"(?<!nie je )(?<!nie sú )\b(recyklačn\w+\s+poplat\w+)\s+(?:je|sú)\s+(?:už\s+|aj\s+)*(?:zahrnut\w+\s+)?v\s+cen\w+",
+                              re.IGNORECASE)
+# "Dovidenia a príjemné leto." in November (live 2026-11-02, d09); the bot doesn't know the season.
+_SEASON_WISH_RE = re.compile(r"\s+a\s+príjemn\w+\s+(?:leto|zimu|jeseň|jar)\b", re.IGNORECASE)
 _SK_TYPOS = {"Vďakujem": "Ďakujem", "vďakujem": "ďakujem", "nviem": "neviem", "Nviem": "Neviem", "nevviem": "neviem",
              "voveľkosti": "vo veľkosti", "Vaše rozpočtu": "Vášmu rozpočtu", "táto variant": "tento variant",
              "Táto variant": "Tento variant", "nacenením ho": "nacením ho",
@@ -4743,7 +4754,7 @@ def _drop_unprompted_safety(text):
 
 
 def _sk_amount(m):
-    return f"{int(re.sub(r'[ \u00a0]', '', m.group(1))):,}".replace(",", " ") + f",{m.group(2)}"
+    return f"{int(re.sub(r'[ \u00a0]', '', m.group(1))):,}".replace(",", " ") + f",{m.group(2).ljust(2, '0')}"
 
 
 def sanitize_reply(text, language="sk"):
@@ -4785,6 +4796,9 @@ def sanitize_reply(text, language="sk"):
     # (live demo 2026-10-19). "bez DPH a recyklačných poplatkov" is right and stays.
     text = _WITH_VAT_AND_FEE_RE.sub(r"s DPH\1, bez recyklačného poplatku", text)  # \1: a closing "**" stays
     text = _INCL_FEE_RE.sub("bez recyklačného poplatku", text)  # "bez DPH, vrátane recyklačných poplatkov" (QA 2026-11-01)
+    text = _FEE_INCLUDED_VERB_RE.sub(lambda m: ("sú" if m.group(1).lower().endswith(("jú",)) else "je") + " bez recyklačného poplatku", text)
+    text = _FEE_IN_PRICE_RE.sub(r"\1 sa účtuje navyše", text)
+    text = _SEASON_WISH_RE.sub("", text)
     # "Lead je zapísaný a projektový manažér sa vám ozve…": cut as a leak, it took the callback with it (replay 2026-11-01).
     text = _LEAD_WRITTEN_RE.sub("Vaša žiadosť je zapísaná", text)
     text = _INCL_FEE_EN_RE.sub("excluding the recycling fee", text)
@@ -4802,6 +4816,7 @@ def sanitize_reply(text, language="sk"):
     if language == "sk":
         text = _SK_EUR_RE.sub(_sk_amount, text)
         text = _ONE_DECIMAL_EUR_RE.sub(lambda m: f"{m.group(1)},{m.group(2)}0", text)
+        text = _UNGROUPED_EUR_RE.sub(r"\1 \2", text)
         text = _SK_TYPO_RE.sub(lambda m: _SK_TYPOS[m.group(0)], text)
     if len(S().user_inputs) >= 2 and _REPEAT_GREETING_RE.match(text):  # no "Dobrý deň" in the middle of a conversation
         rest = _REPEAT_GREETING_RE.sub("", text, count=1)
@@ -5140,20 +5155,29 @@ def _vat_basis(key):
 
 
 def _quote_identity(q):
-    """Series, model codes and brands a quote is about."""
-    series, codes, brands = set(), set(), set()
+    """Series, model codes, brands and colour variants a quote is about. A colour is one series, so it needs its own field:
+    an outdoor unit is shared by the variants, and only the code all of a line's codes agree on says which one was quoted."""
+    series, codes, brands, finishes = set(), set(), set(), set()
     for line in q["lines"]:
         brands.add(line["description"].split(" ", 1)[0])
+        line_finishes = []
         for code in line["codes"]:
             codes.add(code)
+            code_finishes = set()
             for rec in _RECORDS_BY_CODE.get(code, []):
                 # Any section: multi-split units sit one level deeper ("indoor_units_wallmount.WindFree_Comfort_S2"),
                 # and the live demo cut a Comfort S2 price as "another product's".
                 for section in rec["category_path"].split(".")[1:]:
-                    key = re.sub(r"_(?:White|Black|Wood)$", "", section)
+                    key, colour = re.subn(r"_(?:White|Black|Wood)$", "", section)
                     if key in _SERIES_RES:
                         series.add(key)
-    return {"series": series, "codes": codes, "brands": brands}
+                        if colour:
+                            code_finishes.add(section.rsplit("_", 1)[1])
+            if code_finishes:
+                line_finishes.append(code_finishes)
+        if line_finishes:
+            finishes |= set.intersection(*line_finishes)
+    return {"series": series, "codes": codes, "brands": brands, "finishes": finishes}
 
 
 def _named_in(block):
@@ -5161,6 +5185,16 @@ def _named_in(block):
     codes = {_canonical_code(m.group(0)) for m in _MODEL_CODE_LIKE_RE.finditer(block)} - {None}
     brands = {b for b, rx in _BRAND_RES.items() if rx.search(block)}
     return series, codes, brands
+
+
+_FINISH_RES = {"White": re.compile(r"\bwhite\b|\bbiel\w*", re.IGNORECASE), "Black": re.compile(r"\bblack\b|\bčiern\w*|\bciern\w*", re.IGNORECASE),
+               "Wood": re.compile(r"\bwood\b|\bdrev\w*|\bjase[ňn]\w*", re.IGNORECASE)}
+
+
+def _finish_before(text, pos):
+    """The colour variant named last before `pos`, or None."""
+    found = [(m.start(), name) for name, rx in _FINISH_RES.items() for m in rx.finditer(text, 0, max(pos, 0))]
+    return max(found)[1] if found else None
 
 
 def _blocks(text):
@@ -5186,13 +5220,14 @@ def _misattributed_amounts(text):
     idents = [_quote_identity(q) for q in quotes]
     values = [{v for _, v in _euro_field_items(q)} for q in quotes]
     out = []
-    previous = (set(), set(), set())
+    previous, previous_block = (set(), set(), set()), ""
     for block in _blocks(text):
         named_here = _named_in(block)
         # A price line on its own belongs to the product of the block above it (live demo 2026-10-27: Comfort S2's
         # price as its own paragraph under "Samsung WindFree Avant S2 … Má: …").
         series, codes, brands = named_here if any(named_here) else previous
-        previous = named_here
+        context = block if any(named_here) else previous_block + "\n" + block
+        previous, previous_block = named_here, block
         if not (series or codes or brands):
             continue
         for raw, value in _reply_amounts(block):
@@ -5206,6 +5241,14 @@ def _misattributed_amounts(text):
                     return bool(series & idents[i]["series"] or codes & idents[i]["codes"])
                 return bool(brands & idents[i]["brands"])
             if owners and not any(named(i) for i in owners):
+                out.append((raw, value))
+                continue
+            # Another colour of the same series: DAISEIKAI 10 Wood at the White price, "takže cena je rovnaká" (live
+            # 2026-11-02, d03). The price list says the wood front costs more. Only the colour named last before the
+            # amount counts: "…stojí X. Existuje aj drevená" says nothing about X.
+            finish = _finish_before(context, context.find(raw))
+            mine = [i for i in owners if named(i)]
+            if finish and mine and all(idents[i]["finishes"] and finish not in idents[i]["finishes"] for i in mine):
                 out.append((raw, value))
     return out
 
@@ -5624,10 +5667,20 @@ _RESTATED_WISH_RE = re.compile(
     r"hladas|hladate|spomínaš|spomínate|spominas|spominate|you\s+want|you'?d\s+like|you\s+asked)\b", re.IGNORECASE)
 
 
+_COLOUR_TALK_RE = re.compile(r"\b(?:biel|čiern|drev|farb|farebn|jase[ňn])\w*|\b(?:white|black|wood)\b", re.IGNORECASE)
+_SAME_PRICE_RE = re.compile(r"(?<!nie je )(?<!nie sú )(?<!nemá )(?:\bcen\w*\s+(?:je\s+|bude\s+)?rovnak\w*|\brovnak\w*\s+cen\w*|\brovnako\s+(?:stoj\w*|drah\w*))",
+                            re.IGNORECASE)
+# The price lists do have colours: "podklady neobsahujú… farebné varianty" to a customer asking for design (live 2026-11-02, d02).
+_NO_COLOURS_CLAIM_RE = re.compile(r"\b(?:podklad|cenník|dokument|materiál)\w*[^.?!\n]{0,40}\b(?:neobsahuj|neuvádz|nemaj)\w*[^.?!\n]{0,40}\bfar(?:ebn|b)\w*",
+                                  re.IGNORECASE)
+
+
 def _color_claims(text):
-    """Sentences offering a colour no price list has (a restated wish or a negation passes)."""
-    return [s for s in _sentences(text) if _UNAVAILABLE_COLOR_RE.search(s) and not _COLOR_NEGATION_RE.search(s)
-            and not _RESTATED_WISH_RE.search(s)]
+    """Sentences offering a colour no price list has (a restated wish or a negation passes), giving a colour another
+    colour's price, or saying the documents list no colours."""
+    return [s for s in _sentences(text) if (_UNAVAILABLE_COLOR_RE.search(s) and not _COLOR_NEGATION_RE.search(s)
+                                            and not _RESTATED_WISH_RE.search(s))
+            or (_COLOUR_TALK_RE.search(s) and _SAME_PRICE_RE.search(s)) or _NO_COLOURS_CLAIM_RE.search(s)]
 
 
 @functools.lru_cache(maxsize=1)
@@ -5657,6 +5710,12 @@ _REFERENCE_BEFORE_RE = {"brands": re.compile(_REFERENCE_WORDS + r"$", re.IGNOREC
 _CHEAPER_AFTER_RE = re.compile(r"^\s*\**\s*(?:\w+\s+){0,2}?(?:lacnej\w*|menej|cheaper|less)\b", re.IGNORECASE)
 _THAN_RE = re.compile(r"\b(lacnej\w*|drahš\w*|drahs\w*|cheaper|dearer)\s+(?:než|nez|ako|oproti|than)\b", re.IGNORECASE)
 _DEARER_AFTER_RE = re.compile(r"^\s*\**\s*(?:\w+\s+){0,2}?(?:drahš\w*|drahs\w*|viac|more\s+expensive)\b", re.IGNORECASE)
+_CHEAPER_WORD_RE = re.compile(r"\blacnej\w*|\bcheaper\b", re.IGNORECASE)
+_DEARER_WORD_RE = re.compile(r"\bdrahš\w*|\bdrahs\w*|\bdearer\b|\bmore\s+expensive\b", re.IGNORECASE)
+# "Oproti trom setom Samsung AR35 je…": the reference may stand words before its name, with no verb between them.
+_REFERENCE_FAR_RE = re.compile(r"\b(?:oproti|porovnan[ií]\w*\s+so?|compared\s+to)\b(?!\s+tomu\b)(?![^.?!\n]*\b(?:je|sú|bude|vyjde|vychádza|is)\b)", re.IGNORECASE)
+_PRICE_DIFFERENCE_RE = re.compile(r"\bo\s+\**$")  # "lacnejšie o 895,57 €", "vyjde o 882,27 € drahšie"
+_EARLIER_OFFER_RE = re.compile(r"\bpredoš\w*|\bpredchádz\w*|\bpôvodn\w*|\bskôr\w*|\bearlier\b|\bzľav\w*", re.IGNORECASE)
 
 
 # A multi-split's price talked about before one was quoted: "mám ju naceňovanú tiež", "multi-split je zvyčajne
@@ -5675,16 +5734,50 @@ def _unpriced_multi_claims(text):
 
 _COMPARATIVE_RE = re.compile(r"\btichš\w*|\bhlučnejš\w*|\bvýkonnejš\w*|\bsilnejš\w*|\bvyšš\w*\s+výkon\w*", re.IGNORECASE)
 _COMPARATIVE_WISH_RE = re.compile(r"\b(?:ak|keď|chcete|potrebujete|želáte|želanie)\b", re.IGNORECASE)
+_OPTION_NAMED_RE = re.compile(r"\b(?:prv|druh|tret)\w+\b|\bmožnos\w*\s+\d", re.IGNORECASE)
 _FIGURE_RE = re.compile(r"\d\s*(?:dB|kW)\b", re.IGNORECASE)
 
 
 def _unbacked_comparatives(text):
     """ "Tichší a výkonnejší" with no figure beside it: 2.5 kW was called stronger than 2.6 kW and 22 dB quieter than 20 dB,
     and the customer chose on that (QA 2026-11-02, d05, d02). Code can't compare what the two rows don't share, so the claim
-    needs its figures in the sentence."""
-    return [x for x in _sentences(text) if _COMPARATIVE_RE.search(x) and not _FIGURE_RE.search(x) and "?" not in x
-            and not _COMPARATIVE_WISH_RE.search(x)
-            and any(rx.search(x) for rx in (*_SERIES_RES.values(), *_BRAND_RES.values()))]
+    needs its figures in the sentence. A wish passes in its own clause only: "Ak rozhoduje cena, druhá je lacnejšia, s tichším
+    chodom" opens with "ak" and still claims it (live 2026-11-02, d05)."""
+    return [x for x in _sentences(text) if not _FIGURE_RE.search(x) and "?" not in x
+            and any(_COMPARATIVE_RE.search(c) and not _COMPARATIVE_WISH_RE.search(c) for c in re.split(r",\s*", x))
+            and any(rx.search(x) for rx in (*_SERIES_RES.values(), *_BRAND_RES.values(), _OPTION_NAMED_RE))]
+
+
+def _one_name_backwards(s, quotes, idents):
+    """ "Oproti setom AR35 je tento variant lacnejší o X €" names one product: the other side is whichever quote differs from
+    it by exactly X (live 2026-11-02, d06: the dearer multi-split called cheaper). With no quote pair at X nothing is known."""
+    if bool(_CHEAPER_WORD_RE.search(s)) == bool(_DEARER_WORD_RE.search(s)):
+        return False
+    found, kind = [(m.start(), k) for k, rx in _SERIES_RES.items() for m in rx.finditer(s)], "series"
+    if not found:
+        found, kind = [(m.start(), b) for b, rx in _BRAND_RES.items() for m in rx.finditer(s)], "brands"
+    if len({k for _, k in found}) != 1:
+        return False
+    pos, key = found[0]
+    is_reference = bool(_REFERENCE_BEFORE_RE[kind].search(s[:pos]) or _REFERENCE_FAR_RE.search(s[:pos]))
+    if not is_reference and re.search(r"\bže\b", s[pos:]):  # "…(Luzon S2) vychádza tak, že spálňový set je lacnejší": another subject
+        return False
+    named = [q for q, i in zip(quotes, idents) if key in i[kind]]
+    others = [q for q, i in zip(quotes, idents) if key not in i[kind]]
+    says_cheaper = bool(_CHEAPER_WORD_RE.search(s))
+    right = wrong = False
+    for raw, value in _reply_amounts(s):
+        tol = _tolerance(raw)
+        for n in named:
+            for o in others:
+                for field in ("total_with_DPH_23pct_eur", "total_eur"):
+                    subject_minus_reference = (o[field] - n[field]) if is_reference else (n[field] - o[field])
+                    if abs(abs(subject_minus_reference) - value) <= tol:
+                        if (subject_minus_reference < 0) == says_cheaper:
+                            right = True
+                        else:
+                            wrong = True
+    return wrong and not right
 
 
 def _wrong_comparisons(text):
@@ -5701,6 +5794,8 @@ def _wrong_comparisons(text):
         if len({k for _, k in found}) < 2:
             found, kind = [(m.start(), b) for b, rx in _BRAND_RES.items() for m in rx.finditer(s)], "brands"
         if len({k for _, k in found}) != 2:
+            if _one_name_backwards(s, quotes, idents):
+                out.append(s)
             continue
         refs = {k for pos, k in found if _REFERENCE_BEFORE_RE[kind].search(s[:pos])}
         if len(refs) != 1:
@@ -5724,6 +5819,43 @@ def _wrong_comparisons(text):
             if (_CHEAPER_AFTER_RE.search(after) and a > b) or (_DEARER_AFTER_RE.search(after) and a < b):
                 out.append(s)
                 break
+    return out
+
+
+def _wrong_differences(text):
+    """(raw, value) of "o X € lacnejšie / drahšie" when the reply shows two or more totals and X isn't the gap between any two
+    of them: "lacnejšie o 895,57 €… vyjde o 882,27 € drahšie", where 895,57 was one set against two (live 2026-11-02, d06).
+    Provenance can't see it: every difference of any two quotes is trusted. A clause naming a product the reply doesn't show,
+    an earlier offer or a discount compares with something else."""
+    quotes = S().quotes
+    customer = _customer_amounts()
+    shared = customer | _derived_amounts(customer, three_terms=False) - _derived_amounts(set(), three_terms=False)
+
+    def is_gap(line, m):
+        return _PRICE_DIFFERENCE_RE.search(line[:m.start()].replace("*", ""))
+    amounts = [(line, m) for line in text.split("\n") for m in _REPLY_EUR_RE.finditer(line)]
+    written = [_parse_number(next(g for g in m.groups() if g)) for line, m in amounts if not is_gap(line, m)]
+    shown = {field: {q[field] for q in quotes if any(w is not None and abs(w - q[field]) <= 0.02 for w in written)}
+             for field in ("total_with_DPH_23pct_eur", "total_eur")}
+    if max(len(values) for values in shown.values()) < 2:
+        return []
+    gaps = {abs(a - b) for values in shown.values() for a in values for b in values if a != b}
+    shown_keys = [_quote_identity(q) for q in quotes if q["total_with_DPH_23pct_eur"] in shown["total_with_DPH_23pct_eur"]
+                  or q["total_eur"] in shown["total_eur"]]
+    out = []
+    for x in _sentences(text):
+        if not (_CHEAPER_WORD_RE.search(x) or _DEARER_WORD_RE.search(x)) or _EARLIER_OFFER_RE.search(x):
+            continue
+        named = {k for k, rx in _SERIES_RES.items() if rx.search(x)}
+        if named - {k for i in shown_keys for k in i["series"]}:
+            continue
+        for m in _REPLY_EUR_RE.finditer(x):
+            raw = next(g for g in m.groups() if g)
+            value, tol = _parse_number(raw), _tolerance(raw)
+            if value is None or not is_gap(x, m) or any(abs(value - c) <= tol for c in shared):
+                continue
+            if not any(abs(value - gap) <= tol for gap in gaps):
+                out.append((raw, value))
     return out
 
 
@@ -5752,10 +5884,16 @@ def _wrong_filtration_claims(text):
     return out
 
 
+_EASIER_INSTALL_RE = re.compile(r"\b(?:jednoduchš|ľahš)\w*\s+(?:na\s+)?(?:montáž|inštaláci)\w*", re.IGNORECASE)  # no document says so
+
+
 def _unsupported_figures(text):
     found = []
     source = None
     for x in _sentences(text):
+        if _EASIER_INSTALL_RE.search(x):
+            found.append(x)
+            continue
         if _SAVINGS_CLAIM_RE.search(x):
             if not _SAVINGS_DECLINE_RE.search(x):  # "úsporu neviem vyčísliť" is the right answer (QA 2026-11-01)
                 found.append(x)
@@ -5954,8 +6092,8 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
     if wrong_product:
         violations.append(
             f"cena-iny-produkt: sumy {[raw + ' €' for raw, _ in wrong_product[:3]]} patria k ponuke na iný produkt, "
-            "než pri ktorom sú napísané. Pri každom modeli uveď iba sumy z jeho vlastnej ponuky z `quote`; model, "
-            "ktorý si nenacenil, nacenuj alebo ho vynechaj."
+            "než pri ktorom sú napísané (aj iná farba toho istého radu je iný produkt). Pri každom modeli uveď iba sumy z "
+            "jeho vlastnej ponuky z `quote`; model, ktorý si nenacenil, nacenuj alebo ho vynechaj."
         )
     mislabeled = _vat_mislabeled_amounts(text)
     if mislabeled:
@@ -6041,9 +6179,15 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
             f"ai-identita: tvrdíš, že si človek ('{human.group(0)}'). Si AI asistent spoločnosti Samuel Malíšek "
             "Klimabot — povedz to pravdivo."
         )
+    differences = _wrong_differences(text)
+    if differences:
+        violations.append(
+            f"porovnanie-suma: rozdiel {[raw + ' €' for raw, _ in differences[:2]]} nie je rozdiel súm, ktoré v tejto odpovedi "
+            "ukazuješ. Uveď rozdiel iba medzi možnosťami, ktoré porovnávaš, jedným číslom."
+        )
     later = _LATER_MESSAGE_RE.search(text)
     if later:
-        violations.append(f"neskorsia-sprava: sľubuješ správu, ktorú sám nepošleš ('{later.group(0)}'). Všetko povedz teraz "
+        violations.append(f"neskorsia-sprava: sľubuješ niečo, čo sám nespravíš ('{later.group(0)}'). Všetko povedz teraz "
                           "alebo naceň cez `quote`; čo nevieš, povedz, že to upresní projektový manažér.")
     included = _INSTALL_INCLUDED_RE.search(text)
     if included:
@@ -6180,13 +6324,15 @@ _HARD_RULES = ("porovnanie-bez-cisel", "cena-z-nastroja", "aplikacia-rabatov", "
                "povolenia-instalacia", "umiestnenie-otazka", "rozpocet-tvrdenie",
                "interne-info", "slub-bez-suhlasu", "termin-slub", "cena-iny-produkt", "dph-zamena",
                "mimo-katalogu", "nepodlozene-udaje", "ai-identita", "brand-funkcia", "typ-jednotky",
-               "sklad-tvrdenie", "farba", "porovnanie-smer", "funkcia-radu", "nenacenene", "zdravie-tvrdenie",
+               "sklad-tvrdenie", "farba", "porovnanie-smer", "porovnanie-suma", "funkcia-radu", "nenacenene", "zdravie-tvrdenie",
                "zaruka-slub", "neskorsia-sprava", "zdravie-zaznam", "montaz-v-cene")
 # The bot can't write on its own: "presnú cenu vám pošlem v ďalšej správe" left the customer waiting (QA 2026-11-01).
 _LATER_MESSAGE_RE = re.compile(r"\bv\s+(?:ďalšej|dalsej|nasledujúcej|nasledujucej)\s+správe\b|\bpošlem\s+(?:vám|ti)\b|"
                                # live 2026-11-02: "cenu ti spresním v ďalšom kroku", "otázku, ktorú ti pošlem nižšie"
                                r"\b(?:cen\w*|sum\w*)\s+(?:ti|vám)\s+\w+\s+v\s+ďalšom\s+kroku\b|\b(?:ti|vám)\s+pošlem\b|"
-                               r"\b(?:in|with)\s+(?:my|the)\s+next\s+message\b|\bI(?:'ll|\s+will)\s+send\s+you\b", re.IGNORECASE)
+                               r"\b(?:in|with)\s+(?:my|the)\s+next\s+message\b|\bI(?:'ll|\s+will)\s+send\s+you\b|"
+                               # the bot connects nobody and the site visit shows no units (live 2026-11-02, d05, d02)
+                               r"\b(?:vás|vas|ťa|ta)\s+prepoj\w*|\bprepoj\w*\s+(?:vás|vas|ťa|ta)\b|\bukáza\w*\s+(?:vám\s+)?(?:reáln\w*\s+)?(?:kus\w*|vzork\w*)", re.IGNORECASE)
 # No installation price exists, so it can't be in the price: "Montáž je v cene len v tom zmysle…" (live 2026-11-02).
 _INSTALL_INCLUDED_RE = re.compile(r"\bmontáž\w*\s+(?:je|sú)\s+(?:v\s+cene|zahrnut\w*|započítan\w*|súčasťou\s+ceny)", re.IGNORECASE)
 # A diagnosis stays out of the PM's record, so the bot can't say it went there (QA 2026-11-01).
@@ -6320,7 +6466,9 @@ def _single_first_offer(user_input, quotes_before, reply):
 # "chcem nižšiu radu, niečo lacnejšie": a cheaper variant is a price question — the live demo named
 # DAISEIKAI 10 as the cheaper option without a quote, and it is the dearer one.
 _PRICE_LATER_RE = re.compile(
-    r"\b(?:ešte|zatiaľ)\s+(?:som\s+)?(?:(?:ju|ho|to|ich)\s+)?(?:nemám\s+nacenen\w*|nenacenil\w*|neocenil\w*|nepripravil\w*|nemám\s+cenu)|"
+    r"\b(?:ešte|zatiaľ)\s+(?:som\s+)?(?:(?:ju|ho|to|ich)\s+)?(?:nemám\s+(?:nacenen\w*|overen\w*)|nenacenil\w*|neocenil\w*|nepripravil\w*|nemám\s+cenu)|"
+    # live 2026-11-02: "Pred cenou musím overiť kompatibilitu", "cenu ešte nemám overenú", "nacenenie zatiaľ neviem dokončiť"
+    r"\bpred\s+cenou\s+musím\b|\bneviem\s+dokončiť\b|\b(?:sum\w*|cen\w*)\s+nemôžem\s+uviesť|"
     r"\bnenacenil\w*\s+som\b|\bneviem\s+(?:ju|ho|to)\s+presne\s+uviesť|\bak\s+(?:ju|ho|to)\s+chcete\b[^.?!\n]{0,40}\b(?:pripravím|nacením|naceniť|ocením)|"
     r"\bak\s+chcete\s+(?:konkrétn\w*|presn\w*)\s+(?:sum\w*|cen\w*)", re.IGNORECASE)
 _CHEAPER_RE = re.compile(r"\blacnej\w*|\bnizs\w*\s+(?:rad|model|tried)\w*|\bcheaper\b|\blower[\s-]+(?:priced|cost)",
@@ -6404,7 +6552,10 @@ _INTERNAL_LEAK_RE = re.compile(
     r"\bsystém\w*\b[^.?!\n]{0,50}\b(?:odmiet\w*|zamiet\w*|nepust\w*|vidí\b|neprijal\w*|nemá\s+overen\w*|blokuje\b)|"
     r"\b(?:od|podľa|chybu\s+rieši|vrátil\s+mi|vrátil|mi\s+vrátil)\s+systém\w*|\bzamietnut\w*\s+(?:od\s+)?systém\w*|\bquote\s+(?:odmiet\w*|neprej\w*|nepust\w*|requests?)|"
     r"\blookup\b|\bthe\s+system\b[^.?!\n]{0,40}\b(?:reject\w*|refus\w*|block\w*|won'?t|doesn'?t\s+allow)|\b(?:rejected|refused|blocked)\s+by\s+the\s+system\b|\bpoložk\w*\s+(?:sa\s+mi\s+)?(?:\w+\s+){0,3}(?:zrušiť|vyčistiť)|\búdaj\s+sa\s+mi\s+nepodarilo\s+zrušiť|"
-    r"\bnedarí\s+vyčistiť|\boverenú\s+cenovú\s+ponuku\b",
+    r"\bnedarí\s+vyčistiť|\boverenú\s+cenovú\s+ponuku\b|"
+    # live 2026-11-02: "podľa `recycling_fee_per_unit`", "Tu systém kontroluje veľkosť vonkajšej jednotky". A field name is
+    # any snake_case word; an e-mail address or a link isn't.
+    r"(?<![\w.+/-])[a-z]{2,}(?:_[a-z0-9]+)+\b(?![\w.+-]*@)|\bsystém\s+(?:kontroluj\w*\s+(?:veľkosť|zostav|kombin)|navrhuj\w*)",
     re.IGNORECASE)
 # Before consent nobody may be promised a call, and nothing may be called "recorded" (a03).
 # Matched on diacritic-folded text, so misspellings ("Záznamenávam", q05) don't slip through.
@@ -6659,7 +6810,8 @@ def _approx_amount(text):
 def _drop_hard_sentences(text):
     """Remove every sentence (or table row) with a HARD violation. Returns (text, dropped)."""
     trusted = _trusted_amounts()
-    bad_values = {v for _, v in _misattributed_amounts(text) + _vat_mislabeled_amounts(text) + _combination_prices(text)}
+    bad_values = {v for _, v in (_misattributed_amounts(text) + _vat_mislabeled_amounts(text) + _combination_prices(text)
+                                 + _wrong_differences(text))}
     # Claims judged with their heading or table column: the claim's sentence goes, a table row goes whole.
     bad_lines = {line.strip() for line in _wrong_energy_classes(text) + _wrong_filtration_claims(text)
                  + _wrong_feature_claims(text)}
@@ -6810,9 +6962,11 @@ def _regen_note(violations):
         "funkcia-radu": "Každú funkciu pripíš iba radu, ktorý ju má v `series_features`; inak ju vynechaj.",
         "nenacenene": "O cene multi-splitu hovor iba s jeho cenou z `quote`; ak ho nemáš nacenený, ponúkni, že ho naceníš.",
         "farba": "Ponúkaj iba farby z cenníka (biela; čierna pri Samsung Première / Avant S2 a Toshiba SHORAI CURVE "
-                 "Black; drevo pri DAISEIKAI 10 Wood; textilné kryty HAORI). Inú farbu nesľubuj — povedz, že ju nemáme.",
-        "porovnanie-smer": "Ktorý variant je lacnejší, ber z `comparison_with_earlier_quotes` (pole `cheaper`) alebo z "
+                 "Black; drevo pri DAISEIKAI 10 Wood; textilné kryty HAORI). Inú farbu nesľubuj — povedz, že ju nemáme. "
+                 "Každá farba má vlastné kódy a cenu: naceň ju cez `quote`, cenu inej farby neprenášaj.",
+        "porovnanie-smer": "Ktorý variant je lacnejší, ber z `comparison_with_earlier_quotes` (pole `reads`) alebo z "
                            "celkových súm; lacnejší je ten s nižšou sumou.",
+        "porovnanie-suma": "Rozdiel vypočítaj len medzi dvoma možnosťami, ktoré porovnávaš, a napíš ho raz.",
         "zakazana-otazka": "Na značku ani rozpočet sa nepýtaj: naceň dve možnosti (obe značky, alebo lacnejšiu a lepšiu) "
                            "cez `quote`; kódy nájdeš cez `lookup_product` ('<značka> multi-split <výkon v kW>' alebo "
                            "'<značka> <rad> <výkon v kW>').",
@@ -6820,7 +6974,7 @@ def _regen_note(violations):
                                 "obec) požiadaj až po cene. Na cenu obec ani kontakt nepotrebuješ.",
         "zdravie-tvrdenie": "Opíš, čo zariadenie technicky robí (napr. chladí bez priameho prievanu, filter zachytáva "
                             "častice); bolesť, prechladnutie, astmu ani iný zdravotný účinok nesľubuj.",
-        "neskorsia-sprava": "Nič nesľubuj na ďalšiu správu: naceň teraz cez `quote`, alebo povedz, čo sa nedá.",
+        "neskorsia-sprava": "Nič nesľubuj na ďalšiu správu a nikoho neprepájaj: naceň teraz cez `quote`, alebo povedz, čo sa nedá.",
         "montaz-v-cene": "Napíš, že cena je bez montáže a cenu montáže určí projektový manažér po bezplatnej obhliadke.",
         "zdravie-zaznam": "Nepíš, že si diagnózu zapísal ani odovzdal; spomeň iba požiadavku na filtráciu.",
         "samooprava": "Napíš každú sumu raz a správne, bez opráv priamo v texte; každá možnosť má svoju sumu z `quote`.",
@@ -7507,7 +7661,11 @@ _ONE_ROOM_RE = re.compile(
     r"\b(?:jedn\w*|one)\s+(?:izb|miestnost|spaln|obyvac|room|bedroom)\w*|\bnecham\s+tak\b", re.IGNORECASE)
 _COLOUR_WISH_RE = re.compile(r"\bciern\w*|\bblack\b|\bdrev\w*|\bwood\w*|\bfarb\w*|dizajn|design", re.IGNORECASE)
 _QUIET_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|\bquiet\w*|\bsilent\b", re.IGNORECASE)
-_TASTE_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|dizajn|design|\bfarb\w*|\bciern\w*|\bdrev\w*|textil", re.IGNORECASE)
+_TASTE_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|dizajn|design|\bfarb\w*|\bciern\w*|\bdrev\w*|textil|\bkrajs\w*", re.IGNORECASE)
+# Design before price: "Skôr dizajn… nech to nestojí majland" is a ceiling, not a wish for the cheapest (live 2026-11-02, d02).
+_DESIGN_WISH_RE = re.compile(r"dizajn|design|\bvzhlad\w*|\bkrajs\w*", re.IGNORECASE)
+_DESIGN_FIRST_RE = re.compile(r"\b(?:skor|hlavne|najma|radsej|ide\s+(?:mi|nam)\s+(?:\w+\s+)?o)\s+(?:o\s+|na\s+)?(?:dizajn|design|vzhlad)\w*|"
+                              r"\b(?:dizajn|design|vzhlad)\w*\s+je\s+(?:\w+\s+)?(?:dolezit|hlavn|rozhodujuc)\w*|\bkrajs\w*", re.IGNORECASE)
 
 
 def _suggested_sets():
@@ -7521,8 +7679,12 @@ def _suggested_sets():
     one_room = len(rooms) <= 1 and (_ONE_ROOM_RE.search(folded) or _dropped_rooms())
     # "Nechcem sa rozprávať o dizajne… Ide mi hlavne o cenu" is no design wish (QA 2026-11-01: a Luzon and a SHORAI on a
     # budget the AR35 fits).
-    taste = _wished(_TASTE_WISH_RE) and not _wished(_CHEAP_WISH_RE)
+    taste = _wished(_TASTE_WISH_RE) and (not _wished(_CHEAP_WISH_RE) or _wished(_DESIGN_FIRST_RE))
+    place_text = _place_text()
+    # A salon or a practice: quote refuses residential sets, so picking them contradicted the note beside them and the
+    # first offer had no price (live 2026-11-02, d07).
     if (sess.quotes or _industrial_case() or _support_case() or _wished(_OWN_INSTALL_RE)
+            or any(rx.search(place_text) for rx in _EXPLICIT_COMMERCIAL_RES.values())
             or _SERIES_NAMED_RE.search(text) or _MULTI_TEXT_RE.search(text) or taste or _wished(_INDOOR_TYPE_WISH_RE)
             or (not one_room and (_ROOMS_COUNT_RE.search(folded) or _FLAT_ROOMS_RE.search(folded)))):
         return None
@@ -7676,6 +7838,10 @@ _NEW_VARIANT_RE = re.compile(
     # "Koľko keď len obývačka?", "Takže koľko je tá spálňa?" were `odpoved`: three turns with no price (QA 2026-11-02, d09)
     r"\bkolko\s+(?:ked|keby|ak|je\s+(?:ta|ten|to)\b)|\bkolko\s*\?|\bchcem\s+(?:\w+\s+){0,2}najleps\w*|\bchcem\s+jedn\w*\s+vonkajs\w*|\bpresn\w*\s+sum\w*|\bukazte\s+(?:mi\s+)?(?:aj\s+)?(?:samsung|toshib)\w*|"
     r"\bhow\s+much\b|\bprice\b|"
+    # "Čo keby multisplit Toshiba?", "koľko je nástenná a kazeta?… Ceny prosím" were `odpoved`, and no price came (live 2026-11-02,
+    # d06, d07); "máte niečo krajšie" (d02)
+    r"\b(?:co|a)\s+keby\b[^?.\n]{0,40}\b(?:multi\w*|split\w*|kazet\w*|podstrop\w*|nastenn\w*|samsung\w*|toshib\w*)|"
+    r"\bkolko\s+je\s+(?:\w+\s+){0,2}(?:nastenn|kazet|podstrop|multi|split|set|klim)\w*|\bceny\s+prosim\b|\bnieco\s+krajs\w*|"
     # agreeing to an offer the bot made: "Áno, pripravte ponuku", "Dobre, tak dve nezávislé jednotky" (QA 2026-11-01)
     r"\b(?:priprav\w*|spravte|urobte|posl\w*)\s+(?:mi\s+)?(?:\w+\s+){0,4}(?:ponuk\w*|nacenen\w*)|\bnacen\w*|\btak\s+(?:tie\s+)?(?:dve|dva)\b|"
     # "čo najlacnejšie" after an offer asks for the cheapest variant (direction metrics of 2026-10-28: answered and
@@ -8115,8 +8281,12 @@ def build_server_context(note=None):
     if _wished(_BEST_WISH_RE):
         status += "\n" + _best_wish_text()
     folded_text = fold_diacritics(_all_user_text())
-    if _COLOR_WISH_RE.search(folded_text):
+    design = _wished(_DESIGN_WISH_RE)
+    if _COLOR_WISH_RE.search(folded_text) or design:
         status += "\n" + _colors_text()
+    if design:
+        status += ("\nZákazník chce dizajn: ponúkni vyhotovenia z týchto farieb a krytov, nie najlacnejší biely set, a každé naceň "
+                   "cez `quote`. Nepíš, že podklady farby alebo vyhotovenia neuvádzajú.")
     latest = S().user_inputs[-1] if S().user_inputs else ""
     if _NON_VAT_PAYER_RE.search(folded_text):
         status += ("\nZákazník je neplatiteľ DPH: zaplatí cenu s DPH, tá je presná, nie orientačná. Nepíš, že kupuje bez "
@@ -8753,7 +8923,9 @@ def run_user_turn_streaming(user_input):
                     and (_PRICE_LATER_RE.search(attempt_text)
                          or (len(sess.quotes) == quotes_before and not _REPLY_EUR_RE.search(attempt_text)))):
                 violations.append("cena-neodpovedana: sľubuješ nacenenie neskôr. Nepýtaj sa, či to zákazník chce: zavolaj "
-                                  "`quote` teraz a uveď cenu s DPH.")
+                                  "`quote` teraz a uveď cenu s DPH."
+                                  + (" Odmietnutú zostavu oprav podľa chyby; ak sa zákazníkovi nehodí, povedz vecný dôvod "
+                                     "(napríklad kazeta potrebuje podhľad) a naceň to, čo sa hodí." if refused_calls else ""))
             unsourced = (_unsourced_features(user_input, attempt_text)
                          if answering and not force_final and attempt_text.strip() else [])
             if unsourced:
@@ -9047,6 +9219,8 @@ def run_user_turn_streaming(user_input):
                     if lookup_key in seen_lookups:
                         over = "repeat_lookup"
                     seen_lookups.add(lookup_key)
+                elif block.name == "quote" and ("quote", json.dumps(block.input, sort_keys=True, ensure_ascii=False)) in seen_lookups:
+                    over = "repeat_lookup"  # the same two quotes three times in one turn, 4–5k tokens each (live 2026-11-02, d10)
                 elif block.name == "quote":
                     # The same items with override_reason are another call: keyed on items alone, the plain call
                     # that came first blocked the fit check's documented way out (QA 2026-11-02, d07).
@@ -9090,6 +9264,8 @@ def run_user_turn_streaming(user_input):
                     if block.name == "quote" and is_error:
                         refused_quotes.add(quote_key)
                         refused_calls += 1
+                    elif block.name == "quote":
+                        seen_lookups.add(("quote", json.dumps(block.input, sort_keys=True, ensure_ascii=False)))
                 if refused_calls >= TURN_MAX_REFUSED_QUOTES:
                     force_final = True  # q05: ten refused quotes, then lookups, and context from 18k to 116k tokens
                 # Track compat checks for the multi-split rule guard.

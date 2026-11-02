@@ -48,6 +48,67 @@ The ten conversations were replayed with the customers' own messages through the
 
 **Owner decisions:** the consent path after a withdrawal follows the rule for refusals (2026-11-02), but it is a data-subject right, so the DPO should approve it. Two options at one price (AR35 and AR30, F19) are still offered, as in d05.
 
+## Re-test on the real API, after the deploy
+
+**Commit:** `6bb4076`, live. **Scope:** the same ten customers on the live demo, new messages written round by round: 61 turns, $0.104, no HTTP errors. Turn time: median 4.1 s, p90 11.6 s, max 31.4 s.
+
+**Transcripts:** `eval/runs/indecisive_2026-11-02/live_after/`.
+
+| | live, before | live, after |
+|---|---|---|
+| USD per customer turn | 0.0022 | 0.0017 |
+| Repeated refused quotes | 55 | 5 |
+| Regenerations per turn | 0.31 | 0.28 |
+| Worst turn | 36.6 s | 31.4 s |
+
+**Regenerations stay high:** 0.28 per turn live against 0.034 on the CLI. The CLI metrics don't predict them, so the 0.146 to 0.034 improvement above doesn't carry over to production.
+
+**Confirmed live:** a dropped room leaves the offer on the first message (d01, d06, d10) and comes back when asked (d01). "Žiadny salón" gets a price at once (d07). "Čo najnižšia cena" leads with the separate sets (d10). A hesitant customer isn't told they chose (d03). A withdrawal taken back asked the canonical question, and the yes removed NEKONTAKTOVAŤ (d04). A return to a quoted model reaches the brief by code (d01, d04). The GDPR audit passed 5 of 5, with 0 violations. No reply came in English.
+
+### New findings
+
+| ID | Sev | Finding | Conversation | Cause |
+|---|---|---|---|---|
+| R1 | P0 | A wrong price: DAISEIKAI 10 Wood 2.5 kW at €2,656.80, the White price. It costs €2,878.20 | d03 t4 | code read: `_quote_identity` drops White / Black / Wood, so `cena-iny-produkt` sees one series |
+| R2 | P0 | Comparisons backwards: a €3,990.74 multi-split "lacnejší o 1 304,05 €" than €2,686.69 sets, and "drahší o 9,96 €" than a €4,000.70 one | d06 t5 | code read: `_wrong_comparisons` needs two names in the clause; "tento variant… oproti X" has one |
+| R3 | P1 | A wrong difference: "lacnejšie o 895,57 €" next to "882,27 € drahšie" in one sentence. 895,57 is one set against two | d06 t2 | observed: any quote difference passes provenance |
+| R4 | P1 | Salon: no price on the first turn, while the note said not to price residential units | d07 t2 | code read: `_suggested_sets` has no commercial check, so code's picks contradict the note |
+| R5 | P1 | False: "Cena… zahŕňa aj recyklačný poplatok" | d03 t2 | `_INCL_FEE_RE` knows "vrátane", not "zahŕňa" |
+| R6 | P1 | Leaks: `recycling_fee_per_unit`, "Tu systém kontroluje veľkosť vonkajšej jednotky" | d07 t4, d10 t5 | observed: no rule for field names; the wording isn't known |
+| R7 | P1 | Price still put off: "Pred cenou musím overiť kompatibilitu", "cenu ešte nemám overenú", no price after a refused cassette | d06 t4, d10 t5, d07 t6 | observed: `odpoved` and `pokracuj` moves, and wordings the rule doesn't know |
+| R8 | P1 | Design wish lost: "skôr dizajn" got AR35 and Classic 2, and "podklady neobsahujú… farebné varianty", which is false | d02 t2, t3 | observed: "nestojí majland" wins as a cheap wish |
+| R9 | P2 | Garbled and false: "s tichším chodom o niečo menej výkonnú" | d05 t2 | code read: `_unbacked_comparatives` exempts "ak" and needs a name |
+| R10 | P2 | The brief keeps 20 m² after "25 m2, nie 20" | d08 | code read: the model's `place_m2` wins over the customer's words |
+| R11 | P2 | Amounts: "728.1 €", "1217.7 €", "2520 €" | d07 t3, t4 | code read: `_SK_EUR_RE` needs two decimals |
+| R12 | P2 | The same two quotes three times in one turn | d10 t4 | observed: repeats are guarded for refused quotes only |
+| R13 | P3 | Invented: "môžem vás prepojiť s predajcom", "jednoduchší na montáž", "projektový manažér môže ukázať reálne kusy", "príjemné leto" in November | d05, s1, d02, d09 | observed |
+
+In R1 and R2 the customer caught the error and the bot admitted it. A customer who doesn't check would keep the wrong figure.
+
+### Status of R1–R13 after the fixes
+
+**Not deployed yet.** Checked three ways: 388 unit tests (17 new), all 59 live replies through the new gate with their quotes re-run locally (no model), and d02, d03, d05, d06, d07, d08 and d10 replayed through the CLI model (43 turns). The replay ran before two narrowing changes to `farba` and `porovnanie-smer`, which only remove false positives. It wasn't repeated on the real API, and the CLI doesn't predict live regenerations.
+
+| ID | Status | What changed |
+|---|---|---|
+| R1 | Fixed | `_quote_identity` keeps colours per line. The replay gave the wood set its own price, and d03 t6 corrected the earlier figure |
+| R2 | Fixed | A clause naming one product is read through the quote pair at that difference. `quote` also says the comparison in words (`reads`) |
+| R3 | Fixed | New HARD rule `porovnanie-suma` |
+| R4 | Fixed | No code picks for a salon or practice. d07 t2 priced under-ceiling sets on the first try |
+| R5 | Fixed | "zahŕňa aj…" and "…je v cene" are rewritten |
+| R6 | Fixed | Any snake_case name is a leak, and so is "systém kontroluje / navrhuje" |
+| R7 | Fixed for the seen wordings | New wordings, and "čo keby…", "koľko je nástenná" are `nova-ponuka`. d07 t6 now says why a cassette doesn't fit |
+| R8 | Fixed | "Skôr dizajn" beats a cheap ceiling. d02 t2 offered HAORI and a black Samsung, priced |
+| R9 | Fixed | A wish exempts its own clause only; "druhá" counts as a name |
+| R10 | Fixed for the size line | The model's own note can still say the old size (d08: "Poznámky z rozhovoru") |
+| R11 | Fixed | One decimal, a dot and no thousands space are normalised |
+| R12 | Fixed | A successful identical `quote` doesn't run again in a turn |
+| R13 | Fixed for the seen wordings | Only the phrases seen; the model can invent others |
+
+**New in the replay:** d07 t6 told an office customer that wall sets don't suit an office, "preto ich necením". `quote` doesn't refuse them there, so this is a false limit from the model. Not fixed.
+
+**Regenerations:** the replay shows no fall: 13 rule hits in 43 turns, and 9 of them came from five new or wider rules (`cena-iny-produkt`, `farba`, `porovnanie-bez-cisel`, `porovnanie-smer`, `porovnanie-suma`). These fixes catch wrong replies; they don't lower the 0.28 per turn.
+
 ## Verdict (before the fixes)
 
 **The bot isn't ready for this customer.** It handles a change of mind only when the model happens to. Code reads every message the customer ever wrote and adds it up, so nothing can be taken back. That one design fact causes the worst results below. The legal and pricing guarantees held; the sale didn't.

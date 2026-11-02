@@ -3816,6 +3816,191 @@ class IndecisiveCustomerTests(BotTest):
         self.assertIn("895,56 €", clean("Cena 895,56 €."))
 
 
+class LiveRetestFixTests(BotTest):
+    """The findings of the live re-test of 2026-11-02 (docs/qa_indecisive_2026-11-02.md, R1–R13), in the replies' own words.
+    Every amount comes from `quote`."""
+
+    AR35 = ["AR40H09C1AMNEU", "AR40H09C1AMXEU"]
+    DAISEIKAI_WHITE = ["RAS-10S4AVPG-E", "RAS-B10S4KVPG-E"]
+    DAISEIKAI_WOOD = ["RAS-10S4AVPG-E", "RAS-B10S4KVDG-E"]
+    TOSHIBA_MULTI_3 = [("RAS-3M18G3AVG-E", 1), ("RAS-B05B2KVG-E2", 1), ("RAS-B10B2KVG-E2", 2)]
+    TOSHIBA_MULTI_2 = [("RAS-2M14G3AVG-E", 1), ("RAS-B05B2KVG-E2", 1), ("RAS-B10B2KVG-E2", 1)]
+
+    def q(self, codes, qty=1):
+        items = [{"code": c, "qty": qty} for c in codes] if isinstance(codes[0], str) else [{"code": c, "qty": n} for c, n in codes]
+        result = bot.quote(items)
+        self.assertNotIn("error", result, result)
+        return result
+
+    def say(self, *messages):
+        self.sess.user_inputs[:] = list(messages)
+
+    def rules(self, reply):
+        return [v.split(":")[0] for v in bot.validate_assistant_reply(reply)]
+
+    # R1
+    def test_a_wood_set_at_the_white_price(self):
+        self.say("Toshiba do spálne 18 m2, chcem aj bielu aj drevenú.")
+        white = self.q(self.DAISEIKAI_WHITE)
+        reply = (f"Toshiba DAISEIKAI 10 Wood, 2,5 kW (nástenná jednotka, drevo):\n- Cena bez DPH: {bot._eur(white['total_eur'])}\n"
+                 f"- Cena s DPH 23 %: {bot._eur(white['total_with_DPH_23pct_eur'])}")
+        self.assertIn("cena-iny-produkt", self.rules(reply))
+        self.assertNotIn("cena-iny-produkt", self.rules(reply.replace("Wood", "White").replace("drevo", "biela")))
+        self.assertNotIn("cena-iny-produkt", self.rules(reply.replace("Wood, ", "").replace(", drevo", "")),
+                         "no colour named")
+        self.assertNotIn("cena-iny-produkt", self.rules(
+            f"Toshiba DAISEIKAI 10 stojí {bot._eur(white['total_with_DPH_23pct_eur'])} s DPH. Existuje aj drevené vyhotovenie."))
+        wood = self.q(self.DAISEIKAI_WOOD)
+        self.assertNotEqual(wood["total_eur"], white["total_eur"], "the price list prices wood higher")
+        self.assertEqual(bot._quote_identity(wood)["finishes"], {"Wood"}, "the outdoor unit is shared by both colours")
+        self.assertNotIn("cena-iny-produkt", self.rules(reply.replace(bot._eur(white["total_eur"]), bot._eur(wood["total_eur"]))
+                                                        .replace(bot._eur(white["total_with_DPH_23pct_eur"]),
+                                                                 bot._eur(wood["total_with_DPH_23pct_eur"]))))
+
+    def test_a_colour_at_the_same_price_is_a_claim(self):
+        reply = "Toto je rovnaký rad a výkon ako biela verzia, ktorú som už nacenil, takže cena je rovnaká."
+        self.assertIn("farba", self.rules(reply))
+        self.assertNotIn("farba", self.rules("Drevená verzia nie je rovnako drahá ako biela."))
+
+    # R2
+    def test_a_comparison_naming_one_product(self):
+        self.say("Tri izby, 14, 12 a 25 m2.")
+        sets, multi = self.q(self.AR35, 3), self.q(self.TOSHIBA_MULTI_3)
+        gap = abs(multi["total_with_DPH_23pct_eur"] - sets["total_with_DPH_23pct_eur"])
+        self.assertGreater(multi["total_with_DPH_23pct_eur"], sets["total_with_DPH_23pct_eur"])
+        wrong = f"- Oproti trom samostatným setom Samsung AR35 WIFI je tento variant lacnejší o {bot._eur(gap)} s DPH."
+        right = wrong.replace("lacnejší", "drahší")
+        self.assertIn("porovnanie-smer", self.rules(wrong))
+        self.assertNotIn("porovnanie-smer", self.rules(right))
+        self.assertNotIn("porovnanie-smer", self.rules(f"Samsung AR35 je lacnejší o {bot._eur(gap)} s DPH."), "the name is the subject")
+        self.assertIn("porovnanie-smer", self.rules(f"Samsung AR35 je drahší o {bot._eur(gap)} s DPH."))
+        self.assertNotIn("porovnanie-smer", self.rules(f"Oproti multi-splitu je Samsung AR35 lacnejší o {bot._eur(gap)} s DPH."),
+                         "'oproti' governs the other side when a verb stands before the name")
+        self.assertNotIn("porovnanie-smer", self.rules(f"Oproti tomu je Samsung AR35 lacnejší o {bot._eur(gap)} s DPH."))
+        self.assertNotIn("porovnanie-smer", self.rules(
+            f"Porovnanie so setom pre obývačku (Toshiba SEIYA Classic 2) vychádza tak, že spálňový set je lacnejší o {bot._eur(gap)} s DPH."))
+
+    def test_quote_says_the_comparison_in_words(self):
+        self.say("Tri izby, 14, 12 a 25 m2.")
+        self.q(self.AR35, 3)
+        multi = self.q(self.TOSHIBA_MULTI_3)
+        self.assertIn("drahšia než 1. ponuka", multi["comparison_with_earlier_quotes"][-1]["reads"])
+
+    # R3
+    def test_a_difference_of_options_not_shown(self):
+        self.say("Dve izby, spálňa 14 a obývačka 25 m2.")
+        one, two, multi = self.q(self.AR35), self.q(self.AR35, 2), self.q(self.TOSHIBA_MULTI_2)
+        real = multi["total_with_DPH_23pct_eur"] - two["total_with_DPH_23pct_eur"]
+        stray = two["total_with_DPH_23pct_eur"] - one["total_with_DPH_23pct_eur"]
+        offer = (f"Možnosť 1: dva sety, s DPH {bot._eur(two['total_with_DPH_23pct_eur'])}.\n\n"
+                 f"Možnosť 2: multi-split, s DPH {bot._eur(multi['total_with_DPH_23pct_eur'])}.\n\n")
+        self.assertIn("porovnanie-suma", self.rules(
+            offer + f"Samostatné sety sú lacnejšie o {bot._eur(stray)} s DPH oproti multi-split variantu, ktorý vyjde o {bot._eur(real)} drahšie."))
+        self.assertNotIn("porovnanie-suma", self.rules(offer + f"Samostatné sety sú lacnejšie o {bot._eur(real)} s DPH."))
+        self.assertNotIn("porovnanie-suma", self.rules(offer + f"Oproti predošlej ponuke je to lacnejšie o {bot._eur(stray)}."))
+        self.assertNotIn("o 895", bot._drop_hard_sentences(offer + f"Sety sú lacnejšie o {bot._eur(stray)}.")[0].replace(" ", ""))
+
+    # R4
+    def test_a_salon_gets_no_residential_picks(self):
+        self.say("Priestor 30 m2, bez podhľadu.", "Asi kancelária. Manželka by tam radšej otvorila kozmetický salón. Koľko to stojí?")
+        self.assertIsNone(bot._suggested_sets())
+        self.assertNotIn("Server vybral dve možnosti", bot.next_move().directive)
+        self.assertIn("podstropn", bot.next_move().directive)
+        self.say("Kozmetický salón 30 m2.", "Tak nie, žiadny salón, bude to obyčajná kancelária. Koľko to stojí?")
+        self.assertIsNotNone(bot._suggested_sets())
+
+    # R5
+    def test_the_fee_is_never_in_the_price(self):
+        for wrong, right in (("Cena za každú klimatizáciu zahŕňa aj recyklačný poplatok, pre jeden set 5 až 15 €.", "je bez recyklačného poplatku"),
+                             ("Ceny zahŕňajú recyklačný poplatok.", "sú bez recyklačného poplatku"),
+                             ("Recyklačný poplatok je v cene.", "Recyklačný poplatok sa účtuje navyše")):
+            self.assertIn(right, bot.sanitize_reply(wrong)[0] if isinstance(bot.sanitize_reply(wrong), tuple) else bot.sanitize_reply(wrong))
+        for fine in ("Cena nezahŕňa recyklačný poplatok.", "Recyklačný poplatok nie je v cene."):
+            out = bot.sanitize_reply(fine)
+            self.assertIn(fine, out[0] if isinstance(out, tuple) else out)
+
+    # R6
+    def test_field_names_and_the_system_are_internal(self):
+        for leak in ("Za tri kusy spolu, podľa `recycling_fee_per_unit`.", "Tu systém kontroluje veľkosť vonkajšej jednotky.",
+                     "Pre WindFree_Comfort_S2 mám cenu."):
+            self.assertIn("interne-info", self.rules(leak), leak)
+        for fine in ("Napíšte na jan_novak@example.sk.", "Multi-split systém má jednu vonkajšiu jednotku."):
+            self.assertNotIn("interne-info", self.rules(fine), fine)
+
+    # R7
+    def test_a_price_put_off_in_other_words(self):
+        for reply in ("Pred cenou musím overiť kompatibilitu.", "Cenu ešte nemám overenú a neuvediem ju.",
+                      "Nacenenie zatiaľ neviem dokončiť.", "Konkrétne sumy nemôžem uviesť."):
+            self.assertTrue(bot._PRICE_LATER_RE.search(reply), reply)
+        self.assertFalse(bot._PRICE_LATER_RE.search("Cenu montáže určí projektový manažér."))
+
+    def test_asking_about_a_type_is_a_new_variant(self):
+        quoted = "Dve izby, 14 a 25 m2."
+        self.q(self.AR35, 2)
+        for ask in ("Tri sety sú lacnejšie, ale mám málo miesta. A je to isté aj s Toshibou? Čo keby multisplit Toshiba?",
+                    "Tak dobre, koľko je nástenná a kazeta do kancelárie? Ceny prosím, Samsung aj Toshiba.",
+                    "Máte niečo krajšie, aj Samsung aj Toshiba?"):
+            self.say(quoted, ask)
+            self.assertEqual(bot.next_move().name, "nova-ponuka", ask)
+        self.say(quoted, "Koľko dB má tá vnútorná jednotka?")
+        self.assertEqual(bot.next_move().name, "odpoved")
+
+    # R8
+    def test_design_first_is_not_a_cheap_wish(self):
+        self.say("Rozmýšľam nad Samsungom do obývačky, 25 m2.", "Asi cena. Alebo dizajn? Skôr dizajn, je to v obývačke. Ale nech to nestojí majland.")
+        self.assertIsNone(bot._suggested_sets())
+        context = bot.build_server_context()
+        self.assertIn("Farby podľa cenníka", context)
+        self.assertIn("Zákazník chce dizajn", context)
+        self.say("Obývačka 25 m2.", "Nechcem sa rozprávať o dizajne. Ide mi hlavne o cenu.")
+        self.assertIsNotNone(bot._suggested_sets())
+        self.assertNotIn("Zákazník chce dizajn", bot.build_server_context())
+
+    def test_the_documents_do_list_colours(self):
+        self.assertIn("farba", self.rules("Vzhľadovo viac neviem porovnať, pretože podklady neobsahujú opis dizajnu ani farebné varianty."))
+
+    # R9
+    def test_a_comparative_after_an_if(self):
+        self.assertIn("porovnanie-bez-cisel", self.rules("Ak rozhoduje cena, druhá je výrazne lacnejšia, s tichším chodom o niečo menej výkonnú."))
+        self.assertIn("porovnanie-bez-cisel", self.rules("Toshiba je tichšia, ak chcete pokoj."))
+        self.assertNotIn("porovnanie-bez-cisel", self.rules("Ak chcete tichší chod, odporúčam Toshibu."))
+
+    # R10
+    def test_the_brief_takes_the_customers_correction(self):
+        self.say("Obývačka 20 m2.", "Beriem to. A je to 25 m2, nie 20.")
+        self.sess.customer_state["place_m2"] = 20
+        record = {"name": "Test Testovič", "contact": "0900000000", "summary": "", "interested_in": "", "quotes": [], "log_file": "x.jsonl"}
+        brief = bot._render_handoff_sections(record)
+        self.assertIn("25 m²", brief)
+        self.assertNotIn("20 m²", brief)
+
+    # R11
+    def test_amounts_the_slovak_way(self):
+        for wrong, right in (("728.1 €", "728,10 €"), ("1217.7 €", "1 217,70 €"), ("2520 €", "2 520 €"), ("3099,60 €", "3 099,60 €"),
+                             ("1 290,50 €", "1 290,50 €"), ("990 €", "990 €"), ("4 775,4 €", "4 775,40 €")):
+            out = bot.sanitize_reply(f"Cena: {wrong} s DPH.")
+            self.assertIn(right, out[0] if isinstance(out, tuple) else out)
+
+    # R12
+    def test_a_successful_quote_runs_once_a_turn(self):
+        call = dict(items=[{"code": c, "qty": 1} for c in self.AR35], segment="retail_B2C")
+        total = bot._eur(self.q(self.AR35)["total_with_DPH_23pct_eur"])
+        self.sess.quotes.clear()
+        before = self.log_text().count('"event": "quote"')
+        self.turn("Beriem AR40H09C1AMNEU + AR40H09C1AMXEU, koľko to stojí?", resp(tool("quote", **call)), resp(tool("quote", **call)),
+                  resp(text(f"Cena s DPH je {total}.")))
+        self.assertEqual(self.log_text().count('"event": "quote"') - before, 1)
+        self.assertIn('"limit": "repeat_lookup"', self.log_text())
+
+    # R13
+    def test_promises_nobody_can_keep(self):
+        for reply in ("Môžem vás prepojiť s predajcom.", "Pri obhliadke vám projektový manažér môže ukázať reálne kusy."):
+            self.assertIn("neskorsia-sprava", self.rules(reply), reply)
+        self.assertIn("nepodlozene-udaje", self.rules("Tento rad je jednoduchší na montáž."))
+        out = bot.sanitize_reply("Dovidenia a príjemné leto.")
+        self.assertEqual(out[0] if isinstance(out, tuple) else out, "Dovidenia.")
+
+
 class RetrievalTests(BotTest):
     """tests/retrieval_golden.json through the real hybrid search and reranker (without HyDE, which needs the API).
     On 2026-10-27: hit@k 36/36, MRR 0.844; 7 of 8 out-of-KB questions and 1 labelled question below
