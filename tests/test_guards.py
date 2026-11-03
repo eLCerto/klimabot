@@ -4180,6 +4180,29 @@ class HagglerTests(BotTest):
                                            "interested_in": [], "log_file": "x.jsonl"})
         self.assertIn("⚠ **Poddimenzované:** Toshiba SEIYA Classic 2 2,5 kW má 2,5 kW, na 50 m² treba približne 5 kW", md)
 
+    def test_a_wished_feature_picks_the_cheapest_set_that_has_it(self):  # live 2026-11-03 (837d04): an ionizer
+        self.say("chcem klimu do spalne co najlacnejsu a s ionizatorom", "1 to je jedno\n2 - 20m2")
+        picks = bot._suggested_sets()
+        self.assertEqual([bot._series_key(rec) for rec, _ in picks], ["SHORAI_CURVE_White", "HAORI"])
+        self.assertIn("SHORAI CURVE", bot._picks_text(picks))
+        self.assertIn("ionizátor", bot._picks_text(picks))
+        error = self.q(self.CLASSIC)["error"]
+        self.assertIn("ionizátor", error)
+        self.assertIn("RAS-B10P2KVSG-E", error, "names the cheapest set that has it")
+        self.assertNotIn("error", self.q(self.CLASSIC, override_reason="zákazník: ionizátor nepotrebujem"))
+        self.assertNotIn("error", self.q(["RAS-10P2AVSG-E", "RAS-B10P2KVSG-E"]))
+        # an offer without it, then "predsa chcem ionizátor": a new offer, with the sets that have it
+        self.setUp()
+        self.say("Spálňa 20 m2, najlacnejšia.")
+        self.q(self.CLASSIC)
+        self.say("Spálňa 20 m2, najlacnejšia.", "predsa chcem ionizator")
+        move = bot.next_move()
+        self.assertEqual(move.name, "nova-ponuka")
+        self.assertIn("SHORAI CURVE", move.directive)
+        self.assertFalse(bot._wished_features("Bez WindFree mi to stačí, nechcem ionizátor"))
+        self.assertFalse(bot._has_features(next(r for r in bot._SETS.values() if bot._series_key(r) == "Luzon_S2"),
+                                           [("WindFree", bot._FEATURE_WISHES["WindFree"][1])]), "Bez WindFree režimu")
+
     def test_the_oversize_error_names_the_smaller_set(self):  # t12 never found the 2 kW set
         self.say("Spálňa 14 m2, tichý chod.")
         error = self.q(["AR70F09C1AWNEU", "AR70F09C1AWXEU"])["error"]

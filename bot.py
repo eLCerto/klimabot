@@ -1375,6 +1375,74 @@ def _unit_has_wifi(rec):
     return any(_has_wifi(r) for r in _SETS.values() if r["brand"] == rec["brand"] and _series_key(r) == series)
 
 
+# Features a customer asks for by name, matched in their words (folded) and in the series' key_features. "co najlacnejsu a s
+# ionizatorom" got the two cheapest sets, neither with an ionizer, then HAORI instead of the cheaper SHORAI CURVE (live
+# 2026-11-03, 837d04). A feature listed as missing or optional ("Bez WindFree režimu", "voliteľne") doesn't count.
+_FEATURE_WISHES = {
+    "ionizátor": (re.compile(r"\bioniz\w*|\bplazm\w*|\bplasma\b", re.I), re.compile(r"ioniz", re.I)),
+    "WindFree": (re.compile(r"\bwind\s*-?\s*free", re.I), re.compile(r"windfree", re.I)),
+    "Freeze Wash (samočistenie)": (re.compile(r"\bfreeze\s*wash|\bsamocist\w*", re.I), re.compile(r"freeze\s*wash|samočist", re.I)),
+    "filter Ultra Pure": (re.compile(r"\bultra\s*pure", re.I), re.compile(r"ultra\s*pure", re.I)),
+    "HADA careflow": (re.compile(r"\bhada\b", re.I), re.compile(r"\bhada\b", re.I)),
+    "Energy Monitoring": (re.compile(r"\benergy\s*monitor\w*|\bmonitor\w*\s+spotreb\w*", re.I), re.compile(r"energy\s*monitor", re.I)),
+    "radarový senzor": (re.compile(r"\bradar\w*|\bsenzor\w*\s+pohyb\w*|\bpohybov\w*\s+senzor\w*", re.I), re.compile(r"radar", re.I)),
+}
+_FEATURE_ABSENT_RE = re.compile(r"\bbez\b|\bnie\b|\bvolite\w*|\boptional\b|\bokrem\b", re.I)
+
+
+def _wished_features(text=None):
+    """[(name, regex)] of the features the customer asked for (not negated); `text` for one message."""
+    return [(name, has) for name, (wish, has) in _FEATURE_WISHES.items() if _wished(wish, text)]
+
+
+def _has_features(rec, wanted):
+    feats = [f for f in _series_features(rec) if not _FEATURE_ABSENT_RE.search(f)]
+    return all(any(has.search(f) for f in feats) for _, has in wanted)
+
+
+def _unit_has_features(rec, wanted):
+    """For a set or a multi-split wall unit (its series' set lists the features)."""
+    if not wanted or "/single_split/" in rec["source"]:
+        return _has_features(rec, wanted)
+    series = rec["category_path"].rsplit(".", 1)[-1]
+    return any(_has_features(r, wanted) for r in _SETS.values() if r["brand"] == rec["brand"] and _series_key(r) == series)
+
+
+def _quote_has_features(q, wanted):
+    """Every wall unit of the quote (a set or a multi-split indoor unit) has the features."""
+    for line in q["lines"]:
+        for c in line["codes"]:
+            recs = [r for r in _RECORDS_BY_CODE.get(c, [])
+                    if "/single_split/" in r["source"] or _WALL_MULTI_PATH_RE.search(r["category_path"])]
+            if recs and not any(_unit_has_features(r, wanted) for r in recs):
+                return False
+    return True
+
+
+def _feature_sets_text(min_kw=0):
+    """The cheapest set of each series that has the wished features, cheapest first, for the server context."""
+    wanted = _wished_features()
+    if not wanted:
+        return ""
+    best = {}
+    for codes, rec in _SETS.items():
+        kw = rec["raw"].get("cooling_kW")
+        if (not isinstance(kw, (int, float)) or kw < min_kw or _NON_WALL_PATH_RE.search(rec["category_path"])
+                or re.search(r"_(?:Black|Wood)$", _series_key(rec)) or not _has_features(rec, wanted)):
+            continue
+        key = (rec["brand"], _series_key(rec))
+        if key not in best or (kw, rec["raw"]["set_price_EUR"]) < best[key][:2]:
+            best[key] = (kw, rec["raw"]["set_price_EUR"], rec, sorted(codes))
+    names = ", ".join(n for n, _ in wanted)
+    if not best:
+        return f" Zákazník chce {names}: žiadny nástenný set v cenníku to nemá — povedz to a ponúkni najbližšie riešenie."
+    rows = sorted(best.values(), key=lambda b: b[1])[:3]
+    return (f" Zákazník chce {names}: majú to iba tieto rady, najlacnejšie najprv — "
+            + "; ".join(f"{_describe(rec, as_set=True)} {codes}" for _, _, rec, codes in rows)
+            + ". Ponúkni najlacnejší z nich (a druhý ako ďalšiu možnosť), každý nacenený cez `quote`; set bez tejto "
+            "funkcie neponúkaj ako náhradu, ak o to zákazník nepožiada.")
+
+
 _ONE_OUTDOOR_WISH_RE = re.compile(r"\b(?:jedn\w*\s+(?:spolocn\w*\s+)?vonkajs\w*|one\s+outdoor|multi[\s-]?split)", re.IGNORECASE)
 _SEPARATE_WISH_RE = re.compile(r"\bsamostatn\w*|\bseparate\b|\bzvlast\b|\bmulti[\s-]?split\s+(?:som\s+)?(?:nechcel\w*|nechcem|nechceme)\b", re.IGNORECASE)
 
@@ -1588,12 +1656,12 @@ def _best_filtration_sets(rec, text, room_m2=None):
 def _cheapest_set(min_kw, wifi=False, brand=None):
     """The cheapest single-split set with at least `min_kw` cooling (and Wi-Fi / brand if asked).
     Catalog order is net order: every set is in the same discount category."""
-    best = None
+    best, wanted = None, _wished_features()
     for codes, rec in _SETS.items():
         kw = rec["raw"].get("cooling_kW")
         if not isinstance(kw, (int, float)) or kw < min_kw or (brand and rec["brand"] != brand):
             continue
-        if wifi and not _has_wifi(rec):
+        if (wifi and not _has_wifi(rec)) or (wanted and not _has_features(rec, wanted)):
             continue
         if best is None or rec["raw"]["set_price_EUR"] < best["price"]:
             best = {"price": rec["raw"]["set_price_EUR"], "codes": sorted(codes), "description": _describe(rec, as_set=True)}
@@ -1855,6 +1923,16 @@ def _fit_check(fit_lines, override_reason=None, facts=None):
                 errors.append(f"naddimenzované: najväčšia miestnosť, ktorú zákazník uviedol, má {largest:g} m² — "
                               f"stačí vnútorná jednotka {smaller[0]:g} kW toho istého radu ({codes} má {kw:g} kW); "
                               "naceň menšiu, je lacnejšia")
+    wanted = _wished_features()
+    for rec, codes, _, cat in fit_lines if wanted else ():
+        wall_multi = cat == "multi_split_indoor" and _WALL_MULTI_PATH_RE.search(rec["category_path"])
+        if (cat == "single_split_sets" or wall_multi) and not _unit_has_features(rec, wanted):
+            names = ", ".join(n for n, _ in wanted)
+            alt = _cheapest_set((rec["raw"].get("cooling_kW") or 0) * 0.9) if cat == "single_split_sets" else None
+            # An error the customer can lift ("nevadí, bez ionizátora"): as a warning the bot offered two sets without it.
+            errors.append(f"zákazník chce {names}, {codes} to nemá" + (
+                f"; najlacnejší set tejto veľkosti s tým: {alt['description']} {alt['codes']}" if alt else
+                "; ponúkni rad, ktorý to má") + ". Ak zákazník výslovne povie, že to nepotrebuje, použi override_reason")
     if _wished(_WIFI_WANTED_FOLDED_RE):
         for rec, codes, _, cat in fit_lines:
             if cat == "single_split_sets" and not _has_wifi(rec):
@@ -2067,7 +2145,8 @@ def _cheaper_multi_indoors(fit_lines):
         price, kw = _unit_price(rec), rec["raw"].get("cooling_kW")
         if price is None or not isinstance(kw, (int, float)):
             return None
-        options = [r for r in _wall_multi_units(outdoor) if r["raw"]["cooling_kW"] == kw and (not wifi or _unit_has_wifi(r))]
+        options = [r for r in _wall_multi_units(outdoor) if r["raw"]["cooling_kW"] == kw and (not wifi or _unit_has_wifi(r))
+                   and _unit_has_features(r, _wished_features())]
         best = min(options, key=_unit_price, default=rec)
         if _unit_price(best) >= price:
             best = rec
@@ -8110,6 +8189,7 @@ def _suggested_sets():
     wifi = _wished(_WIFI_WANTED_FOLDED_RE)
     premium = _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE)
     brands = _customer_brands(text)
+    wanted = _wished_features()
     candidates = []
     for codes, rec in _SETS.items():
         kw = rec["raw"].get("cooling_kW")
@@ -8117,13 +8197,15 @@ def _suggested_sets():
         if ("/single_split/" not in rec["source"] or _NON_WALL_PATH_RE.search(rec["category_path"])
                 or re.search(r"_(?:Black|Wood)$", _series_key(rec)) or not isinstance(kw, (int, float)) or kw < min_kw
                 or (wifi and not _has_wifi(rec)) or (premium and not (rank and rank[0] == 1))
-                or (len(brands) == 1 and rec["brand"] != brands[0])):
+                or (len(brands) == 1 and rec["brand"] != brands[0]) or (wanted and not _has_features(rec, wanted))):
             continue
         candidates.append((rec["raw"]["set_price_EUR"], kw, rec, sorted(codes)))
+    # One per brand, unless only one brand has what the customer asked for (an ionizer: Toshiba only).
+    per_brand = len(brands) != 1 and len({c[2]["brand"] for c in candidates}) > 1
     picks = []
     for _, _, rec, codes in sorted(candidates, key=lambda c: (c[0], c[1])):
         series = re.sub(r"_(?:White|Black|Wood)$", "", _series_key(rec))
-        if any(series == s or (len(brands) != 1 and rec["brand"] == r["brand"]) for r, _, s in picks):
+        if any(series == s or (per_brand and rec["brand"] == r["brand"]) for r, _, s in picks):
             continue
         picks.append((rec, codes, series))
         if len(picks) == 2:
@@ -8135,6 +8217,7 @@ def _picks_text(picks):
     """The first offer's two code-picked sets, for the `ponuka` move."""
     why = ("najlepšia filtrácia" if _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE) else "najlacnejší vhodný set")
     why += ", Wi-Fi v základe" if _wished(_WIFI_WANTED_FOLDED_RE) else ""
+    why += "".join(f", {name}" for name, _ in _wished_features())
     options = "; ".join(f"{i}) {_describe(rec, as_set=True)} {codes}" for i, (rec, codes) in enumerate(picks, 1))
     return (f" Server vybral dve možnosti podľa plochy a želaní zákazníka ({why}): {options}. "
             "Naceň každú vlastným `quote` a ukáž obe s cenou s DPH. Funkcie radu zistíš cez `lookup_product` "
@@ -8158,6 +8241,7 @@ def _suggested_multis():
     wifi = _wished(_WIFI_WANTED_FOLDED_RE)
     premium = _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE)
     named = _customer_brands(text)
+    wanted = _wished_features()
     series = {}
     for r in PRODUCT_INDEX:
         key = r["category_path"].rsplit(".", 1)[-1]
@@ -8165,7 +8249,8 @@ def _suggested_multis():
         if ("/multi_split/" in r["source"] and r["code_role"] == "indoor" and _WALL_MULTI_PATH_RE.search(r["category_path"])
                 and isinstance(r["raw"].get("cooling_kW"), (int, float)) and _unit_price(r) is not None
                 and not re.search(r"_(?:Black|Wood)$", key) and (not premium or (rank and rank[0] == 1))
-                and (len(named) != 1 or r["brand"] == named[0]) and (not wifi or _unit_has_wifi(r))):
+                and (len(named) != 1 or r["brand"] == named[0]) and (not wifi or _unit_has_wifi(r))
+                and _unit_has_features(r, wanted)):
             series.setdefault((r["brand"], key), {}).setdefault(r["model_code"], r)
     options = []
     for (brand, key), units in series.items():
@@ -8484,12 +8569,16 @@ def _sales_move(latest):
         if sess.consent is None and (contact_given or _chose_offer(latest)):
             return Move("kontakt", _CONTACT_GIVEN_TEXT if contact_given else _OFFER_CHOSEN_TEXT, None)
         spec_question = bool(_SPEC_QUESTION_RE.search(folded_latest))
-        if (_NEW_VARIANT_RE.search(folded_latest)
+        # "predsa chcem ionizátor" / "prečo si mi neponúkol klímu s ionizátorom?" after sets without one (live 2026-11-03)
+        latest_wanted = _wished_features(latest)
+        missing = latest_wanted and not any(_quote_has_features(q, latest_wanted) for q in sess.quotes)
+        if missing or (_NEW_VARIANT_RE.search(folded_latest)
                 or (not spec_question and (_codes_named(latest) or _SERIES_NAMED_RE.search(latest)
                                            or _CUSTOMER_M2_RE.search(latest) or _CUSTOMER_KW_RE.search(latest)))):
             return Move("nova-ponuka", "Zákazník chce iný variant (lacnejší, iný rad, inú veľkosť alebo konkrétny kód): "
                         "naceň ho cez `quote` (kódy z `lookup_product`) a uveď cenu s DPH; ktorý je lacnejší, ber z "
                         "`comparison_with_earlier_quotes`. Na nič, čo už povedal, sa znova nepýtaj."
+                        + _feature_sets_text(_offer_min_kw(max(_customer_m2())) if _customer_m2() else 0)
                         + _cheapest_rooms_text(latest) + _commercial_units_note() + _budget_note() + _rooms_limit_note()
                         + _NO_CONTACT_YET + _EXACT_AMOUNTS,
                         "any")
@@ -8555,6 +8644,8 @@ def _sales_move(latest):
     picks = _suggested_sets()
     if picks:
         directive += _picks_text(picks)
+    elif not many_rooms:
+        directive += _feature_sets_text(_offer_min_kw(max(_customer_m2())) if _customer_m2() else 0)
     if _wished(_QUIET_WISH_RE):  # the customer's first wish, and the offer of 2026-11-02 gave no figure
         directive += " Zákazník chce tichý chod: pri každej možnosti uveď hlučnosť vnútornej jednotky v dB z `lookup_product`."
     return Move("ponuka", directive + _commercial_units_note() + _budget_note() + _rooms_limit_note() + _EXACT_AMOUNTS, "any")
