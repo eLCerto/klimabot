@@ -1383,7 +1383,11 @@ def _offer_min_kw(m2):
     """What an offer for a room should reach: the rule in full; down to undersize_ratio for a customer who wants the
     cheapest (the owner, 2026-11-01)."""
     need = m2 * SIZING["kw_per_m2"]
-    return round(need * SIZING["undersize_ratio"] if _wished(_CHEAP_WISH_RE) else need, 2)
+    floor = round(need * SIZING["undersize_ratio"] if _wished(_CHEAP_WISH_RE) else need, 2)
+    # A smaller size the customer asked for is offered, and the reply warns about it (the owner, 2026-11-03: "Chcem 2,5 kW,
+    # väčšiu nechcem" for 50 m² got only 5 kW sets).
+    typed = _customer_numbers(_CUSTOMER_KW_RE)
+    return min(floor, max(typed)) if typed else floor
 
 
 def _cheapest_wifi_set(cooling_kw):
