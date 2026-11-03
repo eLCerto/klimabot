@@ -94,7 +94,7 @@ Costs are capped in USD, priced from `model_prices.json`. A "network" is one IPv
 | `KLIMABOT_DAILY_USD_BUDGET` | 5.00 | all visitors together per day (UTC); saved in `.demo_spend.json`, so a restart doesn't reset it |
 | `KLIMABOT_MAX_TURNS` | 25 | messages per conversation |
 | `KLIMABOT_MAX_MESSAGE_CHARS` | 800 | max message length |
-| `KLIMABOT_SESSIONS_PER_IP_HOUR` | 20 | new conversations per network per hour (Reset counts too) |
+| `KLIMABOT_SESSIONS_PER_IP_HOUR` | 40 | new conversations per network per hour (Reset counts too) |
 | `KLIMABOT_MESSAGES_PER_IP_MINUTE` | 15 | messages per network per minute |
 | `KLIMABOT_TURNS_IN_FLIGHT_PER_IP` | 2 | replies being prepared at once per network |
 | `KLIMABOT_MAX_CONCURRENT_TURNS` | 6 | replies being prepared at once in total |

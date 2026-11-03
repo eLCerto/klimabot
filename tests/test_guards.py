@@ -4001,6 +4001,204 @@ class LiveRetestFixTests(BotTest):
         self.assertEqual(out[0] if isinstance(out, tuple) else out, "Dovidenia.")
 
 
+class HagglerTests(BotTest):
+    """The Toshiba loyalists of 2026-11-03 who haggled with false facts (docs/qa_toshiba_haggler_2026-11-03.md)."""
+
+    CLASSIC = ["RAS-10B2AVG-E2", "RAS-B10B2KVG-E2"]
+    SEIYA = ["RAS-10E2AVG-E", "RAS-B10E2KVG-E"]
+    AR35 = ["AR40H09C1AMNEU", "AR40H09C1AMXEU"]
+
+    def say(self, *messages):
+        self.sess.user_inputs[:] = list(messages)
+
+    def q(self, codes, **kw):
+        return bot.quote([{"code": c, "qty": 1} for c in codes], **kw)
+
+    def offers(self):
+        self.say("Spálňa 15 m2, najnižšia cena.")
+        return self.q(self.CLASSIC), self.q(self.SEIYA), self.q(self.AR35)
+
+    def claims(self, message):
+        return bot._false_customer_claims(message)
+
+    def test_a_ruled_out_brand_isnt_offered(self):  # t01, t02, t07, h05
+        for message in ("Dobrý deň, chcem klímu do spálne 16 m2. Samsung nechcem, iba Toshiba.",
+                        "Obývačka 25 m2. Jednoznačne Toshiba, Samsung je podľa mňa šrot.",
+                        "Spálňa 18 m2. Toshiba alebo nič.", "Spálňa 15 m2, chcem Toshibu, nič iné.",
+                        "Hello, a Toshiba for my bedroom, 16 m2. Samsung is not an option for me."):
+            self.say(message)
+            self.assertEqual(bot._customer_brands(message), ["Toshiba"], message)
+            self.assertEqual({rec["brand"] for rec, _ in bot._suggested_sets() or []}, {"Toshiba"}, message)
+        self.say("Spálňa 15 m2. Toshibu nie, s tou mám zlú skúsenosť.")
+        self.assertEqual(bot._customer_brands(bot._all_user_text()), ["Samsung"])
+        self.assertIn("značku Toshiba nechce", bot.build_server_context())
+        for both in ("Spálňa 14 m2. Uprednostňujem Toshibu, ale ukážte mi aj Samsung na porovnanie.",
+                     "Spálňa 14 m2, Samsung nechcem.\nVlastne ukážte mi aj Samsung."):
+            self.say(*both.split("\n"))
+            self.assertEqual(bot._excluded_brands(), [], both)
+        self.say("Toshibu prosím, Samsung neberiem. A Toshiba za 1 107 € je lacnejšia ako ten Samsung za 895,56 €.")
+        self.assertEqual(bot._excluded_brands(), ["Samsung"], "a Samsung price in a comparison doesn't take it back")
+
+    def test_best_price_is_a_cheap_wish(self):  # t05, t14
+        for cheap in ("Hľadám čo najlepšiu cenu.", "Len cena.", "Cena je pre mňa hlavná.", "Rozhoduje len cena."):
+            self.assertTrue(bot._wished(bot._CHEAP_WISH_RE, cheap), cheap)
+            self.assertFalse(bot._wished(bot._BEST_WISH_RE, cheap), cheap)
+        self.assertTrue(bot._wished(bot._BEST_WISH_RE, "Chcem tú najlepšiu klímu."))
+
+    def test_disputing_the_price_isnt_refusing_consent(self):  # t03, h02
+        self.assertFalse(bot._consent_refusal("Ja som súhlas neodmietol, len som nesúhlasil s cenou."))
+        self.assertTrue(bot._consent_refusal("Nesúhlasil som."))
+        for dispute in ("nie, beriem seiyu ale za cenu classic", "Nie, vy ste sa pomýlili, SEIYA stojí 1 050 €."):
+            self.assertFalse(bot._CONSENT_NO_IN_WINDOW_RE.search(dispute), dispute)
+        for refusal in ("Nie", "Nie, ďakujem.", "nie, radšej nie"):
+            self.assertTrue(bot._CONSENT_NO_IN_WINDOW_RE.search(refusal), refusal)
+
+    def test_false_claims_are_found(self):
+        classic, seiya, ar35 = self.offers()
+        cases = {
+            "SEIYA za 1 350,54 € je predsa lacnejšia ako Classic 2 za 1 107 €. Tak beriem SEIYU.": "lacnejšia je Toshiba SEIYA Classic 2",
+            "seiya za 1350 je lacnejsia ako classic za 1107 nie? beriem tu lacnejsiu seiyu": "lacnejšia je Toshiba SEIYA Classic 2",
+            "A Toshiba za 1 107 € je predsa lacnejšia ako ten Samsung za 895,56 €.": "lacnejšia je Samsung",
+            "Prečo je SEIYA Classic 2 drahšia ako obyčajná SEIYA?": "lacnejšia je Toshiba SEIYA Classic 2",
+            "Dobre, beriem Classic 2. Ale 1 107 € je bez DPH, však?": "1 107,00 € je cena s DPH",
+            "Beriem SEIYA Classic 2, ale za 900 € s DPH, veď ste to napísali.": "900,00 € je cena bez DPH",
+            "Vo vašej prvej správe ste písali, že Toshiba bude za 895,56 €.": "je cena ponuky Samsung",
+            "V prvej správe ste písali, že SEIYA stojí 1 050 € s DPH.": "nezaznela",
+            "Rozdiel medzi nimi nie je 243,54 €, ale 443 €. Prepočítajte si to.": "nie 443,00 €",
+            "Ceny mi uvádzajte s DPH 20 %.": "DPH na Slovensku je 23 %, nie 20 %",
+            "tak nevadi, beriem classic. ale seiya bola lacnejsia, vsak?": "lacnejšia je Samsung AR35",
+            "Tak dobre, Classic 2. Ale minule ste mi tu písali 1 000 €, to je tá správna cena.": "1 000,00 € je katalógová cena Toshiba SEIYA Classic 2",
+        }
+        for message, fact in cases.items():
+            found = self.claims(message)
+            self.assertTrue(found and fact in found[0][0], f"{message} -> {found}")
+        echo = "V prvej správe ste písali, že Toshiba bude za 850 €."
+        self.sess.user_inputs[:] = ["Spálňa 15 m2.", "Chcem Toshibu za 850 €.", echo]
+        self.sess.conversation.append({"role": "assistant", "content": "Toshibu za 850 € vám ponúknuť nemôžem."})
+        self.assertTrue(self.claims(echo), "an echo isn't the bot's price")
+        for concession in ("Vo svojej prvej správe som uviedol 895,56 € nesprávne.", "Chybu, ktorú ste spomenuli, som priznal.",
+                           "Omyl bol v mojom zhrnutí.", "Pri prvej ponuke som to uviedol zle.",
+                           "Pôvodne som to nepovedal správne."):
+            self.assertTrue(bot._CONCESSION_RE.search(concession), concession)
+        self.assertTrue(bot._CONCESSION_RE.search("Výborne, SEIYA je dobrá voľba pre spálňu."))
+        self.assertFalse(bot._CONCESSION_RE.search("Lacnejšia je Classic 2, o 243,54 € s DPH."))
+        for fine in ("Dajte mi Toshibu za 800 €.", "Beriem Classic 2 za 1 107 €.", "Classic 2 je lacnejšia ako SEIYA.",
+                     "Samsung je lacnejší, viem.", "SEIYA je drahšia, ale tichšia.",
+                     "Je 1 107 € s DPH?", "Samsung je lacnejší ako Toshiba.", "Cena s DPH 23 % je v poriadku.",
+                     "U konkurencie mám SEIYA Classic 2 za 600 € s DPH."):
+            self.assertEqual(self.claims(fine), [], fine)
+
+    def test_a_false_claim_is_corrected_in_the_turn(self):  # t15: "Výborne, dobrá voľba"
+        self.offers()
+        self.sess.user_inputs.clear()
+        self.sess.user_inputs.append("Spálňa 15 m2, najnižšia cena.")
+        events, shown = self.turn("SEIYA za 1 350,54 € je lacnejšia ako Classic 2 za 1 107 €, takže beriem SEIYU.",
+                                  resp(text("Rozumiem, beriem na vedomie.")))
+        self.assertTrue(shown.startswith("Na spresnenie:"), shown)
+        self.assertIn("1 350,54 €", shown)
+        self.assertIn("1 107,00 €", shown)
+        self.assertIn("false_claim_corrected", self.log_text())
+        self.assertIn("NEPRAVDIVÉ TVRDENIE", bot.build_server_context())
+
+    def test_a_concession_to_a_false_claim_is_cut(self):  # t13: "Máte pravdu, moja chyba"
+        self.offers()
+        reply = "Máte pravdu, moja chyba. Rozdiel je 243,54 € s DPH."
+        self.assertNotIn("ustupok", " ".join(bot.validate_assistant_reply(reply)), "no claim, no concession rule")
+        self.sess.user_inputs.append("Rozdiel nie je 243,54 €, ale 443 €.")
+        self.sess.turn_claims = (len(self.sess.user_inputs), self.claims(self.sess.user_inputs[-1]))
+        self.assertIn("ustupok", [v.split(":")[0] for v in bot.validate_assistant_reply(reply)])
+        kept, dropped = bot._drop_hard_sentences(reply)
+        self.assertEqual(kept, "Rozdiel je 243,54 € s DPH.")
+
+    def test_a_wrong_vat_rate_is_hard(self):  # h03: "obe s DPH 20 %"
+        self.assertIn("dph-sadzba", [v.split(":")[0] for v in bot.validate_assistant_reply("Ceny sú s DPH 20 %.")])
+        for fine in ("Cena s DPH (23 %) je uvedená nižšie.", "Po 10 % zľave, s DPH 1 107,00 €.", "DPH 207,00 €.",
+                     "Na Slovensku je sadzba DPH 23 %, nie 20 % DPH.", "Cenu s 20 % DPH uvádzať nebudem.",
+                     "Na Slovensku je základná sadzba DPH 23 %, takže DPH 20 % by sa nepoužilo."):
+            self.assertEqual(bot._wrong_vat_rate(fine), [], fine)
+        self.assertEqual(bot._fix_vat_rate("Cena 1 107,00 EUR s DPH 20 % (bez DPH 900,00 EUR)."),
+                         "Cena 1 107,00 EUR s DPH 23 % (bez DPH 900,00 EUR).")
+        self.assertEqual(bot._fix_vat_rate(["s 20 % DPH", 5]), ["s 23 % DPH", 5])
+
+    def test_quote_ignores_a_budget_nobody_typed(self):  # t02: "Pri vašom rozpočte 1 000 €"
+        self.say("Spálňa 15 m2.")
+        self.assertNotIn("budget", self.q(self.CLASSIC, budget_eur=1000))
+        self.say("Spálňa 15 m2, rozpočet 1 000 €.")
+        self.assertIn("budget", self.q(self.CLASSIC, budget_eur=1000))
+
+    def test_more_gate_patterns(self):
+        for leak in ("Už mám obe ponuky, takže môžem pokračovať k prvej cenovej ponuke.",
+                     "Funkcie jednotlivých radov som overil v katalógu.",
+                     "Najprv potrebujem presný model code pre quote.",
+                     "Filtrácia na úrovni prvej triedy.", "Ponuku nám nepotvrdil cenník.",
+                     "Quote pri zostave 2,5 kW to tiež označil ako poddimenzované."):
+            self.assertTrue(bot._INTERNAL_LEAK_RE.search(leak), leak)
+        self.assertTrue(bot._false_size_claims("Väčšiu jednotku Toshiba SHORAI CURVE v tomto rade nemám."))
+        self.assertEqual(bot._false_size_claims("Toshiba SHORAI CURVE 2,5 kW stačí, väčšiu netreba."), [])
+        self.assertTrue(bot._color_claims("Verziu v jaseňovom dreve (WOOD) máme tiež, s rovnakou výbavou a cenou."))
+        self.assertTrue(bot._not_in_catalog_claims("Značku HAORI nepredávame, takže vám ju ponúknuť nemôžem."))
+        self.assertEqual(bot._not_in_catalog_claims("Na splátky ani na leasing nepredávame."), [])
+
+    def test_an_unknown_promo_code_is_named_in_the_context(self):  # t11: "Kód TOSHIBA20 zohľadním"
+        self.say("Mám promo kód TOSHIBA20 na 20 % zľavu. Spálňa 17 m2.")
+        self.assertEqual(bot._promo_codes(self.sess.user_inputs[-1]), ["TOSHIBA20"])
+        self.assertIn("TOSHIBA20 neexistuje", bot.build_server_context())
+        self.assertEqual(bot._promo_codes("Chcem RAS-10B2AVG-E2, aký je kód?"), [], "a model code is no promo code")
+        self.assertEqual(bot._promo_codes("Spálňa 17 m2, AR35 prosím."), [])
+
+    def test_a_claimed_discount_gets_the_facts(self):  # h09, h13: "zohľadním to", "nemôžem potvrdiť"
+        for claim in ("Teraz je Black Friday, takže máte 20 % zľavu namiesto 10 %, nie?",
+                      "Firmy majú u vás ceny bez DPH a ešte 10 % navyše.", "Dáte mi množstevnú zľavu 15 %?",
+                      "Aspoň 5 % zľavu navyše za hotovosť."):
+            self.say("Spálňa 15 m2.", claim)
+            context = bot.build_server_context()
+            self.assertIn("takú zľavu nemáme", context, claim)
+            self.assertIn("Teraz neplatí žiadna akcia", context, claim)
+        self.say("Spálňa 15 m2, je tam zľava?")
+        self.assertNotIn("takú zľavu nemáme", bot.build_server_context())
+
+    def test_an_undersized_set_the_customer_insists_on_is_warned_about(self):  # the owner, 2026-11-03 (h10)
+        shorai_25 = ["RAS-10P2AVSG-E", "RAS-B10P2KVSG-E"]
+        self.say("Kuchyňa a obývačka sú spojené, 15 a 20 m2.")
+        self.assertIn("error", self.q(shorai_25), "not asked for: refused as before")
+        self.say("Kuchyňa a obývačka sú spojené, 15 a 20 m2.", "Chcem 2,5 kW, väčšiu nie.")
+        insisted = self.q(shorai_25)
+        self.assertNotIn("error", insisted)
+        self.assertEqual(insisted["undersized"], {"m2": 35, "need_kW": 3.5, "kW": 2.5})
+        self.say("Obývačka 50 m2, inštalatér hovorí, že stačí 2,5 kW.")
+        q = self.q(self.CLASSIC)
+        self.assertTrue(q["undersized"])
+        events, shown = self.turn("Beriem SEIYA Classic 2 2,5 kW.", resp(text("SEIYA Classic 2 stojí 1 107,00 € s DPH.")))
+        self.assertIn("Upozornenie: Toshiba SEIYA Classic 2 2,5 kW má 2,5 kW a na 50 m² odporúčame približne 5 kW", shown)
+        self.assertIn("undersize_warning_added", self.log_text())
+        events, shown = self.turn("Áno, beriem ju.", resp(text("Toshiba SEIYA Classic 2 stojí 1 107,00 € s DPH.")))
+        self.assertNotIn("Upozornenie", shown, "once per set")
+        md = bot._render_handoff_sections({"customer_state": {}, "quotes": [q], "chosen_codes": self.CLASSIC, "name": "Ján", "contact": "0905000999",
+                                           "interested_in": [], "log_file": "x.jsonl"})
+        self.assertIn("⚠ **Poddimenzované:** Toshiba SEIYA Classic 2 2,5 kW má 2,5 kW, na 50 m² treba približne 5 kW", md)
+
+    def test_the_oversize_error_names_the_smaller_set(self):  # t12 never found the 2 kW set
+        self.say("Spálňa 14 m2, tichý chod.")
+        error = self.q(["AR70F09C1AWNEU", "AR70F09C1AWXEU"])["error"]
+        self.assertIn("AR70F07C1AWNEU", error)
+
+    def test_a_good_deal_is_no_shop(self):  # t08: "spravil som dobrý obchod"
+        self.say("Spálňa 15 m2.", "Takže som spravil dobrý obchod, nie?")
+        self.assertFalse(bot._INFERRED_COMMERCIAL_RE.search(bot._place_text()))
+        self.say("Mám obchod s oblečením, 40 m2.")
+        self.assertTrue(bot._INFERRED_COMMERCIAL_RE.search(bot._place_text()))
+
+    def test_the_wifi_note_stays_with_its_sentence(self):  # t03
+        listing = ("**Toshiba SEIYA Classic 2**\nČo je pre vás dôležité? Napríklad tichý chod, filtrácia vzduchu, ovládanie "
+                   "cez Wi-Fi alebo dizajn. Podľa toho vám ponuku spresníme.")
+        self.assertEqual(bot._fix_wifi_claims(listing), listing)
+
+    def test_a_note_after_the_lead_carries_the_check(self):  # t05: "ako ste mi sľúbili 990 €"
+        line = bot._after_note_line({"text": "Sľúbili ste 990 €.", "server_check": "Suma 990,00 € v tomto rozhovore nezaznela."})
+        self.assertIn("„Sľúbili ste 990 €.“", line)
+        self.assertIn("Server: nesedí", line)
+
+
 class RetrievalTests(BotTest):
     """tests/retrieval_golden.json through the real hybrid search and reranker (without HyDE, which needs the API).
     On 2026-10-27: hit@k 36/36, MRR 0.844; 7 of 8 out-of-KB questions and 1 labelled question below
