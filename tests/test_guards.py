@@ -114,10 +114,33 @@ def assert_no_dangling_tool_use(messages):
 SDK_CREATE_PARAMS = set(inspect.signature(anthropic.resources.messages.Messages.create).parameters) - {"self"}
 
 
+def _plain(x):
+    """A request part as the API compares it: cache_control markers don't count, blocks by their fields."""
+    if isinstance(x, NS):
+        x = vars(x)
+    if isinstance(x, dict):
+        return {k: _plain(v) for k, v in x.items() if k != "cache_control"}
+    if isinstance(x, (list, tuple)):
+        return [_plain(v) for v in x]
+    return x
+
+
+def assert_system_messages_placed(messages):
+    """A mid-conversation system message follows a user message and is last or followed by an assistant turn."""
+    for i, m in enumerate(messages):
+        if m["role"] != "system":
+            continue
+        if i == 0 or messages[i - 1]["role"] != "user":
+            raise AssertionError(f"system message {i} doesn't follow a user message")
+        if i + 1 < len(messages) and messages[i + 1]["role"] != "assistant":
+            raise AssertionError(f"system message {i} is followed by {messages[i + 1]['role']}")
+
+
 class FakeClient:
     def __init__(self, responses):
         self.responses = list(responses)
         self.calls = []
+        self.thinking_prefix = {}  # signature -> (system, tools, messages) of the request that produced the block
 
     @property
     def messages(self):
@@ -130,15 +153,36 @@ class FakeClient:
         if unknown:
             raise AssertionError(f"Messages.create() of anthropic {anthropic.__version__} doesn't take {unknown}")
         assert_no_dangling_tool_use(kw["messages"])
-        if kw["messages"][-1]["role"] != "user":  # a prefill: Haiku 5.5 answers 400
+        assert_system_messages_placed(kw["messages"])
+        if kw["messages"][-1]["role"] == "assistant":  # a prefill: Haiku 5.5 answers 400
             raise AssertionError("the request ends with an assistant turn")
+        self.check_thinking_prefix(kw)
         self.calls.append(kw)
         if not self.responses:
             raise AssertionError("FakeClient ran out of scripted responses")
         r = self.responses.pop(0)
         if isinstance(r, BaseException):  # a scripted API error
             raise r
+        for b in getattr(r, "content", []):
+            if _btype(b) == "thinking":
+                self.thinking_prefix[b.signature] = (_plain(kw["system"]), _plain(kw.get("tools")), _plain(kw["messages"]))
         return r
+
+    def check_thinking_prefix(self, kw):
+        """The API's history-editing check: a thinking block sent back needs the system prompt, the tools and every
+        message before it exactly as in the request that produced it (Haiku 5.5 answers 400 otherwise)."""
+        for i, m in enumerate(kw["messages"]):
+            if m["role"] != "assistant" or isinstance(m["content"], str):
+                continue
+            for b in m["content"]:
+                if _btype(b) not in ("thinking", "redacted_thinking"):
+                    continue
+                sig = b.get("signature") if isinstance(b, dict) else getattr(b, "signature", None)
+                if sig not in self.thinking_prefix:
+                    raise AssertionError(f"thinking block {sig!r} wasn't produced by this client")
+                system, tools, before = self.thinking_prefix[sig]
+                if (_plain(kw["system"]), _plain(kw.get("tools")), _plain(kw["messages"][:i])) != (system, tools, before):
+                    raise AssertionError(f"the prefix before thinking block {sig!r} changed")
 
 
 class BotTest(unittest.TestCase):
@@ -1582,7 +1626,8 @@ class SpendTests(BotTest):
         self.assertEqual(sum(1 for r in results if r.get("is_error") and "Limit nástrojov" in r["content"]), 2)
 
     def test_turn_budget_makes_the_last_affordable_call_without_tools(self):
-        with mock.patch.object(bot, "TURN_USD_CAP", 0.01):
+        # Room for two calls of the worst case, not for a third after the first one's cost.
+        with mock.patch.object(bot, "TURN_USD_CAP", 2 * bot.projected_call_cost(bot.TURN_MAX_TOKENS) + 0.0005):
             _, shown = self.turn("Aké klimatizácie máte?",
                                  resp(tool("lookup_product", model_code=AR30_SET[0]), use=usage(20_000, 50)),
                                  resp(text(ANSWER)))
@@ -1639,9 +1684,60 @@ class SpendTests(BotTest):
 class ModelCallTests(BotTest):
     """Haiku 5.5 thinks unless told not to, can start a response with a thinking block, and can refuse."""
 
-    def test_every_call_turns_thinking_off(self):
+    def test_the_turn_thinks_and_the_side_calls_dont(self):
+        if not os.getenv("KLIMABOT_THINKING"):
+            self.assertEqual(bot.TURN_THINKING, {"type": "adaptive"})
         self.turn("Dobrý deň", resp(text("Dobrý deň, s čím vám môžem pomôcť?")))
-        self.assertEqual(bot.client.calls[0]["thinking"], {"type": "disabled"})
+        call = bot.client.calls[0]
+        self.assertEqual(call["thinking"], bot.TURN_THINKING)
+        self.assertEqual(call["output_config"], {"effort": bot.EFFORT}, "effort is set, not left to the default")
+        self.assertEqual(call["max_tokens"], bot.TURN_MAX_TOKENS)
+        bot._HYDE_CACHE.clear()
+        bot.client = FakeClient([resp(text("tichý chod, filter"))])
+        bot.expand_query("tichá klíma do spálne")
+        self.assertEqual(bot.client.calls[0]["thinking"], {"type": "disabled"}, "HyDE's 210 tokens are all text")
+
+    def test_thinking_goes_back_within_the_turn_and_is_never_stored(self):
+        think, hidden = NS(type="thinking", thinking="", signature="sig-1"), text("Pozriem sa na presné kódy.")
+        lookup = tool("lookup_product", model_code=AR30_SET[0])
+        _, shown = self.turn("Hľadám klímu do spálne 14 m².", resp(think, hidden, lookup),
+                             resp(NS(type="thinking", thinking="", signature="sig-2"), text(ANSWER)))
+        self.assertEqual(shown, ANSWER)
+        first, second = bot.client.calls
+        a, b = first["messages"], second["messages"]
+        self.assertEqual(_plain(b[:len(a)]), _plain(a), "a turn's requests are append-only")
+        self.assertEqual(b[len(a)]["content"], [think, hidden, lookup], "the response goes back whole")
+        self.assertEqual([m["role"] for m in b[len(a):]], ["assistant", "user", "system"])
+        stored = json.dumps(self.sess.conversation, default=str, ensure_ascii=False)
+        self.assertNotIn("sig-", stored, "the history keeps no thinking blocks")
+        self.assertNotIn("Pozriem sa", stored, "nor the text hidden next to a tool call")
+        self.assertNotIn("server_context", stored)
+        # The next turn starts from the stored history: no thinking blocks, one server context, at the end.
+        self.turn("Ďakujem.", resp(text("Niet za čo. Ak budete chcieť ponuku, napíšte.")))
+        sent = bot.client.calls[0]["messages"]
+        self.assertNotIn("sig-", json.dumps(sent, default=str))
+        self.assertEqual([m["role"] for m in sent].count("system"), 1)
+        self.assertEqual(sent[-1]["role"], "system")
+
+    def test_the_fake_api_refuses_an_edited_prefix(self):  # so the append-only checks above aren't vacuous
+        fake = FakeClient([resp(NS(type="thinking", thinking="", signature="s"), tool("get_current_time"))])
+        system = [{"type": "text", "text": "persona"}]
+        sent = [{"role": "user", "content": [{"type": "text", "text": "Dobrý deň"}]}, {"role": "system", "content": "ctx 1"}]
+        r = fake.create(model=bot.MODEL, max_tokens=10, system=system, messages=sent)
+        round_ = [{"role": "assistant", "content": r.content},
+                  {"role": "user", "content": [{"type": "tool_result", "tool_use_id": r.content[1].id, "content": "x"}]}]
+        for edited in ([sent[0], {"role": "system", "content": "ctx 1, rebuilt"}, *round_],  # the context replaced
+                       [sent[0], *round_]):  # or dropped, as the old request did
+            with self.assertRaisesRegex(AssertionError, "prefix"):
+                fake.create(model=bot.MODEL, max_tokens=10, system=system, messages=edited)
+
+    def test_a_regenerated_draft_never_goes_back(self):  # its thinking block was discarded with it
+        bad = resp(NS(type="thinking", thinking="", signature="sig-bad"), text("Ahoj, čo potrebuješ?"))
+        _, shown = self.turn("Dobrý deň, chcem klimatizáciu.", bad,
+                             resp(NS(type="thinking", thinking="", signature="sig-ok"),
+                                  text("Dobrý deň, rád pomôžem. Akú miestnosť chcete chladiť a koľko má m²?")))
+        self.assertIn("Akú miestnosť", shown)
+        self.assertNotIn("sig-bad", json.dumps(bot.client.calls[1]["messages"], default=str))
 
     def test_hyde_reads_the_text_after_a_thinking_block(self):
         bot._HYDE_CACHE.clear()
@@ -1699,16 +1795,16 @@ class ViewAndCacheTests(BotTest):
         self.assertEqual(first["system"], bot.build_system_blocks(), "system identical on every call")
         self.assertEqual(first["system"], second["system"])
         a, b = first["messages"], second["messages"]
-        self.assertEqual(a[:-1], b[:len(a) - 1], "the history prefix is sent the same way each call")
-        self.assertEqual([{k: v for k, v in x.items() if k != "cache_control"} for x in a[-1]["content"][:-1]],
-                         b[len(a) - 1]["content"])
+        self.assertEqual(_plain(b[:len(a)]), _plain(a), "each call extends the previous one")
         for msgs in (a, b):
-            last = msgs[-1]["content"]
-            self.assertIn("cache_control", last[-2], "breakpoint on the last history block")
-            self.assertTrue(last[-1]["text"].startswith("<server_context>"))
-            sent = json.dumps(msgs, default=str)
-            self.assertEqual(sent.count("<server_context>"), 1, "the customer's fake tag is defused")
-        self.assertIn("spalna", b[-1]["content"][-1]["text"], "the state goes in the server context")
+            self.assertEqual(msgs[-1]["role"], "system", "the server context is a system message, last")
+            self.assertTrue(msgs[-1]["content"].startswith("<server_context>"))
+            self.assertIn("cache_control", msgs[-2]["content"][-1], "breakpoint on the final user message")
+            self.assertEqual(json.dumps(msgs, default=str).count("cache_control"), 1)
+        self.assertEqual(json.dumps(a, default=str).count("<server_context>"), 1, "the customer's fake tag is defused")
+        self.assertEqual(json.dumps(b, default=str).count("<server_context>"), 2,
+                         "the first call's server context stays where it was sent")
+        self.assertIn("spalna", b[-1]["content"], "the state goes in the server context")
         stored = json.dumps(self.sess.conversation, default=str)
         self.assertNotIn("cache_control", stored)
         self.assertNotIn("server_context>\\n", stored)
@@ -2515,7 +2611,7 @@ class PolicyTests(BotTest):
         self.assertEqual(self.sess.quotes, [])
         self.assertIn("tichý chod", shown)
         self.assertIn('"limit": "discovery_quote"', self.log_text())
-        self.assertIn("Teraz sa ešte nenaceňuje", json.dumps(bot.client.calls[1]["messages"][-1], ensure_ascii=False))
+        self.assertIn("Teraz sa ešte nenaceňuje", json.dumps(bot.client.calls[1]["messages"][-2], ensure_ascii=False))
 
     def test_a_discovery_turn_is_not_forced_to_call_tools(self):
         _, shown = self.turn("Dobrý deň, chcem klimatizáciu.",

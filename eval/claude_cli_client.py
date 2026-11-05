@@ -9,14 +9,16 @@ so bot.py's loop, validator, quote() and guards run exactly as in production.
 
 Differences from the API (documented in the eval report):
 - prompted tool calling instead of native tool use;
-- tool schemas live in the system prompt, the customer state and regen notes
-  in the user message (the system prompt stays identical across calls so the
-  CLI can cache it);
+- tool schemas live in the system prompt, the server context (customer state,
+  regen notes; a mid-conversation system message on the API) in the prompt's
+  transcript (the system prompt stays identical across calls so the CLI can
+  cache it);
 - the CLI adds ~800 tokens of its own context (environment, date);
 - no max_tokens limit.
 
 Pass the production model ID (bot.MODEL): the CLI's "haiku" alias moves on with new releases. Haiku 5.5 thinks
-here although production turns thinking off (see __init__), so CLI figures don't carry over to production.
+here as in production's customer turn, and the request's effort (output_config) is passed on unless --effort
+overrides it; the side calls (HyDE, summary), which production runs without thinking, think here.
 """
 import glob
 import json
@@ -79,6 +81,9 @@ def render_transcript(messages):
     out = []
     for msg in messages:
         content = msg["content"]
+        if msg["role"] == "system":  # bot.py's per-call <server_context>, a mid-conversation system message
+            out.append(content if isinstance(content, str) else "\n".join(_field(b, "text") for b in content))
+            continue
         if msg["role"] == "user":
             if isinstance(content, str):
                 out.append(f"<customer>\n{content}\n</customer>")
@@ -86,9 +91,8 @@ def render_transcript(messages):
             results, texts = [], []
             for block in content:
                 btype = _field(block, "type")
-                if btype == "text":  # the customer's message, or bot.py's per-call <server_context> block
-                    text = _field(block, "text")
-                    texts.append(text if text.startswith("<server_context>") else f"<customer>\n{text}\n</customer>")
+                if btype == "text":  # the customer's message
+                    texts.append(f"<customer>\n{_field(block, 'text')}\n</customer>")
                 if btype != "tool_result":
                     continue
                 tid = _field(block, "tool_use_id")
@@ -145,13 +149,11 @@ class ClaudeCLIClient:
         self.cwd.mkdir(exist_ok=True)
         self.log_dir = Path(log_dir) if log_dir else None
         self.messages = self  # so `client.messages.create(...)` works
-        env = {k: v for k, v in os.environ.items() if not k.startswith("ANTHROPIC_")}
-        # Production runs without extended thinking. Haiku 5.5 thinks anyway: this, --thinking disabled and the
-        # other CLI switches don't stop its adaptive thinking (checked 2026-10-30; modelUsage.thinkingTokens > 0).
-        env["MAX_THINKING_TOKENS"] = "0"
-        self.env = env
+        # The CLI can't turn Haiku 5.5's adaptive thinking off (MAX_THINKING_TOKENS=0 and --thinking disabled
+        # didn't, checked 2026-10-30); production's customer turn thinks too.
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith("ANTHROPIC_")}
 
-    def _run(self, system_prompt, prompt):
+    def _run(self, system_prompt, prompt, effort=None):
         # The system prompt goes in a file: as an argument, persona + checklist + tool schemas
         # would pass Windows' 32 767-character command-line limit.
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".txt", dir=self.cwd, delete=False) as f:
@@ -159,8 +161,9 @@ class ClaudeCLIClient:
         cmd = [self.exe, "-p", "--model", self.model, "--output-format", "json",
                "--system-prompt-file", f.name, "--tools", "", "--strict-mcp-config",
                "--disable-slash-commands", "--setting-sources", "local", "--no-session-persistence"]
-        if self.effort:
-            cmd += ["--effort", self.effort]
+        effort = self.effort or effort
+        if effort:
+            cmd += ["--effort", effort]
         last_error = None
         try:
             for attempt in range(self.retries):
@@ -183,11 +186,13 @@ class ClaudeCLIClient:
         raise anthropic.APIError(f"claude CLI failed: {last_error}",
                                  httpx.Request("POST", "http://claude-cli.local"), body=None)
 
-    def create(self, model=None, max_tokens=None, system="", messages=(), tools=None, tool_choice=None, **_):
+    def create(self, model=None, max_tokens=None, system="", messages=(), tools=None, tool_choice=None,
+               output_config=None, **_):
         blocks = _system_text(system)
+        effort = (output_config or {}).get("effort")  # production's effort, unless --effort overrides it
         if tools:
             # Stable part (persona + critical rules + tools) in the system prompt; the
-            # per-turn blocks (customer state, regen note) go into the user message.
+            # per-call server context (customer state, regen note) is in the transcript, where bot.py sends it.
             tools_json = json.dumps(tools, ensure_ascii=False, separators=(",", ":"))
             system_prompt = "\n\n".join(blocks[:2]) + "\n" + TOOL_PROTOCOL.replace("{tools}", tools_json)
             dynamic = "\n\n".join(blocks[2:])
@@ -206,12 +211,13 @@ class ClaudeCLIClient:
             last = messages[-1]["content"]
             prompt = last if len(messages) == 1 and isinstance(last, str) else render_transcript(messages)
 
-        data = self._run(system_prompt, prompt)
+        data = self._run(system_prompt, prompt, effort)
         raw = data.get("result") or ""
         try:
             reply, calls = parse_reply(raw) if tools else (raw.strip(), [])
         except json.JSONDecodeError as e:
-            data = self._run(system_prompt, prompt + f"\n\n(Predošlý pokus mal neplatný JSON v tool_call: {e}. Napíš správu znova.)")
+            data = self._run(system_prompt, prompt + f"\n\n(Predošlý pokus mal neplatný JSON v tool_call: {e}. Napíš správu znova.)",
+                             effort)
             raw = data.get("result") or ""
             try:
                 reply, calls = parse_reply(raw)
