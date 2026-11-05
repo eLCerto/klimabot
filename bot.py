@@ -4502,10 +4502,12 @@ def maybe_summarize(conversation):
         log_event("summarize_failed", error="empty summary")
         return conversation
     log_event("summarized", head_len=len(head), tail_len=len(tail))
+    # The kept turns go in their stored form from now on: their thinking blocks were written after the head that is
+    # now replaced, so the API would refuse them (the request starts over, uncached, once).
     return [
         {"role": "user", "content": "Zhrň, čo sme doteraz prebrali."},
         {"role": "assistant", "content": f"Doterajší kontext: {summary}"},
-    ] + tail
+    ] + [{k: v for k, v in m.items() if k != "api"} for m in tail]
 
 
 # --- Post-reply validator ---
@@ -8894,15 +8896,52 @@ def build_server_context(note=None):
     return f"{SERVER_CONTEXT_OPEN}\n{body}\n{SERVER_CONTEXT_CLOSE}"
 
 
+def _tool_ids(content):
+    return [getattr(b, "id", None) or (b.get("id") if isinstance(b, dict) else None) for b in content or []
+            if (getattr(b, "type", None) or (b.get("type") if isinstance(b, dict) else None)) == "tool_use"]
+
+
+def _api_rounds(conversation, i):
+    """The API's copy of the earlier turn whose customer message is conversation[i] (its `api`
+    key, attached when the turn ended): per tool round the server context sent, the whole
+    response and the tool results, then the final call's server context. None when it no
+    longer lines up with the stored messages it stands for (each round's tool calls, then the
+    final reply), so a rollback or an edit falls back to the stored form."""
+    rounds = conversation[i].get("api")
+    if not rounds:
+        return None
+    sent = [(rounds[j], rounds[j + 1]) for j in range(len(rounds) - 1) if rounds[j]["role"] == "assistant"]
+    end = i + 1 + 2 * len(sent)
+    stored = conversation[i + 1:end]
+    if len(stored) != 2 * len(sent) or (end < len(conversation) and conversation[end]["role"] != "assistant"):
+        return None
+    for (response, results), s_asst, s_res in zip(sent, stored[::2], stored[1::2]):
+        # The tool results are the very list stored; the tool calls are the stored ones.
+        if (s_asst["role"] != "assistant" or s_res["content"] is not results["content"]
+                or _tool_ids(response["content"]) != _tool_ids(s_asst["content"])):
+            return None
+    return rounds
+
+
 def _messages_for_api(conversation, server_context, turn=()):
     """The stored history, then this turn's messages as the API saw them (`turn`: the
     customer's message, and per tool round the server context sent, the whole response and
     the tool results), built the same way on every call so the prefix stays cached and the
-    turn's thinking blocks stay valid: customer text as a text block, with any server_context
-    tag the customer typed defused. A breakpoint goes on the last block of the final user
-    message, then this call's server context as a system message."""
+    thinking blocks stay valid: an earlier turn goes as its API copy (`_api_rounds`), so each
+    request extends the previous one across turns too; customer text as a text block, with any
+    server_context tag the customer typed defused. A breakpoint goes on the last block of the
+    final user message, then this call's server context as a system message."""
+    seq, i = [], 0
+    while i < len(conversation):
+        m = conversation[i]
+        rounds = _api_rounds(conversation, i) if m["role"] == "user" else None
+        seq.append(m)
+        if rounds:
+            seq += rounds  # in place of the stored rounds it stands for
+            i += 2 * sum(1 for r in rounds if r["role"] == "assistant")
+        i += 1
     msgs = []
-    for m in [*conversation, *turn]:
+    for m in [*seq, *turn]:
         content = m["content"]
         if m["role"] == "user" and isinstance(content, str):
             content = [{"type": "text", "text": _SERVER_TAG_RE.sub(r"<\1server-context", content)}]
@@ -9381,6 +9420,7 @@ def run_user_turn_streaming(user_input):
     # the server context sent, the whole response (thinking blocks, hidden text) and the tool results.
     history = sess.conversation[:turn_start]
     turn_api = [sess.conversation[turn_start]]
+    final_context = None     # the server context of the call whose reply ends the turn
 
     def budget_for_next_call(max_tokens, pending_usd=0.0, context_tokens=None):
         """'ok', 'final' (only an answer without tools still fits) or 'stop'. `pending_usd`
@@ -9678,6 +9718,8 @@ def run_user_turn_streaming(user_input):
             yield ("state", dict(sess.customer_state))
             tool_blocks, stop_reason = [], "end_turn"
         is_final = stop_reason != "tool_use"
+        if is_final:
+            final_context = server_context  # the reply stored below was written under it
         support_case = _support_case()
         # A complaint reply that forgot to ask: the handover can't depend on the model. Once, not after a refusal.
         if (is_final and move.name == "reklamacia" and sess.consent is None and not sess.consent_refused
@@ -9950,13 +9992,22 @@ def run_user_turn_streaming(user_input):
                     except Exception as e:
                         log_event("handoff_read_failed", error=str(e))
             sess.conversation.append({"role": "user", "content": tool_results})
-            # The API's copy of this round: the server context exactly as sent, the response whole.
+            # The API's copy of this round: the server context exactly as sent, and the response whole when it thinks
+            # (its thinking blocks go back unmodified, so the text hidden next to the tool call goes back too). Without
+            # thinking (thinking off, or a forced tool call, which skips it) the hidden text stays out, as it always did.
+            thinks = any(getattr(b, "type", None) in ("thinking", "redacted_thinking") for b in response.content)
             turn_api += [{"role": "system", "content": server_context},
-                         {"role": "assistant", "content": list(response.content)},
+                         {"role": "assistant", "content": list(response.content) if thinks else list(tool_blocks)},
                          {"role": "user", "content": tool_results}]
             continue
 
         break
+
+    # The API's copy of this turn goes with its customer message, so the next turn sends it as sent here and its
+    # request extends this turn's last one: the cache holds across turns and the thinking blocks stay valid.
+    rounds = turn_api[1:] + ([{"role": "system", "content": final_context}] if final_context else [])
+    if rounds:
+        sess.conversation[turn_start]["api"] = rounds
 
     # The canonical question shown this turn opens the consent window for the
     # customer's next message (and only that one).

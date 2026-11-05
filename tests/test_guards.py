@@ -125,6 +125,11 @@ def _plain(x):
     return x
 
 
+def shown_history(sess):
+    """The stored conversation as the customer saw it (without each turn's API copy)."""
+    return [{"role": m["role"], "content": m["content"]} for m in sess.conversation]
+
+
 def assert_system_messages_placed(messages):
     """A mid-conversation system message follows a user message and is last or followed by an assistant turn."""
     for i, m in enumerate(messages):
@@ -136,11 +141,14 @@ def assert_system_messages_placed(messages):
             raise AssertionError(f"system message {i} is followed by {messages[i + 1]['role']}")
 
 
+THINKING_PREFIXES = {}  # signature -> (system, tools, messages) of the request that produced it; cleared per test
+
+
 class FakeClient:
     def __init__(self, responses):
         self.responses = list(responses)
         self.calls = []
-        self.thinking_prefix = {}  # signature -> (system, tools, messages) of the request that produced the block
+        self.thinking_prefix = THINKING_PREFIXES  # for the whole test: a new client per turn, one conversation
 
     @property
     def messages(self):
@@ -190,6 +198,7 @@ class BotTest(unittest.TestCase):
         self.sess = bot.Session()
         bot.use_session(self.sess)
         bot._BREAKER.update(until=0, reason=None)
+        THINKING_PREFIXES.clear()
 
     def turn(self, message, *responses):
         bot.client = FakeClient(responses)
@@ -440,6 +449,8 @@ class GateTests(BotTest):
         self.assertEqual(shown, "Hotovo.")
         self.assertEqual(sum(1 for e, d in events if e == "tool_call"), 2)
         self.assertNotIn("999", json.dumps(self.sess.conversation, default=str), "hidden text isn't stored either")
+        # Nor sent back: without a thinking block nothing requires the response whole (with one, see ModelCallTests).
+        self.assertNotIn("999", json.dumps(bot.client.calls[-1]["messages"], default=str))
 
     def test_sentence_is_removed_when_regenerations_run_out(self):
         bad = "Odporúčam Samsung AR30. Stojí 777 €. Chcete ponuku?"
@@ -1708,16 +1719,44 @@ class ModelCallTests(BotTest):
         self.assertEqual(_plain(b[:len(a)]), _plain(a), "a turn's requests are append-only")
         self.assertEqual(b[len(a)]["content"], [think, hidden, lookup], "the response goes back whole")
         self.assertEqual([m["role"] for m in b[len(a):]], ["assistant", "user", "system"])
-        stored = json.dumps(self.sess.conversation, default=str, ensure_ascii=False)
-        self.assertNotIn("sig-", stored, "the history keeps no thinking blocks")
-        self.assertNotIn("Pozriem sa", stored, "nor the text hidden next to a tool call")
-        self.assertNotIn("server_context", stored)
-        # The next turn starts from the stored history: no thinking blocks, one server context, at the end.
+        shown = json.dumps(shown_history(self.sess), default=str, ensure_ascii=False)
+        self.assertNotIn("sig-", shown, "the history keeps no thinking blocks")
+        self.assertNotIn("Pozriem sa", shown, "nor the text hidden next to a tool call")
+        self.assertNotIn("server_context", shown)
+        # The next turn sends this one as the API saw it: its request extends the turn's last one (the cache holds,
+        # FakeClient checks the thinking blocks), then the reply shown, then the new message and its context.
         self.turn("Ďakujem.", resp(text("Niet za čo. Ak budete chcieť ponuku, napíšte.")))
         sent = bot.client.calls[0]["messages"]
-        self.assertNotIn("sig-", json.dumps(sent, default=str))
-        self.assertEqual([m["role"] for m in sent].count("system"), 1)
-        self.assertEqual(sent[-1]["role"], "system")
+        self.assertEqual(_plain(sent[:len(b)]), _plain(b), "a new turn extends the previous turn's last request")
+        self.assertEqual([m["role"] for m in sent[len(b):]], ["assistant", "user", "system"])
+        self.assertEqual(sent[len(b)]["content"], [{"type": "text", "text": ANSWER}], "the reply as it was shown")
+
+    def test_an_api_copy_that_no_longer_lines_up_is_not_sent(self):  # e.g. a turn rolled back and written again
+        self.turn("Hľadám klímu do spálne 14 m².", resp(tool("lookup_product", model_code=AR30_SET[0])),
+                  resp(text(ANSWER)))
+        first_user = self.sess.conversation[0]
+        self.assertIn("api", first_user)
+        self.sess.conversation[2] = {"role": "user", "content": list(self.sess.conversation[2]["content"])}  # a copy
+        msgs = bot._messages_for_api(self.sess.conversation, "<server_context>\nx\n</server_context>",
+                                     [{"role": "user", "content": "Ďakujem."}])
+        self.assertEqual([m["role"] for m in msgs], ["user", "assistant", "user", "assistant", "user", "system"],
+                         "the stored form, without the earlier server contexts")
+        self.sess.conversation[2] = {"role": "user", "content": first_user["api"][2]["content"]}  # the same list again
+        msgs = bot._messages_for_api(self.sess.conversation, "<server_context>\nx\n</server_context>",
+                                     [{"role": "user", "content": "Ďakujem."}])
+        self.assertEqual([m["role"] for m in msgs],
+                         ["user", "system", "assistant", "user", "system", "assistant", "user", "system"])
+
+    def test_the_summary_drops_the_api_copies(self):  # their thinking blocks were written after the replaced head
+        history = []
+        for i in range(bot.HISTORY_MAX_USER_TURNS + 6):
+            history += [{"role": "user", "content": f"otázka {i}", "api": [{"role": "system", "content": "ctx"}]},
+                        {"role": "assistant", "content": [{"type": "text", "text": f"odpoveď {i}"}]}]
+        bot.client = FakeClient([resp(text("Zákazník chce klímu do spálne."))])
+        summarized = bot.maybe_summarize(history)
+        self.assertLess(len(summarized), len(history))
+        self.assertFalse(any("api" in m for m in summarized))
+        self.assertTrue(all("api" in m for m in history[::2]), "the old list isn't changed")
 
     def test_the_fake_api_refuses_an_edited_prefix(self):  # so the append-only checks above aren't vacuous
         fake = FakeClient([resp(NS(type="thinking", thinking="", signature="s"), tool("get_current_time"))])
@@ -1805,7 +1844,7 @@ class ViewAndCacheTests(BotTest):
         self.assertEqual(json.dumps(b, default=str).count("<server_context>"), 2,
                          "the first call's server context stays where it was sent")
         self.assertIn("spalna", b[-1]["content"], "the state goes in the server context")
-        stored = json.dumps(self.sess.conversation, default=str)
+        stored = json.dumps(shown_history(self.sess), default=str)
         self.assertNotIn("cache_control", stored)
         self.assertNotIn("server_context>\\n", stored)
 
