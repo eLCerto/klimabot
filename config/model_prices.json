@@ -2,7 +2,7 @@
   "_metadata": {
     "purpose": "USD per million tokens. bot.py prices every API call from this table (the per-turn and per-conversation budgets) and cost_report.py prices the logs from it.",
     "source": "https://platform.claude.com/docs/en/about-claude/pricing (checked 2026-10-30)",
-    "note": "bot.py uses 5-minute cache writes (cache_control ephemeral, no ttl). Haiku 5.5: prompts up to 100 000 tokens; longer ones cost 5x as much."
+    "note": "bot.py uses 5-minute cache writes (cache_control ephemeral, no ttl). Haiku 5.5: the rates are for prompts up to 100 000 tokens (input, cache reads and writes together); a longer prompt bills the whole call at 5x (long_context_over_tokens, long_context_factor)."
   },
   "claude-haiku-4-5-20251001": {
     "input": 1.00,
@@ -14,6 +14,8 @@
     "input": 0.10,
     "output": 0.50,
     "cache_write_5m": 0.125,
-    "cache_read": 0.01
+    "cache_read": 0.01,
+    "long_context_over_tokens": 100000,
+    "long_context_factor": 5
   }
 }

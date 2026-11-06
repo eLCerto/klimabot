@@ -10,7 +10,7 @@ so bot.py's loop, validator, quote() and guards run exactly as in production.
 Differences from the API (documented in the eval report):
 - prompted tool calling instead of native tool use;
 - tool schemas live in the system prompt, the server context (customer state,
-  regen notes; a mid-conversation system message on the API) in the prompt's
+  regen notes; the last block of the user message on the API) in the prompt's
   transcript (the system prompt stays identical across calls so the CLI can
   cache it);
 - the CLI adds ~800 tokens of its own context (environment, date);
@@ -81,9 +81,6 @@ def render_transcript(messages):
     out = []
     for msg in messages:
         content = msg["content"]
-        if msg["role"] == "system":  # bot.py's per-call <server_context>, a mid-conversation system message
-            out.append(content if isinstance(content, str) else "\n".join(_field(b, "text") for b in content))
-            continue
         if msg["role"] == "user":
             if isinstance(content, str):
                 out.append(f"<customer>\n{content}\n</customer>")
@@ -91,8 +88,9 @@ def render_transcript(messages):
             results, texts = [], []
             for block in content:
                 btype = _field(block, "type")
-                if btype == "text":  # the customer's message
-                    texts.append(f"<customer>\n{_field(block, 'text')}\n</customer>")
+                if btype == "text":  # the customer's message, or bot.py's per-call <server_context> block
+                    text = _field(block, "text")
+                    texts.append(text if text.startswith("<server_context>") else f"<customer>\n{text}\n</customer>")
                 if btype != "tool_result":
                     continue
                 tid = _field(block, "tool_use_id")
