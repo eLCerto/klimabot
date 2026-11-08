@@ -4744,6 +4744,46 @@ class LeftoverTests(BotTest):
         self.assertEqual((move.name, move.prerun, move.tool_choice), ("nova-ponuka", (), "any"))
 
 
+class MixedAddressTests(BotTest):
+    def test_stray_vykanie_in_a_tykanie_reply_is_fixed_by_code(self):  # oslovenie-mix, API run of 9657449
+        self.sess.user_inputs[:] = ["ahoj, chcem klimu do spalne 18 m2"]
+        self.assertEqual(bot._fix_mixed_address("Môžeš si vybrať. Pomôžem vám s výberom a vaša spálňa bude chladná."),
+                         "Môžeš si vybrať. Pomôžem ti s výberom a tvoja spálňa bude chladná.")
+        consent = "Ak mi necháš meno, odpoviem ti.\n\nSúhlasíte so spracovaním osobných údajov za účelom prípravy cenovej ponuky?"
+        self.assertEqual(bot._fix_mixed_address(consent), consent)
+        self.assertEqual(bot._fix_mixed_address("Chcete ponuku? Máte radšej Samsung?"), "Chcete ponuku? Máte radšej Samsung?")
+        self.assertFalse(any(v.startswith("oslovenie-mix") for v in bot.validate_assistant_reply(
+            bot.sanitize_reply("Ak chceš, ukážem ti obe. Ktorá vám viac vyhovuje?", "sk")[0])))
+        self.sess.user_inputs[:] = ["Dobrý deň, chcem klímu."]
+        self.assertEqual(bot._fix_mixed_address("Môžeš si vybrať. Pomôžem vám."), "Môžeš si vybrať. Pomôžem vám.")
+
+
+class EarlyYesAndQuotedPhraseTests(BotTest):  # API run of 9657449: slub-bez-suhlasu and interne-info
+    def test_a_yes_before_the_question_is_flagged_to_the_model(self):
+        self.sess.user_inputs[:] = ["Klimatizácia, ktorú ste mi namontovali, nechladí. Chcem reklamáciu.",
+                                    "Eva Malá, 0905 123 456, Nitra. Súhlasím so spracovaním osobných údajov."]
+        self.assertIn("SÚHLAS ZATIAĽ NIE JE", bot.build_server_context())
+        self.sess.consent = {"purpose": "complaint", "ts": "", "evidence": "Áno, súhlasím"}
+        self.assertNotIn("SÚHLAS ZATIAĽ NIE JE", bot.build_server_context())
+
+    def test_a_proper_yes_gets_no_note(self):
+        self.turn("Chcem klímu do obývačky 28 m², pošlite ponuku.", resp(text("Pošlite mi prosím meno, telefón a obec.")))
+        events, _ = self.turn("áno, súhlasím", resp(text("Ďakujem.")))
+        self.assertIsNotNone(self.sess.consent)
+        self.assertNotIn("SÚHLAS ZATIAĽ NIE JE", json.dumps(bot.client.calls[-1]["messages"], ensure_ascii=False, default=str))
+
+    def test_a_complaint_callback_question_gets_the_condition(self):
+        self.sess.user_inputs[:] = ["Chcem to reklamovať, montovali ste mi ju vlani. Môže sa mi niekto ozvať?"]
+        move = bot.next_move()
+        self.assertEqual(move.name, "reklamacia")
+        self.assertIn("odpovedz iba touto podmienkou", move.directive)
+
+    def test_a_phrase_the_customer_quoted_is_no_leak(self):
+        self.sess.user_inputs[:] = ["A čo znamená 'čo viem spoľahlivo'?"]
+        self.assertEqual(bot._internal_leak_sentences("Výraz „čo viem spoľahlivo“ znamenal iba ceny z cenníka."), [])
+        self.assertTrue(bot._internal_leak_sentences("Cena z `quote` s DPH je uvedená vyššie."))
+
+
 class RetrievalTests(BotTest):
     """tests/retrieval_golden.json through the real hybrid search and reranker (without HyDE, which needs the API).
     On 2026-10-27: hit@k 36/36, MRR 0.844; 7 of 8 out-of-KB questions and 1 labelled question below

@@ -4757,6 +4757,8 @@ _TYKANIE_WORDS = {
     "uvidíte": "uvidíš", "budete": "budeš", "viete": "vieš", "potrebujete": "potrebuješ", "vyberiete": "vyberieš",
     "napíšte": "napíš", "pošlite": "pošli", "uveďte": "uveď", "dajte": "daj", "nechajte": "nechaj", "potvrďte": "potvrď",
     "odsúhlaste": "odsúhlas", "zavolajte": "zavolaj", "pozrite": "pozri",
+    "vaši": "tvoji", "vaších": "tvojich", "musíte": "musíš", "povedzte": "povedz", "ozvete": "ozveš", "ozvite": "ozvi",
+    "prajete": "praješ",
 }
 _TYKANIE_SWAP_RE = re.compile(r"\b(" + "|".join(sorted(map(re.escape, [*_TYKANIE_PHRASES, *_TYKANIE_WORDS]), key=len, reverse=True))
                               + r")\b", re.IGNORECASE)
@@ -4769,6 +4771,33 @@ def _as_tykanie(text):
         new = _TYKANIE_PHRASES.get(word.lower()) or _TYKANIE_WORDS[word.lower()]
         return new[0].upper() + new[1:] if word[0].isupper() else new
     return re.sub(r"„[^“]*“", lambda q: _TYKANIE_SWAP_RE.sub(swap, q.group(0)), text)
+
+
+def _fix_mixed_address(text):
+    """A customer who tyká, a reply mostly in tykanie with a stray "vám", "vás", "vaša" or "chcete": code turns those into
+    tykanie instead of a regeneration. In the API run of 9657449 (2026-11-08) oslovenie-mix was the top rewrite, 10 of
+    56, and the stray forms were the model's own. A reply wholly in vykanie (no mix) and the consent question — vykanie
+    by convention — are left alone."""
+    if not _customer_tyka():
+        return text
+    lines = []
+    for line in text.split("\n"):
+        parts = [x if "súhlasíte so spracovaním" in x.lower() else None for x in _SENTENCE_SPLIT_RE.split(line)]
+        lines.append((line, parts))
+    plain = " ".join(x for line, parts in lines for x, keep in zip(_SENTENCE_SPLIT_RE.split(line), parts) if keep is None)
+    if not (_TYKANIE_RE.search(plain) and _VYKANIE_RE.search(plain)):  # a mix only; the customer tyká, so tykanie wins
+        return text
+
+    def swap(m):
+        word = m.group(0)
+        new = _TYKANIE_PHRASES.get(word.lower()) or _TYKANIE_WORDS[word.lower()]
+        return new[0].upper() + new[1:] if word[0].isupper() else new
+    out = []
+    for line, parts in lines:
+        sentences = _SENTENCE_SPLIT_RE.split(line)
+        fixed = [x if keep is not None else _TYKANIE_SWAP_RE.sub(swap, x) for x, keep in zip(sentences, parts)]
+        out.append(line if fixed == sentences else " ".join(fixed))
+    return "\n".join(out)
 
 
 def _customer_tyka():
@@ -5077,6 +5106,7 @@ def sanitize_reply(text, language="sk"):
         text = re.sub(r"\b[Mm]estnos[ťt]\b", lambda m: "Obec" if m.group(0)[0] == "M" else "obec", text)
         text = _fix_diacritics(text)  # "nastenná" → "nástenná" (live check 2026-10-27)
         text = _fix_self_gender(text)
+        text = _fix_mixed_address(text)  # a stray "vám" in a tykanie reply (oslovenie-mix)
 
     # Cyrillic letters inside Latin words ("електрické", "главне"): transliterate.
     text = text.translate(_CYRILLIC_TO_LATIN)
@@ -7186,7 +7216,12 @@ def _sentences(text):
 
 
 def _internal_leak_sentences(text):
-    return [s for s in _sentences(text) if _INTERNAL_LEAK_RE.search(s)]
+    """Sentences showing internal instructions or tools. A phrase the customer quoted in the latest message ("čo znamená
+    'čo viem spoľahlivo'?", "what does 'the tool did not accept' mean?") is the answer's subject, not a leak: 5 of the 8
+    interne-info rewrites in the API run of 9657449 (2026-11-08)."""
+    latest = (S().user_inputs[-1] if S().user_inputs else "").casefold()
+    return [s for s in _sentences(text)
+            if any(m.group(0).strip().casefold() not in latest for m in _INTERNAL_LEAK_RE.finditer(s))]
 
 
 # Stock claims come from quote's `availability` (stock_policy.json). The live demo of 2026-10-20 called
@@ -7413,7 +7448,7 @@ def _sentence_is_hard(sentence, trusted, bad_values=()):
             return True
     return bool(_approx_amount(sentence) or _hallucinated_model_codes(sentence)
                 or _PERMIT_TOPIC_RE.search(sentence) or _placement_question_sentences(sentence)
-                or _budget_claim_unsupported(sentence) or _INTERNAL_LEAK_RE.search(sentence)
+                or _budget_claim_unsupported(sentence) or _internal_leak_sentences(sentence)
                 or _premature_promise_sentences(sentence) or _DATE_PROMISE_RE.search(sentence)
                 or _not_in_catalog_claims(sentence) or _unsupported_figures(sentence)
                 or _HUMAN_CLAIM_RE.search(sentence)
@@ -8805,6 +8840,8 @@ _CALLBACK_ASK_RE = re.compile(
     r"\b(?:zavola|ozve|kontaktuje)\s+(?:sa\s+)?(?:mi|ma|nas|nam)\s+(?:\w+\s+)?niekto\b|"
     r"\bkto\s+(?:sa\s+)?(?:mi|ma|nas|nam)\s+(?:zavola|ozve|kontaktuje|bude\s+(?:volat|kontaktovat))|"
     r"\bniekto\s+(?:sa\s+)?(?:mi|ma|nas|nam)\s+(?:zavola|ozve|bude\s+volat)|\bco\s+(?:mam|mame)\s+(?:teraz\s+)?robit\b|"
+    # "Môže sa mi niekto ozvať?" (a complaint in the API run of 9657449)
+    r"\b(?:moze|mohol|mohla|bude)\s+(?:sa\s+)?(?:mi|nam|ma|nas)\s+(?:\w+\s+)?(?:niekto\s+)?(?:ozvat|zavolat|volat)\b|"
     r"\bwill\s+(?:someone|anyone|somebody)\s+(?:call|contact)|\bwho\s+will\s+(?:call|contact)", re.IGNORECASE)
 
 
@@ -9081,6 +9118,10 @@ def next_move():
                      "Ďalší krok iba ako podmienku („Ak mi necháte údaje a odsúhlasíte otázku nižšie, odovzdám reklamáciu "
                      "nášmu tímu a ten sa vám ozve.“). Nič nesľubuj (záruku, termín, opravu), nevymýšľaj postup a novú "
                      "klimatizáciu neponúkaj." + no_address)
+        # "Môže sa mi niekto ozvať?" got "Áno, reklamáciu odovzdáme nášmu tímu a ten sa vám ozve." (API run of 9657449)
+        if _CALLBACK_ASK_RE.search(fold_diacritics(latest)):
+            directive += (" Zákazník sa pýta, či sa mu niekto ozve: odpovedz iba touto podmienkou: „Keď mi necháte údaje a "
+                          "odsúhlasíte otázku nižšie, odovzdám reklamáciu nášmu tímu a ten sa vám ozve.“")
         if sess.consent_ask_index is not None and not sess.consent_refused:
             # q06 got the whole five-point list in every reply (the complaint handover's first run, 2026-11-01).
             # "Keďže ide o reklamáciu, odovzdám ju nášmu tímu. Ten sa vám ozve…" was this move's top rewrite (A/B of
@@ -9157,6 +9198,19 @@ def _with_budget_requote(move, latest):
                          prerun=calls)
 
 
+def _early_yes_note():
+    """A "súhlasím" typed before the consent question, or without it: it doesn't count, and the model took it for consent —
+    "údaje som si zapísal", "údaje mám zapísané" were 4 of the 9 slub-bez-suhlasu rewrites, all on complaints (API run of
+    9657449, 2026-11-08)."""
+    sess = S()
+    latest = sess.user_inputs[-1] if sess.user_inputs else ""
+    if sess.consent is not None or sess.consent_refused or not _CONSENT_YES_RE.search(_CONSENT_YES_NOT_CONSENT_RE.sub(" ", latest)):
+        return ""
+    return ("SÚHLAS ZATIAĽ NIE JE: zákazník napísal súhlas, no nie ako odpoveď na otázku na súhlas, a ten sa nepočíta. Nepíš, "
+            "že máš jeho údaje, že sú zapísané, zaznamenané či odovzdané, ani že sa mu niekto ozve; otázku pripojí server a "
+            "počíta sa až jeho výslovné áno na ňu.")
+
+
 def _turn_prerun():
     """The results of the tools code ran for this turn's offer, as the server context shows them, or ""."""
     sess = S()
@@ -9227,6 +9281,9 @@ def build_server_context(note=None):
     prerun = _turn_prerun()
     if prerun:
         parts.append(prerun)
+    early_yes = _early_yes_note()
+    if early_yes:
+        parts.append(early_yes)
     changes = _changes_note()
     if changes:
         parts.append(changes)
