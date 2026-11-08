@@ -4811,6 +4811,10 @@ class NoiseAndComparisonTests(BotTest):
         seiya = bot._code_specs("RAS-B10B2KVG-E2")  # Toshiba "19/--/42": low/mid/high
         self.assertEqual((seiya["indoor_noise_min_dB"], seiya["indoor_noise_max_dB"]), ("19", "42"))
         self.assertNotIn("indoor_noise_max_dB", bot._code_specs("AR70H07CAABNEU"), "no figure the sources don't give")
+        cassette = bot._code_specs("AJ035TNNDKG/EU")  # "35/31/27" high/mid/low, Samsung's product page
+        self.assertEqual((cassette["indoor_noise_min_dB"], cassette["indoor_noise_max_dB"]), ("27", "35"))
+        one_way = bot._code_specs("AJ026TN1DKG/EU")
+        self.assertEqual((one_way["indoor_noise_min_dB"], one_way["indoor_noise_max_dB"]), ("26", "32"))
 
     def test_the_comparison_is_a_sentence_with_both_offers(self):
         self.sess.user_inputs[:] = ["Spálňa 14 m2."]

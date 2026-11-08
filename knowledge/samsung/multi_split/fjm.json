@@ -28,7 +28,7 @@
       "AJ052_BNM": "MSP Duct (multi-only)",
       "AJ026/035/052_TNJ": "Console parapetná (multi-only)"
     },
-    "noise_note": "noise_indoor_high_low_dBA (vnútorná jednotka, vysoké/nízke otáčky, dB(A)) pri 2,0 kW nástenných jednotkách doplnená z produktových stránok Samsung (samsung-climatesolutions.com, noise_source pri jednotke), stav 2026-11-08; cenník ju neuvádza. AR70H07CAABNEU (čierna) tam uvedená nie je."
+    "noise_note": "noise_indoor_high_low_dBA (vnútorná jednotka, vysoké/nízke otáčky, dB(A)) pri 2,0 kW nástenných jednotkách a noise_indoor_high_mid_low_dBA (vysoké/stredné/nízke otáčky, dB(A)) pri kazetách doplnené z produktových stránok Samsung (samsung-climatesolutions.com, noise_source pri jednotke), stav 2026-11-08; cenník ich neuvádza. AR70H07CAABNEU (čierna) tam uvedená nie je."
   },
   "outdoor_units": {
     "description": "FJM vonkajšie jednotky pre Multi-Split. Cena pre samostatnú vonkajšiu jednotku.",
@@ -711,7 +711,9 @@
           "weight_kg": 11.5,
           "liquid_mm": 6.35,
           "gas_mm": 9.52,
-          "price_EUR": 628
+          "price_EUR": 628,
+          "noise_indoor_high_mid_low_dBA": "33/29/24",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-4-way-cassette-600.html"
         },
         {
           "size": "020",
@@ -722,7 +724,9 @@
           "weight_kg": 11.5,
           "liquid_mm": 6.35,
           "gas_mm": 9.52,
-          "price_EUR": 656
+          "price_EUR": 656,
+          "noise_indoor_high_mid_low_dBA": "33/29/24",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-4-way-cassette-600.aj020tnndkgeu.html"
         },
         {
           "size": "026",
@@ -733,7 +737,9 @@
           "weight_kg": 11.5,
           "liquid_mm": 6.35,
           "gas_mm": 9.52,
-          "price_EUR": 723
+          "price_EUR": 723,
+          "noise_indoor_high_mid_low_dBA": "33/29/24",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-4-way-cassette-600.aj026tnndkgeu.html"
         },
         {
           "size": "035",
@@ -744,7 +750,9 @@
           "weight_kg": 11.5,
           "liquid_mm": 6.35,
           "gas_mm": 9.52,
-          "price_EUR": 824
+          "price_EUR": 824,
+          "noise_indoor_high_mid_low_dBA": "35/31/27",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-4-way-cassette-600.aj035tnndkgeu.html"
         },
         {
           "size": "052",
@@ -755,7 +763,9 @@
           "weight_kg": 11.8,
           "liquid_mm": 6.35,
           "gas_mm": 12.7,
-          "price_EUR": 961
+          "price_EUR": 961,
+          "noise_indoor_high_mid_low_dBA": "39/36/32",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-4-way-cassette-600.aj052tnndkgeu.html"
         }
       ],
       "compatible_accessories": [
@@ -789,7 +799,9 @@
           "weight_kg": 9.5,
           "liquid_mm": 6.35,
           "gas_mm": 9.52,
-          "price_EUR": 656
+          "price_EUR": 656,
+          "noise_indoor_high_mid_low_dBA": "32/29/26",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-1-way-cassette.html"
         },
         {
           "size": "035",
@@ -800,7 +812,9 @@
           "weight_kg": 9.5,
           "liquid_mm": 6.35,
           "gas_mm": 9.52,
-          "price_EUR": 801
+          "price_EUR": 801,
+          "noise_indoor_high_mid_low_dBA": "37/35/30",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-1-way-cassette.aj035tn1dkgeu.html"
         }
       ]
     }

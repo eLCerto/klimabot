@@ -2653,6 +2653,11 @@ def _code_specs(code):
         if len(high_low) == 2 and all(x.isdigit() for x in high_low):
             out.setdefault("indoor_noise_max_dB", high_low[0])
             out.setdefault("indoor_noise_min_dB", high_low[1])
+        # Samsung's multi-split cassettes: "33/29/24" (high/mid/low), from the same product pages.
+        high_mid_low = [x.strip() for x in str(rec["raw"].get("noise_indoor_high_mid_low_dBA", "")).split("/")]
+        if len(high_mid_low) == 3 and all(x.isdigit() for x in high_mid_low):
+            out.setdefault("indoor_noise_max_dB", high_mid_low[0])
+            out.setdefault("indoor_noise_min_dB", high_mid_low[-1])
         # Toshiba's outdoor units sit in the acoustics tables ("--/--/44"): q08 was told 41 dB, the indoor unit's high
         # speed, and SEIYA called quiet outside with no figure (QA 2026-11-01).
         for field in ("sound_pressure_cool", "sound_pressure_cool_dB"):
