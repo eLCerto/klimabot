@@ -7093,6 +7093,8 @@ _PROMISE_RE = re.compile(
     # "Váš prípad bol už odovzdaný", "je už zaznamenaný", "som ju odovzdal": nothing goes anywhere (QA 2026-11-01)
     r"(?:bol|bola|bolo|je|su)\s+(?:uz\s+)?(?:odovzdan|zaznamenan|zapisan|postupen|preposlan|evidovan)\w*|"
     r"(?:som|sme)\s+(?:\w+\s+){0,2}(?:odovzdal|postupil|preposlal)\w*|(?:odovzdal|postupil|preposlal)\w*\s+(?:sme|nasmu\s+timu)|"
+    # "Ďakujem, pani …, údaje sme zaznamenali." passed (A/B of 2026-11-07)
+    r"(?:som|sme)\s+(?:\w+\s+){0,2}(?:zaznamenal|zapisal|ulozil)\w*|"
     r"has\s+been\s+(?:passed|forwarded|recorded|logged)|i(?:'ve|\s+have)\s+(?:forwarded|logged)|"
     r"recorded\s+your|saved\s+your)\b",
     re.IGNORECASE)
@@ -7101,12 +7103,17 @@ _PROMISE_RE = re.compile(
 # sa" is still a promise (d02).
 _CONDITION_NAMES_CONTACT_RE = re.compile(
     r"telef|čísl|cisl|kontakt|\bmen[oa]\b|e-?mail|súhlas|suhlas|údaj|udaj|phone|number|contact|consent|details|"
-    r"\bname\b", re.IGNORECASE)
+    r"\bname\b|"
+    # confirming the consent question is the condition the directives ask for: "Akonáhle ho potvrdíte, odovzdám…",
+    # "Ak mi potvrdíte otázku nižšie…", "Once you confirm, the project manager…" (A/B of 2026-11-07); "keď potvrdíte
+    # výber" names a choice, not the consent, and stays a promise (d02)
+    r"\b(?:ho|ju|jej|jeho)\s+(?:potvrd|odsúhlas|odsuhlas)\w*|\b(?:potvrd|odsúhlas|odsuhlas)\w*\s+(?:mi\s+)?(?:otázk|otazk)\w*|"
+    r"\b(?:confirm|agree)\b(?=\s*(?:[,.;:]|$|below\b|(?:to\s+)?(?:it|this|the\s+question)\b))", re.IGNORECASE)
 _OFFER_QUESTION_RE = re.compile(
     r"^\W*(?:chcete|chceš|chces|môžem|mozem|mám\s+vám|želáte|zelate|prajete|would\s+you|shall\s+i|"
     r"do\s+you\s+want|should\s+i)\b", re.IGNORECASE)
 _CONDITIONAL_RE = re.compile(
-    r"\b(?:keď|ak|až|akonáhle|hneď\s+ako|po\s+(?:vašom\s+|tvojom\s+)?(?:súhlase|potvrdení)|once|if|after|"
+    r"\b(?:keď|ak|až|akonáhle|hneď\s+ako|po\s+(?:vašom\s+|tvojom\s+|jej\s+|jeho\s+)?(?:súhlase|potvrdení|odsúhlasení)|once|if|after|"
     r"as\s+soon\s+as|when)\b",
     re.IGNORECASE)
 
@@ -7252,7 +7259,7 @@ def _premature_promise_sentences(text):
         return []
     out = []
     for x in _sentences(text):
-        if not _PROMISE_RE.search(fold_diacritics(x)):
+        if not _PROMISE_RE.search(_PROMISE_EXEMPT_RE.sub(" ", fold_diacritics(x))):
             continue
         if _CONDITIONAL_RE.search(x) and _CONDITION_NAMES_CONTACT_RE.search(x):
             continue
@@ -7268,6 +7275,16 @@ def _premature_promise_sentences(text):
     return out
 
 
+# What promises nothing although _PROMISE_RE matches it (folded text, blanked before matching): a purpose clause ("Aby
+# sme žiadosť odovzdali správne, potvrďte…", "Ak chcete, aby sme to odovzdali nášmu tímu, potrebujem…"), a denial ("Nič
+# vám nesľubujem ani nepotvrdzujem, že reklamáciu odovzdávam") and what the PM confirms at the free site visit, the
+# bot's way to put a question off ("Potvrdí vám to projektový manažér pri bezplatnej obhliadke"). A/B of 2026-11-07:
+# about half the slub-bez-suhlasu rewrites were conditions or such sentences.
+_PROMISE_EXEMPT_RE = re.compile(
+    r"\baby\s+(?:sme|som)\s+(?:\w+\s+){0,3}?(?:odovzdal|postupil|preposlal|zaznamenal|zapisal|ulozil)\w*|"
+    r"\bne(?:slubuj|potvrdzuj|tvrd)\w*\b[^.?!]{0,40}?\bze\b[^.?!]*|"
+    r"\bpotvrdi\s+(?:vam|ti)\b(?=[^.?!]*\bpri\s+(?:\w+\s+)?obhliadk)|"
+    r"\bpri\s+(?:\w+\s+)?obhliadk\w*[^.?!]*?\bpotvrdi\s+(?:vam|ti)\b", re.IGNORECASE)
 _RECORDED_CLAIM_RE = re.compile(
     r"zaznamen|ulozil|ulozen|zapisal|zapisan|zapisujem|ukladam|odovzdal|"
     r"(?:mam|mame)\s+(?:uz\s+)?(?:vase|tvoje)\s+(?:udaje|kontakt|telef|cisl|meno)", re.IGNORECASE)
@@ -8250,7 +8267,10 @@ _ONE_ROOM_RE = re.compile(
     r"\b(?:jedn\w*|one)\s+(?:izb|miestnost|spaln|obyvac|room|bedroom)\w*|\bnecham\s+tak\b", re.IGNORECASE)
 _COLOUR_WISH_RE = re.compile(r"\bciern\w*|\bblack\b|\bdrev\w*|\bwood\w*|\bfarb\w*|dizajn|design", re.IGNORECASE)
 _QUIET_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|\bquiet\w*|\bsilent\b", re.IGNORECASE)
-_TASTE_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|dizajn|design|\bfarb\w*|\bciern\w*|\bdrev\w*|textil|\bkrajs\w*", re.IGNORECASE)
+# Looks, which code doesn't pick for. A quiet wish gets the cheapest set per brand with its dB (the owner, 2026-11-08):
+# "tichá" left the pick to the model in 6 of the 22 offer turns code didn't price, 33 s against 15 s at the median (A/B
+# of 2026-11-07).
+_TASTE_WISH_RE = re.compile(r"dizajn|design|\bfarb\w*|\bciern\w*|\bdrev\w*|textil|\bkrajs\w*", re.IGNORECASE)
 # Design before price: "Skôr dizajn… nech to nestojí majland" is a ceiling, not a wish for the cheapest (live 2026-11-02, d02).
 _DESIGN_WISH_RE = re.compile(r"dizajn|design|\bvzhlad\w*|\bkrajs\w*", re.IGNORECASE)
 _DESIGN_FIRST_RE = re.compile(r"\b(?:skor|hlavne|najma|radsej|ide\s+(?:mi|nam)\s+(?:\w+\s+)?o)\s+(?:o\s+|na\s+)?(?:dizajn|design|vzhlad)\w*|"
@@ -8271,9 +8291,10 @@ def _suggested_sets():
     taste = _wished(_TASTE_WISH_RE) and (not _wished(_CHEAP_WISH_RE) or _wished(_DESIGN_FIRST_RE))
     place_text = _place_text()
     # A salon or a practice: quote refuses residential sets, so picking them contradicted the note beside them and the
-    # first offer had no price (live 2026-11-02, d07).
+    # first offer had no price (live 2026-11-02, d07). A server room too: code quoted two residential sets, quote refused
+    # both, and d04 lost 4–7 calls recovering, once hitting the conversation cap (API A/B of 2026-11-08).
     if (sess.quotes or _industrial_case() or _support_case() or _wished(_OWN_INSTALL_RE)
-            or any(rx.search(place_text) for rx in _EXPLICIT_COMMERCIAL_RES.values())
+            or any(rx.search(place_text) for rx in _EXPLICIT_COMMERCIAL_RES.values()) or _SERVER_ROOM_RE.search(place_text)
             or _SERIES_NAMED_RE.search(text) or _MULTI_TEXT_RE.search(text) or taste or _wished(_INDOOR_TYPE_WISH_RE)
             or (not one_room and (_ROOMS_COUNT_RE.search(folded) or _FLAT_ROOMS_RE.search(folded)))):
         return None
@@ -8358,7 +8379,8 @@ def _suggested_multis():
     text = _all_user_text()
     rooms = _room_sizes()
     place_text = _place_text()
-    commercial = _INFERRED_COMMERCIAL_RE.search(place_text) or any(rx.search(place_text) for rx in _EXPLICIT_COMMERCIAL_RES.values())
+    commercial = (_INFERRED_COMMERCIAL_RE.search(place_text) or _SERVER_ROOM_RE.search(place_text)
+                  or any(rx.search(place_text) for rx in _EXPLICIT_COMMERCIAL_RES.values()))
     if (not 2 <= len(rooms) <= 5 or commercial or _SERIES_NAMED_RE.search(text) or _wished(_INDOOR_TYPE_WISH_RE)
             or (_wished(_TASTE_WISH_RE) and not _wished(_CHEAP_WISH_RE))):
         return []
@@ -8476,6 +8498,13 @@ _NEW_VARIANT_RE = re.compile(
     # "čo najlacnejšie" after an offer asks for the cheapest variant (direction metrics of 2026-10-28: answered and
     # asked for the contact instead); "tá / tú najlacnejšiu" only points at an offer shown
     r"(?<!\bta )(?<!\btu )(?<!\bten )(?<!\btej )(?<!\btou )\bnajlacnej\w*", re.IGNORECASE)
+# A comparison of the offers already quoted (folded): "Ktorá varianta vyjde celkovo lacnejšie a o koľko?", "o kolko je ta
+# drahsia ako ta lacnejsia?". "koľko" sent them to nova-ponuka, whose gate then demanded a new quote while the reply
+# rightly showed the earlier ones (A/B of 2026-11-07: 5 and 10 cena-neodpovedana rewrites).
+_QUOTED_COMPARE_RE = re.compile(
+    r"\bo\s+kolko\b|\bktor\w*\s+(?:\w+\s+){0,2}(?:vyjde|je|bude|stoji)\s+(?:\w+\s+){0,2}(?:lacnejs|drahs)\w*|"
+    r"\b(?:ta|ten|to|tu)\s+drahs\w*|\b(?:cenov\w*\s+)?rozdiel\s+(?:v\s+)?cen\w*|\bcenov\w*\s+rozdiel\w*|"
+    r"\bhow\s+much\s+(?:more|less|cheaper)|\bwhich\s+(?:one\s+)?is\s+(?:cheaper|more\s+expensive)", re.IGNORECASE)
 # A question about a product shown, not a new variant (folded): "Koľko dB má AR35?", "Aká je záruka?", "Čo je WindFree?".
 _SPEC_QUESTION_RE = re.compile(r"\bco\s+(?:to\s+)?je\b|\bako\s+funguj\w*|\brozdiel\w*|\bdb\b|\bdecibel\w*|\bhluk\w*|\bhlucn\w*|\bseer\b|\bscop\b|"
                                r"\btried\w*|\bzaruk\w*|(?:^|[.?!]\s*)ma\s|\bvie\b|\bpodporuj\w*", re.IGNORECASE)
@@ -8632,12 +8661,29 @@ _HUMAN_WISH_RE = re.compile(r"\b(?:hovorit|rozpravat|spojte|prepojte|chcem|dajte
                             r"\b(?:real|live)\s+(?:person|human|agent)\b|\bspeak\s+to\s+(?:a\s+)?(?:human|person)\b", re.IGNORECASE)
 
 
+# "Zavolá mi niekto?", "kto nás bude kontaktovať?", "Čo mám teraz robiť?" (folded): answered "Zavolá vám projektový
+# manažér." before consent and rewritten (A/B of 2026-11-07, the kontakt move).
+_CALLBACK_ASK_RE = re.compile(
+    r"\b(?:zavola|ozve|kontaktuje)\s+(?:sa\s+)?(?:mi|ma|nas|nam)\s+(?:\w+\s+)?niekto\b|"
+    r"\bkto\s+(?:sa\s+)?(?:mi|ma|nas|nam)\s+(?:zavola|ozve|kontaktuje|bude\s+(?:volat|kontaktovat))|"
+    r"\bniekto\s+(?:sa\s+)?(?:mi|ma|nas|nam)\s+(?:zavola|ozve|bude\s+volat)|\bco\s+(?:mam|mame)\s+(?:teraz\s+)?robit\b|"
+    r"\bwill\s+(?:someone|anyone|somebody)\s+(?:call|contact)|\bwho\s+will\s+(?:call|contact)", re.IGNORECASE)
+
+
 def _human_note(latest):
-    """ "Chcem hovoriť s človekom" twice got an e-mail address and nothing more (QA 2026-11-02, d07)."""
-    if not _HUMAN_WISH_RE.search(fold_diacritics(latest)):
-        return ""
-    return (" Zákazník chce hovoriť s človekom: povedz, že to zariadi projektový manažér, a napíš to ako podmienku: „Ak mi "
-            f"necháte meno a telefón či e-mail a odsúhlasíte otázku nižšie, projektový manažér sa vám ozve.“ Alebo {_contact_offer()}.")
+    """ "Chcem hovoriť s človekom" twice got an e-mail address and nothing more (QA 2026-11-02, d07). Before consent, a
+    question whether someone will call gets the conditional sentence to answer it with."""
+    folded = fold_diacritics(latest)
+    if _HUMAN_WISH_RE.search(folded):
+        return (" Zákazník chce hovoriť s človekom: povedz, že to zariadi projektový manažér, a napíš to ako podmienku: „Ak mi "
+                f"necháte meno a telefón či e-mail a odsúhlasíte otázku nižšie, projektový manažér sa vám ozve.“ Alebo {_contact_offer()}.")
+    if S().consent is None and _CALLBACK_ASK_RE.search(folded):
+        state = S().customer_state
+        known = _contact_in(latest) or state.get("lead_phone") or state.get("lead_email")
+        condition = "Keď odsúhlasíte otázku nižšie" if known else "Ak mi necháte meno a telefón či e-mail a odsúhlasíte otázku nižšie"
+        return (" Zákazník sa pýta, či sa mu niekto ozve: súhlas ešte nie je zaznamenaný, preto odpovedz iba podmienkou v "
+                f"jednej vete: „{condition}, projektový manažér sa vám ozve a dohodne bezplatnú obhliadku.“")
+    return ""
 
 
 def _with_questions(move, latest):
@@ -8703,6 +8749,18 @@ def _sales_move(latest):
         # "predsa chcem ionizátor" / "prečo si mi neponúkol klímu s ionizátorom?" after sets without one (live 2026-11-03)
         latest_wanted = _wished_features(latest)
         missing = latest_wanted and not any(_quote_has_features(q, latest_wanted) for q in sess.quotes)
+        new_spec = bool(_codes_named(latest) or _SERIES_NAMED_RE.search(latest) or _CUSTOMER_M2_RE.search(latest)
+                        or _CUSTOMER_KW_RE.search(latest))
+        # Two offers compared, nothing new asked for once the comparison is blanked ("…a máte niečo ešte lacnejšie?" is).
+        if (len(sess.quotes) >= 2 and not missing and not new_spec and _QUOTED_COMPARE_RE.search(folded_latest)
+                and not _NEW_VARIANT_RE.search(_QUOTED_COMPARE_RE.sub(" ", folded_latest))):
+            budget = (" Zákazník uviedol rozpočet: či sa doň možnosť zmestí, povedz iba podľa `budget.status` z jej "
+                      "`quote`; ak ho výsledok nemá, zavolaj pre ňu `quote` s tými istými kódmi znova."
+                      if _customer_budget() else "")
+            return Move("odpoved", "Zákazník porovnáva ponuky, ktoré už dostal: nový variant nenaceňuj. Sumy s DPH a "
+                        "rozdiel ber z výsledkov `quote` tohto rozhovoru (`comparison_with_earlier_quotes`), ktorá je "
+                        "lacnejšia, povedz podľa nich. Potom jednou vetou nadviaž na nacenené možnosti." + budget
+                        + _NO_CONTACT_YET, None)
         if missing or (_NEW_VARIANT_RE.search(folded_latest)
                 or (not spec_question and (_codes_named(latest) or _SERIES_NAMED_RE.search(latest)
                                            or _CUSTOMER_M2_RE.search(latest) or _CUSTOMER_KW_RE.search(latest)))):
@@ -8779,6 +8837,9 @@ def _sales_move(latest):
                       "'<značka> multi-split <výkon jednej jednotky v kW>') a ako druhú možnosť multi-split druhej "
                       "značky alebo samostatné sety.")
         prerun += [("quote", {"items": o["items"]}) for o in multis]
+        if multis and _wished(_QUIET_WISH_RE):  # each unit's dB beside the price (the owner, 2026-11-08)
+            prerun += [("lookup_product", {"model_code": c})
+                       for c in dict.fromkeys(i["code"] for o in multis for i in o["items"])]
     picks = _suggested_sets()
     if picks:
         directive += _picks_text(picks, priced=True)
@@ -8786,7 +8847,8 @@ def _sales_move(latest):
     elif not many_rooms:
         directive += _feature_sets_text(_offer_min_kw(max(_customer_m2())) if _customer_m2() else 0)
     if _wished(_QUIET_WISH_RE):  # the customer's first wish, and the offer of 2026-11-02 gave no figure
-        directive += " Zákazník chce tichý chod: pri každej možnosti uveď hlučnosť vnútornej jednotky v dB z `lookup_product`."
+        directive += (" Zákazník chce tichý chod: pri každej možnosti uveď hlučnosť vnútornej jednotky v dB z `lookup_product`"
+                      + (" (pri možnostiach, ktoré nacenil server, je v bloku VÝSLEDKY SERVERA)." if prerun else "."))
     # Two priced options cover the first offer: the first call needs no forced tool then.
     complete = sum(name == "quote" for name, _ in prerun) >= 2
     if complete:
@@ -8833,9 +8895,13 @@ def next_move():
                      "klimatizáciu neponúkaj." + no_address)
         if sess.consent_ask_index is not None and not sess.consent_refused:
             # q06 got the whole five-point list in every reply (the complaint handover's first run, 2026-11-01).
+            # "Keďže ide o reklamáciu, odovzdám ju nášmu tímu. Ten sa vám ozve…" was this move's top rewrite (A/B of
+            # 2026-11-07): the directive said what not to write and gave no sentence to write instead.
             directive = ("Toto je reklamácia a údaje si už pýtal: znova ich nepýtaj a zoznam neopakuj. Stručne a ľudsky "
                          "odpovedz na to, čo zákazník napísal; ak chce skončiť, rozlúč sa. Nič nesľubuj, netvrď, že si "
-                         "reklamáciu odovzdal, a novú klimatizáciu neponúkaj." + no_address)
+                         "reklamáciu odovzdal, a novú klimatizáciu neponúkaj. Čo bude ďalej, povedz iba ako podmienku v "
+                         "jednej vete: „Keď odsúhlasíte otázku na súhlas, odovzdám reklamáciu nášmu tímu a ten sa vám "
+                         "ozve.“" + no_address)
         if sess.consent_refused:
             directive = ("Toto je reklamácia a zákazník nechce dať údaje: rešpektuj to, ospravedlň sa za nepríjemnosť, "
                          f"nič nesľubuj, netvrď, že si ju odovzdal, a daj kontakt: „{_contact_offer()}“.")

@@ -50,7 +50,7 @@ flowchart TD
 | `ponuka` | the first offer is due (`_offer_due`, a price question or wishes known) | two options, each priced by `quote` (code-picked sets when `_suggested_sets` finds them; code-picked multi-splits for 2–5 rooms, `_suggested_multis`) |
 | `kontakt` | an offer exists and the customer picked one (read after the message's last change of mind, and not a wish, a condition or a size no quote has) or typed contact details | the contact request (nothing asked twice); code appends the consent question |
 | `nova-ponuka` | a cheaper / other series / other size / a code after an offer | quote it, compare with `comparison_with_earlier_quotes` |
-| `odpoved` | a question after an offer | the answer from tool results only, then back to the offer |
+| `odpoved` | a question after an offer, including a comparison of two quoted offers that asks for nothing new ("o koľko je drahšia?", `_QUOTED_COMPARE_RE`) | the answer from tool results only (a comparison from the quotes already made), then back to the offer |
 | `pokracuj` | anything else after an offer; a customer leaving or thinking it over, at any time | short, towards the choice; on leaving a goodbye and the contact, no offer and no contact request |
 
 Every sales move also lists the customer's own questions from the latest message, to answer first (`_questions_note`).
