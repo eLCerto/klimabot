@@ -4796,6 +4796,18 @@ def _as_tykanie(text):
     return re.sub(r"„[^“]*“", lambda q: _TYKANIE_SWAP_RE.sub(swap, q.group(0)), text)
 
 
+# "Ďakujem, pani …, máme vaše údaje" before consent: a recording claim (slub-bez-suhlasu), 4 of the 7 rewrites of the API
+# run of e695916, all on complaints after the customer typed the details. What the customer gets is a thank-you.
+_HAVE_DATA_RE = re.compile(
+    r"\b(Ďakujem|Dakujem|ďakujem)(,\s+(?:pani|pán|pan)\s+[^,.!?\n]{1,40})?,\s+(?:máme|mám|mame|mam)\s+(?:už\s+)?(vaše|tvoje)\s+údaje\b")
+
+
+def _fix_have_data(text):
+    if S().consent is not None:
+        return text
+    return _HAVE_DATA_RE.sub(lambda m: f"{m.group(1)}{m.group(2) + ',' if m.group(2) else ''} za {m.group(3)} údaje", text)
+
+
 def _fix_mixed_address(text):
     """A customer who tyká, a reply mostly in tykanie with a stray "vám", "vás", "vaša" or "chcete": code turns those into
     tykanie instead of a regeneration. In the API run of 9657449 (2026-11-08) oslovenie-mix was the top rewrite, 10 of
@@ -5130,6 +5142,7 @@ def sanitize_reply(text, language="sk"):
         text = _fix_diacritics(text)  # "nastenná" → "nástenná" (live check 2026-10-27)
         text = _fix_self_gender(text)
         text = _fix_mixed_address(text)  # a stray "vám" in a tykanie reply (oslovenie-mix)
+        text = _fix_have_data(text)
 
     # Cyrillic letters inside Latin words ("електрické", "главне"): transliterate.
     text = text.translate(_CYRILLIC_TO_LATIN)
@@ -5344,11 +5357,23 @@ _UNITS_WORD_RE = re.compile(r"\b(?:jednotk\w*|klimatizáci\w*|klimatizácia|set\
                             re.IGNORECASE)
 
 
+# What the customer's budget covers is no claim that the offer fits it: "Montáž je v rozpočte tiež zahrnutá, jej cenu však
+# určí projektový manažér" was rozpocet-tvrdenie three times in the API runs of 2026-11-08.
+_BUDGET_SCOPE_RE = re.compile(
+    r"\b(?:montáž|montaz|inštaláci|instalaci|installation)\w*\s+(?:je|sú|su|is)\s+(?:(?:tiež|tiez|aj|už|uz|also|already)\s+)?"
+    r"(?:v\s+(?:vašom\s+|tvojom\s+)?rozpo[čc]te|(?:included\s+)?in\s+(?:your\s+)?budget)"
+    r"(?:\s+(?:tiež|tiez|aj|also))?(?:\s+(?:zahrnut|započítan|zapocitan|included)\w*)?|"
+    r"\brozpo[čc]\w*\s+(?:zahŕňa|zahrňuje|obsahuje|je\s+vrátane|includes|covers)\s+(?:aj\s+|also\s+)?"
+    r"(?:montáž|montaz|inštal|instal|installation)\w*",
+    re.IGNORECASE)
+
+
 def _budget_claim_unsupported(sentence):
     """True when `sentence` says the offer fits the budget but no quote() budget check says so.
     Questions ("či sa to zmestí?", d02) and negations ("neither fits", d05) are not claims. When
     the customer's budget includes installation, only the units can be said to fit: the
     installation price is the PM's (a03, a04)."""
+    sentence = _BUDGET_SCOPE_RE.sub(" ", sentence)
     claim = _BUDGET_CLAIM_RE.search(sentence)
     if not claim or _BUDGET_NEGATION_RE.search(sentence):
         return False
@@ -7397,7 +7422,7 @@ def _premature_promise_sentences(text):
         if (_REPLY_PROMISE_RE.search(folded) and not _CALL_PROMISE_RE.search(folded) and not _RECORDED_CLAIM_RE.search(folded)
                 and (_WRITE_TO_US_RE.search(x) or _WRITE_TO_US_RE.search(before))):
             continue
-        if x.rstrip().endswith("?") and _OFFER_QUESTION_RE.search(x):
+        if x.rstrip().endswith("?") and (_OFFER_QUESTION_RE.search(x) or _ECHOED_CALLBACK_RE.search(folded)):
             continue
         # Industrial spaces: "leave your name and phone, the PM will call you" is the intended answer,
         # an offer rather than a promise (scenario priemyselna_hala: rejected three times, then cut).
@@ -7418,7 +7443,16 @@ _PROMISE_EXEMPT_RE = re.compile(
     r"\baby\s+(?:sme|som)\s+(?:\w+\s+){0,3}?(?:odovzdal|postupil|preposlal|zaznamenal|zapisal|ulozil)\w*|"
     r"\bne(?:slubuj|potvrdzuj|tvrd)\w*\b[^.?!]{0,40}?\bze\b[^.?!]*|"
     r"\bpotvrdi\s+(?:vam|ti)\b(?=[^.?!]*\bpri\s+(?:\w+\s+)?obhliadk)|"
+    # "Či vám technik ukáže obsluhu, potvrdí vám projektový manažér." (API run of e695916): a fact the PM confirms
+    r"\bpotvrdi\s+(?:vam|ti)\s+(?:to\s+)?(?:(?:nas|nasi)\s+)?projektov\w*\s+manazer\w*|"
+    r"\bprojektov\w*\s+manazer\w*\s+(?:vam|ti)\s+(?:to\s+)?potvrdi\b|"
     r"\bpri\s+(?:\w+\s+)?obhliadk\w*[^.?!]*?\bpotvrdi\s+(?:vam|ti)\b", re.IGNORECASE)
+# The customer's question repeated as a heading of the answer: "Zavolá vám niekto? Keď odsúhlasíte otázku nižšie, …"
+# (API run of e695916) — a question, not a promise.
+_ECHOED_CALLBACK_RE = re.compile(
+    r"^\W*(?:a\s+)?(?:zavola|ozve\s+sa|kontaktuje|bude\s+(?:vam|ti)\s+(?:niekto\s+)?volat)\s+(?:vam|ti|vas|ta)?\s*(?:\w+\s+)?"
+    r"niekto\W*\?\s*$|^\W*kto\s+(?:sa\s+)?(?:vam|ti)\s+(?:ozve|zavola)\W*\?\s*$|"
+    r"^\W*will\s+(?:someone|anyone)\s+(?:call|contact)\s+you\W*\?\s*$", re.IGNORECASE)
 _CONTINUES_RE = re.compile(r"^\W*(?:potom|následne|then|ten|tá|tí|they|he|she)\b|^\W*\w+\s+(?:sa\s+)?(?:vám\s+)?potom\b",
                            re.IGNORECASE)
 _REPLY_PROMISE_RE = re.compile(r"\b(?:ozve|ozvu|ozveme|odpovie|odpovedia|odpovieme|get\s+back|reply|respond)\b", re.IGNORECASE)
@@ -8894,8 +8928,11 @@ def _budget_note():
     if not _customer_budget():
         return ""
     # "Montáž je v rozpočte tiež" was rozpocet-tvrdenie (API A/B of 2026-11-08): installation has no price here.
-    install = (" Rozpočet zahŕňa aj montáž: povedz iba, či sa doň zmestia jednotky; že sa zmestí aj montáž, netvrď — jej cenu "
-               "určí projektový manažér po bezplatnej obhliadke." if _all_in_budget() else "")
+    # "Obe sa do tvojho rozpočtu zmestia" and "This is within your €3,500 budget" for an all-in budget were the other
+    # rozpocet-tvrdenie rewrites (API run of e695916): name the units in the sentence itself.
+    install = (" Rozpočet zahŕňa aj montáž: povedz iba, či sa doň zmestia jednotky, a slovo „jednotky“ daj do tej istej vety "
+               "(„Jednotky sa do vášho rozpočtu zmestia, cenu montáže určí projektový manažér po bezplatnej obhliadke.“); "
+               "„obe sa zmestia“, „je to v rozpočte“ ani o koľko je to pod rozpočtom nepíš." if _all_in_budget() else "")
     return (" Zákazník uviedol rozpočet: o každej možnosti povedz podľa `budget.status` a `budget.note` z jej `quote`, či "
             "sa do neho zmestí; ak ho prekračuje a `quote` vrátil `cheaper_alternative`, naceň ju a ukáž aj tú." + install)
 

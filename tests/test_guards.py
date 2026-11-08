@@ -4789,6 +4789,33 @@ class EarlyYesAndQuotedPhraseTests(BotTest):  # API run of 9657449: slub-bez-suh
         self.assertTrue(bot._internal_leak_sentences("Cena z `quote` s DPH je uvedená vyššie."))
 
 
+class BudgetAndPromiseTests(BotTest):  # API run of e695916: rozpocet-tvrdenie and slub-bez-suhlasu
+    def test_what_the_budget_covers_is_no_fit_claim(self):
+        self.sess.user_inputs[:] = ["Spálňa 14 m2, rozpočet 1500 € aj s montážou."]
+        bot.quote([{"code": c} for c in AR30_SET])
+        for ok in ("Montáž je v rozpočte tiež zahrnutá, jej cenu však určí projektový manažér po bezplatnej obhliadke.",
+                   "Montáž je v rozpočte zahrnutá, jej cenu však neuvádzame.",
+                   "Váš rozpočet zahŕňa aj montáž, ktorej cenu určí projektový manažér."):
+            self.assertFalse(bot._budget_claim_unsupported(ok), ok)
+        self.assertTrue(bot._budget_claim_unsupported("Obe sa do tvojho rozpočtu zmestia."))
+        self.assertIn("slovo „jednotky“ daj do tej istej vety", bot._budget_note())
+
+    def test_the_pm_confirming_and_an_echoed_question_are_no_promises(self):
+        self.assertEqual(bot._premature_promise_sentences(
+            "Či vám technik pri inštalácii ukáže obsluhu, potvrdí vám projektový manažér."), [])
+        self.assertEqual(bot._premature_promise_sentences(
+            "Zavolá vám niekto? Keď odsúhlasíte otázku nižšie, projektový manažér sa vám ozve."), [])
+        self.assertTrue(bot._premature_promise_sentences("Projektový manažér vám zavolá zajtra."))
+
+    def test_a_thank_you_for_the_details_replaces_we_have_them(self):
+        self.assertEqual(bot._fix_have_data("Ďakujem, pani Malá, máme vaše údaje a viem, že je to nepríjemné."),
+                         "Ďakujem, pani Malá, za vaše údaje a viem, že je to nepríjemné.")
+        self.assertEqual(bot._fix_have_data("Ďakujem, máme vaše údaje o reklamácii."), "Ďakujem za vaše údaje o reklamácii.")
+        self.assertEqual(bot._premature_promise_sentences("Ďakujem za vaše údaje o reklamácii."), [])
+        self.sess.consent = {"purpose": "complaint", "ts": "", "evidence": "Áno, súhlasím"}
+        self.assertEqual(bot._fix_have_data("Ďakujem, máme vaše údaje."), "Ďakujem, máme vaše údaje.")
+
+
 class HallAndContactTests(BotTest):  # AI review of the API run of 9657449
     def test_halusky_are_no_hall(self):
         self.sess.user_inputs[:] = ["A aký je recept na bryndzové halušky?", "Dobre, tak klímu do spálne, má 14 m². Koľko stojí?"]
