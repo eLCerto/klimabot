@@ -27,7 +27,8 @@
       "AJ026/035_TNL": "LSP Slim Duct (multi-only)",
       "AJ052_BNM": "MSP Duct (multi-only)",
       "AJ026/035/052_TNJ": "Console parapetná (multi-only)"
-    }
+    },
+    "noise_note": "noise_indoor_high_low_dBA (vnútorná jednotka, vysoké/nízke otáčky, dB(A)) pri 2,0 kW nástenných jednotkách doplnená z produktových stránok Samsung (samsung-climatesolutions.com, noise_source pri jednotke), stav 2026-11-08; cenník ju neuvádza. AR70H07CAABNEU (čierna) tam uvedená nie je."
   },
   "outdoor_units": {
     "description": "FJM vonkajšie jednotky pre Multi-Split. Cena pre samostatnú vonkajšiu jednotku.",
@@ -227,7 +228,9 @@
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
         "price_EUR": 780,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "34/19",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-premiere-plus.html"
       },
       {
         "size": "09",
@@ -503,7 +506,9 @@
         "price_EUR": 445,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "36/19",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/windfree-comfort-s2.html"
       },
       {
         "size": "09",
@@ -627,7 +632,9 @@
         "price_EUR": 360,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "36/19",
+        "noise_source": "https://samsung-climatesolutions.com/lt/b2c/products/fjm/luzon-s2.html"
       },
       {
         "size": "09",

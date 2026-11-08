@@ -4740,7 +4740,12 @@ class LeftoverTests(BotTest):
         self.assertEqual(move.name, "nova-ponuka")
         self.assertTrue(move.prerun)
         self.setUp()
-        move = self.after_offer("A čo HAORI 3,5 kW?")  # named something new: the model prices it
+        move = self.after_offer("A čo HAORI 3,5 kW?")  # a series named after the offer: code prices it at that size
+        self.assertEqual((move.name, move.tool_choice), ("nova-ponuka", None))
+        self.assertEqual([n for n, _ in move.prerun], ["quote", "lookup_product"])
+        self.assertIn("Toshiba HAORI 3.5", json.dumps(move.prerun, ensure_ascii=False))
+        self.setUp()
+        move = self.after_offer("A čo RAS-B10N4KVRG-E2?")  # a code: the model quotes it
         self.assertEqual((move.name, move.prerun, move.tool_choice), ("nova-ponuka", (), "any"))
 
 
@@ -4782,6 +4787,38 @@ class EarlyYesAndQuotedPhraseTests(BotTest):  # API run of 9657449: slub-bez-suh
         self.sess.user_inputs[:] = ["A čo znamená 'čo viem spoľahlivo'?"]
         self.assertEqual(bot._internal_leak_sentences("Výraz „čo viem spoľahlivo“ znamenal iba ceny z cenníka."), [])
         self.assertTrue(bot._internal_leak_sentences("Cena z `quote` s DPH je uvedená vyššie."))
+
+
+class HallAndContactTests(BotTest):  # AI review of the API run of 9657449
+    def test_halusky_are_no_hall(self):
+        self.sess.user_inputs[:] = ["A aký je recept na bryndzové halušky?", "Dobre, tak klímu do spálne, má 14 m². Koľko stojí?"]
+        self.assertFalse(bot._industrial_case())
+        self.assertEqual(bot.next_move().name, "ponuka")
+        for hall in ("Chcem chladiť výrobnú halu.", "V hale je 35 stupňov.", "Sklad s halou."):
+            self.assertTrue(bot._INDUSTRIAL_RE.search(hall), hall)
+
+    def test_one_contact_is_enough(self):
+        self.assertIn("telefón alebo e-mail stačí", bot._CONTACT_GIVEN_TEXT)
+        self.sess.consent = {"purpose": "sales", "ts": "", "evidence": "Áno, súhlasím"}
+        self.sess.user_inputs[:] = ["Spálňa 14 m2.", "Áno, súhlasím"]
+        self.assertIn("telefón alebo e-mail stačí", bot.next_move().directive)
+
+
+class NoiseAndComparisonTests(BotTest):
+    def test_noise_figures_have_a_minimum_and_a_maximum(self):
+        luzon = bot._code_specs("AR50F07C1BHNEU")  # Samsung's product page, fjm.json noise_source
+        self.assertEqual((luzon["indoor_noise_min_dB"], luzon["indoor_noise_max_dB"]), ("19", "36"))
+        seiya = bot._code_specs("RAS-B10B2KVG-E2")  # Toshiba "19/--/42": low/mid/high
+        self.assertEqual((seiya["indoor_noise_min_dB"], seiya["indoor_noise_max_dB"]), ("19", "42"))
+        self.assertNotIn("indoor_noise_max_dB", bot._code_specs("AR70H07CAABNEU"), "no figure the sources don't give")
+
+    def test_the_comparison_is_a_sentence_with_both_offers(self):
+        self.sess.user_inputs[:] = ["Spálňa 14 m2."]
+        bot.quote([{"code": c} for c in AR30_SET])
+        q = bot.quote([{"code": c} for c in ["RAS-10E2AVG-E", "RAS-B10E2KVG-E"]])
+        reads = q["comparison_with_earlier_quotes"][-1]["reads"]
+        self.assertIn(f"({bot._eur(q['total_with_DPH_23pct_eur'])} s DPH) je o", reads)
+        self.assertIn("drahšia než ponuka Samsung AR30 WIFI (", reads)
 
 
 class RetrievalTests(BotTest):

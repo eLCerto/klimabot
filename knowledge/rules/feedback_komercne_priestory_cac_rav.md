@@ -1,8 +1,10 @@
 ---
 name: komercne-priestory-automaticky-cac-rav
-description: Komerčné priestory (serverovňa, ambulancia, salón, obchod, gastro, fitness, väčšia kancelária) → automaticky Samsung CAC alebo Toshiba RAV. Nikdy nezačínaj RAC/RAS.
+description: Komerčné priestory (obchod, gastro, fitness, väčšia kancelária) → automaticky Samsung CAC alebo Toshiba RAV, nikdy nezačínaj RAC/RAS. Serverovňa, ambulancia a salón idú od 2026-11-08 rovno k projektovému manažérovi.
 type: feedback
 ---
+
+> **Od 2026-11-08 (majiteľ): serverovňa, ambulancia či ordinácia a salón (kaderníctvo, barber, kozmetika, manikúra, pedikúra) chatbot nenavrhuje ani nenaceňuje — idú rovno k projektovému manažérovi, rovnako ako priemyselné priestory ([[priemyselne-priestory]]).** Časti tohto pravidla o serverovni, ambulancii a salóne platia pre projektového manažéra, nie pre chat. Pre ostatné komerčné priestory (obchod, gastro, fitness, väčšia kancelária) platí ďalej:
 
 Komerčný priestor → **automaticky Samsung CAC alebo Toshiba RAV**, nie rezidenčné RAC/RAS. Aj keď je rozpočet napätý.
 

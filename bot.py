@@ -986,7 +986,10 @@ SIZING = json.loads((CONFIG_DIR / "sizing_policy.json").read_text(encoding="utf-
 
 
 def _stems_re(stems):
-    return re.compile(r"\b(?:" + "|".join(re.escape(s) for s in stems) + ")", re.IGNORECASE)
+    """Prefix stems; one ending in "$" is a whole word ("halu$": "halušky" is no hall — a bedroom was refused a price
+    after a question about bryndzové halušky, API run of 9657449)."""
+    return re.compile(r"\b(?:" + "|".join(re.escape(s[:-1]) + r"\b" if s.endswith("$") else re.escape(s) for s in stems)
+                      + ")", re.IGNORECASE)
 
 
 _SERVER_ROOM_RE = _stems_re(SIZING["server_room"]["triggers"])
@@ -2473,9 +2476,13 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
             # In words: a signed difference was read backwards, "lacnejší o 1 304,05 €" about the dearer one (live 2026-11-02, d06).
             # The earlier offer by its product, not "1. ponuka": the model turned the number into "Poradie 1" (interne-info,
             # API A/B of 2026-11-08).
+            # A whole sentence with both names and totals, to copy: a price under the other product's name and a
+            # comparison the wrong way round were 7 rewrites in the API run of 9657449.
             "reads": ("rovnaká cena" if not diff else
-                      f"táto ponuka je o {_eur(abs(diff))} s DPH {'lacnejšia' if diff < 0 else 'drahšia'} než ponuka "
-                      f"{other['lines'][0]['description'].split(' – ')[0]}"),
+                      f"ponuka {result['lines'][0]['description'].split(' – ')[0]} "
+                      f"({_eur(result['total_with_DPH_23pct_eur'])} s DPH) je o {_eur(abs(diff))} s DPH "
+                      f"{'lacnejšia' if diff < 0 else 'drahšia'} než ponuka {other['lines'][0]['description'].split(' – ')[0]} "
+                      f"({_eur(other['total_with_DPH_23pct_eur'])} s DPH)"),
         })
     if comparisons:
         result["comparison_with_earlier_quotes"] = comparisons[-4:]
@@ -2610,8 +2617,9 @@ def _type_units(text, cap=True):
 # "20/55" is two units, not a range: the bot said "20 dB na minime a 55 dB pri plnom výkone" of a quiet child's room's unit,
 # whatever the note said (QA 2026-11-02, d04). Two named figures can't be read that way.
 _NOISE_PAIR_FIELDS = ("indoor_outdoor_dB", "sound_pressure_dB")
-_NOISE_FIELDS = ("noise_cool_dB", "sound_dB", "indoor_noise_min_dB", "outdoor_noise_dB")
-_NOISE_NOTE = ("indoor_noise_min_dB: najnižšia hodnota vnútornej jednotky v dB(A) v 1 m; outdoor_noise_dB: vonkajšia jednotka "
+_NOISE_FIELDS = ("noise_cool_dB", "sound_dB", "indoor_noise_min_dB", "indoor_noise_max_dB", "outdoor_noise_dB")
+_NOISE_NOTE = ("indoor_noise_min_dB: najnižšia hodnota vnútornej jednotky v dB(A) v 1 m (najtichšie otáčky); "
+               "indoor_noise_max_dB: vnútorná jednotka na najvyšších otáčkach; outdoor_noise_dB: vonkajšia jednotka "
                "(sú to dve jednotky, nie rozsah od tichého po plný výkon); noise_cool_dB: vnútorná jednotka pri chladení, "
                "otáčky nízke/stredné/vysoké; outdoor_noise_cool_dB: vonkajšia jednotka pri chladení.")
 
@@ -2635,6 +2643,16 @@ def _code_specs(code):
         for field in ("noise_cool_dB", "sound_dB"):
             if field in rec["raw"]:
                 out.setdefault(field, rec["raw"][field])
+        # The model had to guess which of Toshiba's "19/--/42" (low/mid/high) is quiet; and Samsung's 2.0 kW multi-split
+        # wall units carry "36/19" (high/low) from Samsung's product pages (fjm.json metadata.noise_note, 2026-11-08).
+        levels = [x.strip() for x in str(rec["raw"].get("noise_cool_dB", "")).split("/")]
+        if len(levels) == 3 and levels[0].isdigit() and levels[-1].isdigit():
+            out.setdefault("indoor_noise_min_dB", levels[0])
+            out.setdefault("indoor_noise_max_dB", levels[-1])
+        high_low = [x.strip() for x in str(rec["raw"].get("noise_indoor_high_low_dBA", "")).split("/")]
+        if len(high_low) == 2 and all(x.isdigit() for x in high_low):
+            out.setdefault("indoor_noise_max_dB", high_low[0])
+            out.setdefault("indoor_noise_min_dB", high_low[1])
         # Toshiba's outdoor units sit in the acoustics tables ("--/--/44"): q08 was told 41 dB, the indoor unit's high
         # speed, and SEIYA called quiet outside with no figure (QA 2026-11-01).
         for field in ("sound_pressure_cool", "sound_pressure_cool_dB"):
@@ -8688,7 +8706,7 @@ _MANY_ROOMS_RE = re.compile(r"\b(?:[2-9]|dve|dva|tri|styri|pat|obe|obidve|oba|vs
 
 _CONTACT_GIVEN_TEXT = (
     "Zákazník si vybral a nechal kontakt. Začni „Ďakujem, vybrali ste si …“ a jednou vetou zopakuj vybranú zostavu; "
-    "kontakt si znova nepýtaj, doplň iba to, čo chýba. Kým súhlas nie je zaznamenaný, o ničom nepíš, že je zapísané, "
+    "kontakt si znova nepýtaj: telefón alebo e-mail stačí, ten druhý ani obec si nepýtaj; doplň iba meno, ak chýba. Kým súhlas nie je zaznamenaný, o ničom nepíš, že je zapísané, "
     "zaznamenané či uložené (ani výber, ani údaje o firme), ani „ozve sa“; ďalší krok iba ako podmienku "
     "(„Keď odsúhlasíte otázku nižšie, projektový manažér sa vám ozve.“). Otázku na súhlas pripojí server sám.")
 _OFFER_CHOSEN_TEXT = (
@@ -8703,7 +8721,7 @@ _OFFER_CHOSEN_TEXT = (
 
 # The offer moves' rule for figures: amounts not from quote (rounded, summed, the fee multiplied) and claims
 # not in series_features were the content regenerations left after the A/B of 2026-10-27.
-_EXACT_AMOUNTS = (" Sumy prepíš presne, ako ich vrátil `quote` (aj s centami): nezaokrúhľuj, nesčítavaj ani nenásob; recyklačný poplatok ber z `recycling_fee_per_unit` (za všetky kusy `total_min_eur`–`total_max_eur`). Pri každej možnosti uveď iba funkcie a údaje, ktoré vrátil `lookup_product` — žiadnu energetickú triedu, hlučnosť ani úsporu, ktorá tam nie je. Kto je lacnejší alebo čo sa oplatí, tvrď iba podľa súm z `quote`.")
+_EXACT_AMOUNTS = (" Sumy prepíš presne, ako ich vrátil `quote` (aj s centami): nezaokrúhľuj, nesčítavaj ani nenásob; recyklačný poplatok ber z `recycling_fee_per_unit` (za všetky kusy `total_min_eur`–`total_max_eur`). Pri každej možnosti uveď iba funkcie a údaje, ktoré vrátil `lookup_product` — žiadnu energetickú triedu, hlučnosť ani úsporu, ktorá tam nie je. Kto je lacnejší alebo čo sa oplatí, tvrď iba podľa súm z `quote`; porovnanie dvoch ponúk napíš vetou z `reads` v `comparison_with_earlier_quotes` (mená aj sumy sú v nej správne).")
 
 
 # The customer doesn't know the area (folded text): the live customer of QA 2026-11-01 asked for a price five times, the
@@ -8917,6 +8935,31 @@ def _cheapest_rooms_text(latest, priced=False):
             + " Ktorý variant je lacnejší, ukáž podľa súm z `quote`.")
 
 
+def _named_variant_sets(latest, min_kw):
+    """A series named after an offer ("A čo HAORI 3,5 kW?"): (record, codes) of its white wall set at the kW the customer
+    typed in that message (the closest within 0.3 kW), else the smallest one covering the room; one per series named, up
+    to two. [] for a typed code (the model quotes it) or a series code can't match. The model priced these itself, about
+    11.5 s and 3 calls a turn (API run of 9657449)."""
+    named = _named_series(latest)
+    if not named:
+        return []
+    typed = _CUSTOMER_KW_RE.search(latest) or _SIZE_KW_RE.search(latest)
+    want = float(typed.group(1).replace(",", ".")) if typed else None
+    best = {}
+    for codes, rec in _SETS.items():
+        kw = rec["raw"].get("cooling_kW")
+        series = re.sub(r"_(?:White|Black|Wood)$", "", _series_key(rec))
+        if ("/single_split/" not in rec["source"] or series not in named or _NON_WALL_PATH_RE.search(rec["category_path"])
+                or re.search(r"_(?:Black|Wood)$", _series_key(rec)) or not isinstance(kw, (int, float))):
+            continue
+        if (want is not None and abs(kw - want) > 0.3) or (want is None and kw < min_kw):
+            continue
+        rank = (abs(kw - want) if want is not None else kw, rec["raw"]["set_price_EUR"])
+        if series not in best or rank < best[series][0]:
+            best[series] = (rank, rec, sorted(codes))
+    return [(rec, codes) for _, rec, codes in sorted(best.values(), key=lambda b: b[0][1])[:2]]
+
+
 def _new_variant_prerun(latest, missing, min_kw):
     """Code's calls for the variants the nova-ponuka directive names by code, when the customer named nothing new: the
     two cheapest sets with a wished feature the offers lack, or the cheapest room sets (one brand) and one multi-split.
@@ -8976,7 +9019,8 @@ def _sales_move(latest):
                 or (not spec_question and (_codes_named(latest) or _SERIES_NAMED_RE.search(latest)
                                            or _CUSTOMER_M2_RE.search(latest) or _CUSTOMER_KW_RE.search(latest)))):
             min_kw = _offer_min_kw(max(_customer_m2())) if _customer_m2() else 0
-            prerun = () if new_spec else tuple(_new_variant_prerun(latest, missing, min_kw))
+            prerun = (tuple(_picks_prerun(_named_variant_sets(latest, min_kw))) if new_spec
+                      else tuple(_new_variant_prerun(latest, missing, min_kw)))
             priced = sum(name == "quote" for name, _ in prerun)
             return Move("nova-ponuka", "Zákazník chce iný variant (lacnejší, iný rad, inú veľkosť alebo konkrétny kód): "
                         "naceň ho cez `quote` (kódy z `lookup_product`) a uveď cenu s DPH; ktorý je lacnejší, ber z "
@@ -8984,7 +9028,7 @@ def _sales_move(latest):
                         + _feature_sets_text(min_kw) + _cheapest_rooms_text(latest, priced=bool(prerun))
                         + (_PRICED_NOTE if prerun else "")
                         + _commercial_units_note() + _budget_note() + _rooms_limit_note() + _NO_CONTACT_YET + _EXACT_AMOUNTS,
-                        None if priced >= 2 else "any", prerun)
+                        None if priced >= 2 or (priced and new_spec) else "any", prerun)
         if "?" in latest or _TECH_QUESTION_RE.search(latest):
             return Move("odpoved", "Zákazník sa pýta na podrobnosti: odpovedz iba podľa výsledkov nástrojov (funkcie "
                         "radu a SEER, SCOP, hlučnosť z `lookup_product`, pravidlá zo `search_knowledge`); čo v nich nie "
@@ -9101,7 +9145,7 @@ def next_move():
         new_unit = _NEW_UNIT_WISH_RE.search(fold_diacritics(_all_user_text())) and _size_known()
         if handed_over and not sess.handoff_path:
             return Move("zapis", "Zákazník súhlasil so spracovaním údajov k reklamácii. Ak chýba meno alebo telefón či "
-                        "e-mail, požiadaj iba o to; keď ich máš, zavolaj `capture_lead` so zhrnutím problému a povedz, že "
+                        "e-mail, požiadaj iba o to (telefón alebo e-mail stačí, ten druhý ani obec si nepýtaj); keď ich máš, zavolaj `capture_lead` so zhrnutím problému a povedz, že "
                         "reklamáciu odovzdávaš tímu a ten sa ozve. Termín, záruku ani opravu nesľubuj.", None)
         if handed_over and not new_unit:
             return Move("po-zapise", "Reklamácia je zapísaná a čo zákazník teraz dopísal, pridal server do záznamu pre tím "
@@ -9168,8 +9212,11 @@ def next_move():
                         "nie objednávka: záväzný vzťah vzniká až po obhliadke a podpise s projektovým manažérom, iné "
                         "podmienky si nevymýšľaj. Odpovedz na doplňujúce otázky; nové varianty naceňuj iba vtedy, keď o ne "
                         "zákazník požiada.", None)
-        return Move("zapis", "Zákazník súhlasil so spracovaním údajov. Ak ešte chýba meno alebo telefón či e-mail, "
-                    "požiadaj iba o to, čo chýba; keď ich máš, zavolaj `capture_lead` a krátko poďakuj.", None)
+        # "Ak chceš, môžeš mi ešte poslať e-mail" after the phone and the consent: the AI review's top flow finding (API run
+        # of 9657449). One contact is enough for the lead.
+        return Move("zapis", "Zákazník súhlasil so spracovaním údajov. Ak chýba meno, alebo telefón aj e-mail, požiadaj iba o "
+                    "to; telefón alebo e-mail stačí, ten druhý ani obec si nepýtaj. Keď ich máš, zavolaj `capture_lead` a "
+                    "krátko poďakuj.", None)
     sales = _with_budget_requote(_with_questions(_sales_move(latest), latest), latest)
     decline = _decline_text(latest)
     if decline:

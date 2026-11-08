@@ -8,7 +8,7 @@ Toto je index pravidiel, ktoré bot nájde cez `search_knowledge`. Pravidlo = `f
 - `quote` berie iba model kódy + počty kusov; ceny, zľavy, súčty, DPH, porovnanie s rozpočtom, porovnanie variantov a recyklačný poplatok počíta kód z cenníka a `discounts.json`. Cenu montáže bot neuvádza vôbec — určí ju projektový manažér po bezplatnej obhliadke.
 - Odpoveď sa zákazníkovi zobrazí až po kontrole. Validator kontroluje: české slová, emoji, Markdown nadpisy, `~`/`cca`/`okolo` pred sumou, `bez DPH` bez `recyklačn`, sumu v €, ktorú nevrátil `quote` ani nenapísal zákazník, vymyslené model kódy, multi-split bez overenia kompatibility, zoznam umiestnení outdoor a povolenia k inštalácii. Pri tvrdom porušení (suma mimo `quote`, `~`/`cca`, vymyslený kód, povolenia, otázka kam outdoor) najviac 2 regenerácie v ťahu, potom server vetu vynechá; ostatné sa opravia mechanicky alebo len zalogujú.
 - GDPR súhlas rieši server: k žiadosti o kontakt pripojí doslovnú otázku z `consent_phrases.json` a súhlas zaznamená iba z výslovného „áno / súhlasím“ v nasledujúcej správe zákazníka. `capture_lead` bez neho (a s modelom, ktorý v rozhovore nepadol) zápis odmietne. Reklamácie, opravy a servis bot nerieši: nepýta si údaje a zákazníkovi dá e-mail (a telefón) firmy.
-- `quote` kontroluje aj vhodnosť zostavy pre priestor (serverovňa, salón, ambulancia; prahy v `sizing_policy.json`), vracia dostupnosť každej položky (`availability` zo `stock_policy.json`), porovnanie s predošlými ponukami a prípadne lacnejšiu vhodnú alternatívu (`cheaper_alternative`).
+- `quote` kontroluje aj vhodnosť zostavy pre priestor (prahy v `sizing_policy.json`; serverovňu, salón a ambulanciu od 2026-11-08 nenaceňuje — idú k projektovému manažérovi), vracia dostupnosť každej položky (`availability` zo `stock_policy.json`), porovnanie s predošlými ponukami a prípadne lacnejšiu vhodnú alternatívu (`cheaper_alternative`).
 - Pri nebezpečenstve (dym, iskrenie, spálenina, plyn, zásah prúdom) server dá na začiatok odpovede bezpečnostné kroky (istič, 112), ak ich bot vynechá. Vetu „som človek“ zákazníkovi nezobrazí. Diagnózy (astma, alergia…) server vynechá zo stavu zákazníka, zo záznamu pre PM aj z fronty pre operátora.
 - `search_knowledge` soft counter — 3.+ volanie v turn-e loguje `search_knowledge_overuse`.
 
@@ -51,8 +51,8 @@ Toto je index pravidiel, ktoré bot nájde cez `search_knowledge`. Pravidlo = `f
 ### Cieľové skupiny
 - [alergie-filtracia](feedback_alergie_filtracia.md) — Alergie/astma/prach → trieda 1 z poradia filtrácie (config/filtration_policy.json), žiadne zdravotné sľuby
 - [schvalene-tvrdenia](feedback_schvalene_tvrdenia.md) — Žiadne zdravotné sľuby, ozón nespomínaj (HAORI má plazmový ionizátor), záruka a sklad iba z podkladov
-- [komercne-priestory-cac-rav](feedback_komercne_priestory_cac_rav.md) — Serverovňa/ambulancia/barber/manikúra/obchod/kaviareň/fitness → Samsung CAC alebo Toshiba RAV
-- [priemyselne-priestory](feedback_priemyselne_priestory.md) — Hala/výroba/továreň chatbot nerieši: žiadny návrh ani cena, kontakt na firmu alebo sa ozve PM
+- [komercne-priestory-cac-rav](feedback_komercne_priestory_cac_rav.md) — Obchod/kaviareň/fitness/väčšia kancelária → Samsung CAC alebo Toshiba RAV (serverovňa, ambulancia, salón → projektový manažér)
+- [priemyselne-priestory](feedback_priemyselne_priestory.md) — Hala/výroba/továreň, ubytovanie, technologické chladenie, salón, ambulancia, serverovňa chatbot nerieši: žiadny návrh ani cena, kontakt na firmu alebo sa ozve PM
 
 ### Hranice a bezpečnosť
 - [mimo-temy-a-bezpecnost](feedback_mimo_temy_a_bezpecnost.md) — Mimo témy jedna zdvorilá veta; žiadne lekárske rady; bot je AI asistent; žiadne údaje o zamestnancoch; dym/iskrenie/plyn → istič a 112; diagnózy nezapisovať
