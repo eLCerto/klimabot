@@ -991,7 +991,8 @@ class QuoteTests(BotTest):
             self.assertNotIn("Server vybral dve možnosti", bot.build_server_context(), "only the first offer")
         self.setUp()
         # a quiet wish gets the cheapest sets per brand with their dB (the owner, 2026-11-08): QuietWishTests
-        for message in ("Dve izby po 15 m2", "Spálňa 14 m2, chcem kazetovú", "Spálňa 14 m2, chcem HAORI",
+        # a named series gets its own pick (NamedSeriesTests)
+        for message in ("Dve izby po 15 m2", "Spálňa 14 m2, chcem kazetovú", "Spálňa 14 m2, chcem RAS-B10N4KVRG-E2",
                         "Spálňa 14 m2, chcem čiernu"):
             self.sess.user_inputs[:] = [message]
             self.assertIsNone(bot._suggested_sets(), message)
@@ -4427,7 +4428,7 @@ class LatencyRegenTests(BotTest):
         assert_no_dangling_tool_use(self.sess.conversation)
 
     def test_an_offer_code_cannot_pick_keeps_the_forced_tool(self):
-        m = self.move_for("Spálňa 14 m2, koľko stojí HAORI?")
+        m = self.move_for("Spálňa 14 m2, koľko stojí čierna klimatizácia?")  # a colour: the model picks
         self.assertEqual((m.name, m.tool_choice, m.prerun), ("ponuka", "any", ()))
 
     def move_for(self, message):
@@ -4646,6 +4647,83 @@ class QuietWishTests(BotTest):
         self.assertEqual(looked_up, list(dict.fromkeys(i["code"] for items in quotes for i in items)))
         self.sess.user_inputs[:] = ["Byt, spálňa 14 m2 a obývačka 25 m2."]
         self.assertNotIn("lookup_product", [name for name, _ in bot.next_move().prerun])
+
+
+class LeftoverTests(BotTest):
+    """What the API A/B of 2026-11-08 left: more consent conditions, the installation's price after an offer, a series
+    the customer named priced by code, and nova-ponuka priced ahead."""
+
+    def test_more_conditions_pass_and_promises_stay_flagged(self):
+        for text in ("Po jej zadaní a výslovnom súhlase na otázku nižšie sa vám projektový manažér ozve.",
+                     "Firemný kontakt je info@klimabot.example, tam sa vám ozvú naši ľudia.",
+                     "Napíšte nám na info@klimabot.example. Tam sa vám ozve tím Samuel Malíšek Klimabot.",
+                     "Pri správe uveďte, čo sa stalo a kedy bola montáž, a tím sa vám ozve.",
+                     "Ak mi necháte meno a telefón a odsúhlasíte otázku nižšie, odovzdám to projektovému manažérovi. "
+                     "Ten sa vám potom ozve s ponukou."):
+            self.assertEqual(bot._premature_promise_sentences(text), [], text)
+        for text in ("Keďže ide o reklamáciu, odovzdám ju nášmu tímu. Ten sa vám ozve…", "Áno, ozve sa vám náš tím.",
+                     "Napíšte nám na info@klimabot.example, zavolá vám projektový manažér.",
+                     "Napíšte nám na info@klimabot.example. Vaše údaje sme zaznamenali."):
+            self.assertTrue(bot._premature_promise_sentences(text), text)
+
+    def after_offer(self, latest, first="Spálňa 14 m2."):
+        self.sess.user_inputs[:] = [first]
+        for codes in (AR30_SET, ["RAS-10E2AVG-E", "RAS-B10E2KVG-E"]):
+            bot.quote([{"code": c} for c in codes])
+        self.sess.user_inputs.append(latest)
+        return bot.next_move()
+
+    def test_the_installation_price_is_an_answer(self):
+        for latest in ("A koľko bude montáž?", "Koľko to bude celkovo aj s montážou a DPH?",
+                       "Predprípravu zatiaľ nemáme, robila by sa až s montážou. Koľko bude stáť montáž?"):
+            self.setUp()
+            move = self.after_offer(latest)
+            self.assertEqual(move.name, "odpoved", latest)
+            self.assertIn("Cenu montáže v chate neuvádzame", move.directive)
+        for latest in ("Koľko by stála HAORI 3,5 kW aj s montážou?", "Máte niečo lacnejšie? A koľko bude montáž?"):
+            self.setUp()
+            self.assertEqual(self.after_offer(latest).name, "nova-ponuka", latest)
+        self.setUp()
+        move = self.after_offer("O koľko presne sa tie dva varianty líšia? A koľko zaplatíme pri každom celkovo, aj s montážou a DPH?")
+        self.assertEqual(move.name, "odpoved")
+        self.assertIn("Cenu montáže v chate neuvádzame", move.directive)
+
+    def test_a_named_series_is_priced_by_code(self):
+        self.sess.user_inputs[:] = ["Spálňa 14 m2, chcem HAORI."]
+        picks = bot._suggested_sets()
+        self.assertEqual(len(picks), 1)
+        self.assertEqual(bot._series_key(picks[0][0]), "HAORI")
+        self.assertGreaterEqual(picks[0][0]["raw"]["cooling_kW"], bot._offer_min_kw(14))
+        move = bot.next_move()
+        self.assertEqual((move.name, move.tool_choice), ("ponuka", None))
+        self.assertEqual([name for name, _ in move.prerun], ["quote", "lookup_product"])
+        self.assertIn("ukáž možnosť, ktorú server nacenil", move.directive)
+        self.sess.user_inputs[:] = ["I've read good things about Samsung WindFree.", "Spálňa má 16 m², je to byt."]
+        picks = bot._suggested_sets()
+        self.assertEqual(len(picks), 1)
+        self.assertTrue(bot._series_key(picks[0][0]).startswith("WindFree_"))
+        self.sess.user_inputs[:] = ["Porovnajte HAORI a Avant, spálňa 14 m2."]
+        self.assertEqual({bot._series_key(r).removesuffix("_White") for r, _ in bot._suggested_sets()},
+                         {"HAORI", "WindFree_Avant_S2"})
+        # one priced option of a named series is no rewrite
+        q = bot.quote([{"code": c} for c in picks[0][1]])
+        self.sess.user_inputs[:] = ["Samsung WindFree, spálňa 16 m2."]
+        self.assertFalse(bot._single_first_offer("Spálňa 16 m2.", 0, f"Cena: {bot._eur(q['total_with_DPH_23pct_eur'])} s DPH."))
+
+    def test_a_cheaper_or_feature_variant_is_priced_ahead(self):
+        move = self.after_offer("Predsa chcem ionizátor, máte niečo s ním?")
+        self.assertEqual(move.name, "nova-ponuka")
+        quotes = [inp for name, inp in move.prerun if name == "quote"]
+        self.assertEqual(len(quotes), 2)
+        self.assertIsNone(move.tool_choice)
+        self.assertIn("VÝSLEDKY SERVERA", move.directive)
+        self.setUp()
+        move = self.after_offer("Máte niečo lacnejšie?", first="Byt, spálňa 14 m2 a obývačka 25 m2, čo najlacnejšie.")
+        self.assertEqual(move.name, "nova-ponuka")
+        self.assertTrue(move.prerun)
+        self.setUp()
+        move = self.after_offer("A čo HAORI 3,5 kW?")  # named something new: the model prices it
+        self.assertEqual((move.name, move.prerun, move.tool_choice), ("nova-ponuka", (), "any"))
 
 
 class RetrievalTests(BotTest):

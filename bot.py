@@ -1465,11 +1465,11 @@ def _quote_has_features(q, wanted):
     return True
 
 
-def _feature_sets_text(min_kw=0):
-    """The cheapest set of each series that has the wished features, cheapest first, for the server context."""
+def _feature_set_rows(min_kw=0):
+    """(kW, price, record, codes) of the cheapest set of each series that has the wished features, cheapest first."""
     wanted = _wished_features()
     if not wanted:
-        return ""
+        return []
     best = {}
     for codes, rec in _SETS.items():
         kw = rec["raw"].get("cooling_kW")
@@ -1479,10 +1479,18 @@ def _feature_sets_text(min_kw=0):
         key = (rec["brand"], _series_key(rec))
         if key not in best or (kw, rec["raw"]["set_price_EUR"]) < best[key][:2]:
             best[key] = (kw, rec["raw"]["set_price_EUR"], rec, sorted(codes))
+    return sorted(best.values(), key=lambda b: b[1])
+
+
+def _feature_sets_text(min_kw=0):
+    """The cheapest set of each series that has the wished features, cheapest first, for the server context."""
+    wanted = _wished_features()
+    if not wanted:
+        return ""
     names = ", ".join(n for n, _ in wanted)
-    if not best:
+    rows = _feature_set_rows(min_kw)[:3]
+    if not rows:
         return f" Zákazník chce {names}: žiadny nástenný set v cenníku to nemá — povedz to a ponúkni najbližšie riešenie."
-    rows = sorted(best.values(), key=lambda b: b[1])[:3]
     return (f" Zákazník chce {names}: majú to iba tieto rady, najlacnejšie najprv — "
             + "; ".join(f"{_describe(rec, as_set=True)} {codes}" for _, _, rec, codes in rows)
             + ". Ponúkni najlacnejší z nich (a druhý ako ďalšiu možnosť), každý nacenený cez `quote`; set bez tejto "
@@ -6973,7 +6981,9 @@ def _single_first_offer(user_input, quotes_before, reply):
     if quotes_before or len({_COLOUR_WORD_RE.sub("", " ".join(x["description"] for x in q["lines"])) for q in new}) != 1 or (
             not new or _industrial_case()):
         return False
-    if _codes_named(user_input) or _SERIES_NAMED_RE.search(user_input):
+    # Named in any message: "Samsung WindFree" one message before the room size (A/B of 2026-11-07).
+    text = f"{_all_user_text()} {user_input}"
+    if _codes_named(text) or _SERIES_NAMED_RE.search(text):
         return False
     return bool(_quotes_in_reply(new, reply))
 
@@ -7113,7 +7123,8 @@ _OFFER_QUESTION_RE = re.compile(
     r"^\W*(?:chcete|chceš|chces|môžem|mozem|mám\s+vám|želáte|zelate|prajete|would\s+you|shall\s+i|"
     r"do\s+you\s+want|should\s+i)\b", re.IGNORECASE)
 _CONDITIONAL_RE = re.compile(
-    r"\b(?:keď|ak|až|akonáhle|hneď\s+ako|po\s+(?:vašom\s+|tvojom\s+|jej\s+|jeho\s+)?(?:súhlase|potvrdení|odsúhlasení)|once|if|after|"
+    # "Po jej zadaní a výslovnom súhlase na otázku nižšie sa vám PM ozve" (API A/B of 2026-11-08)
+    r"\b(?:keď|ak|až|akonáhle|hneď\s+ako|po\s+(?:\w+\s+){0,4}?(?:súhlase|potvrdení|odsúhlasení)|once|if|after|"
     r"as\s+soon\s+as|when)\b",
     re.IGNORECASE)
 
@@ -7258,10 +7269,23 @@ def _premature_promise_sentences(text):
     if S().consent is not None and not S().consent_withdrawal_requested:  # withdrawn: the brief says NEKONTAKTOVAŤ
         return []
     out = []
+    previous = ""
     for x in _sentences(text):
-        if not _PROMISE_RE.search(_PROMISE_EXEMPT_RE.sub(" ", fold_diacritics(x))):
+        before, previous = previous, x
+        folded = fold_diacritics(x)
+        if not _PROMISE_RE.search(_PROMISE_EXEMPT_RE.sub(" ", folded)):
             continue
         if _CONDITIONAL_RE.search(x) and _CONDITION_NAMES_CONTACT_RE.search(x):
+            continue
+        # The condition said in the sentence before: "Ak mi necháte údaje a odsúhlasíte otázku nižšie, odovzdám to
+        # projektovému manažérovi. Ten sa vám potom ozve…" (API A/B of 2026-11-08).
+        if (_CONTINUES_RE.search(x) and _CONDITIONAL_RE.search(before) and _CONDITION_NAMES_CONTACT_RE.search(before)
+                and not _RECORDED_CLAIM_RE.search(folded)):
+            continue
+        # A reply to what the customer writes to us: "Firemný kontakt je info@…, tam sa vám ozvú naši ľudia", "Pri
+        # správe uveďte, čo sa stalo, a tím sa vám ozve" — no callback from the chat's data (API A/B of 2026-11-08).
+        if (_REPLY_PROMISE_RE.search(folded) and not _CALL_PROMISE_RE.search(folded) and not _RECORDED_CLAIM_RE.search(folded)
+                and (_WRITE_TO_US_RE.search(x) or _WRITE_TO_US_RE.search(before))):
             continue
         if x.rstrip().endswith("?") and _OFFER_QUESTION_RE.search(x):
             continue
@@ -7285,6 +7309,13 @@ _PROMISE_EXEMPT_RE = re.compile(
     r"\bne(?:slubuj|potvrdzuj|tvrd)\w*\b[^.?!]{0,40}?\bze\b[^.?!]*|"
     r"\bpotvrdi\s+(?:vam|ti)\b(?=[^.?!]*\bpri\s+(?:\w+\s+)?obhliadk)|"
     r"\bpri\s+(?:\w+\s+)?obhliadk\w*[^.?!]*?\bpotvrdi\s+(?:vam|ti)\b", re.IGNORECASE)
+_CONTINUES_RE = re.compile(r"^\W*(?:potom|následne|then|ten|tá|tí|they|he|she)\b|^\W*\w+\s+(?:sa\s+)?(?:vám\s+)?potom\b",
+                           re.IGNORECASE)
+_REPLY_PROMISE_RE = re.compile(r"\b(?:ozve|ozvu|ozveme|odpovie|odpovedia|odpovieme|get\s+back|reply|respond)\b", re.IGNORECASE)
+_CALL_PROMISE_RE = re.compile(r"\b(?:zavola\w*|s?kontaktuj\w*|will\s+(?:call|contact))", re.IGNORECASE)
+_WRITE_TO_US_RE = re.compile(
+    rf"{re.escape(COMPANY_EMAIL)}|\bnapíšte\s+(?:nám|na)\b|\bkeď\s+nám\s+napíšete\b|\bak\s+nám\s+napíšete\b|\bpri\s+správe\b|"
+    r"\bv\s+správe\s+(?:nám\s+)?uveďte\b|\bwrite\s+to\s+us\b|\be-?mail\s+us\b", re.IGNORECASE)
 _RECORDED_CLAIM_RE = re.compile(
     r"zaznamen|ulozil|ulozen|zapisal|zapisan|zapisujem|ukladam|odovzdal|"
     r"(?:mam|mame)\s+(?:uz\s+)?(?:vase|tvoje)\s+(?:udaje|kontakt|telef|cisl|meno)", re.IGNORECASE)
@@ -8295,13 +8326,36 @@ def _suggested_sets():
     # both, and d04 lost 4–7 calls recovering, once hitting the conversation cap (API A/B of 2026-11-08).
     if (sess.quotes or _industrial_case() or _support_case() or _wished(_OWN_INSTALL_RE)
             or any(rx.search(place_text) for rx in _EXPLICIT_COMMERCIAL_RES.values()) or _SERVER_ROOM_RE.search(place_text)
-            or _SERIES_NAMED_RE.search(text) or _MULTI_TEXT_RE.search(text) or taste or _wished(_INDOOR_TYPE_WISH_RE)
+            or (_SERIES_NAMED_RE.search(text) and not _named_series(text)) or _MULTI_TEXT_RE.search(text) or taste
+            or _wished(_INDOOR_TYPE_WISH_RE)
             or (not one_room and (_ROOMS_COUNT_RE.search(folded) or _FLAT_ROOMS_RE.search(folded)))):
         return None
     m2 = rooms or _customer_m2()
     if not m2 or len(set(m2)) > 1:
         return None
     min_kw = _offer_min_kw(m2[0])
+    named = _named_series(text)
+    if named:
+        # The series the customer named, its smallest white set that covers the room — one option per series is
+        # fine then (_single_first_offer). 8 of the 22 offer turns code didn't price named one (A/B of 2026-11-07).
+        best = {}
+        for codes, rec in _SETS.items():
+            kw = rec["raw"].get("cooling_kW")
+            series = re.sub(r"_(?:White|Black|Wood)$", "", _series_key(rec))
+            if ("/single_split/" not in rec["source"] or series not in named or _NON_WALL_PATH_RE.search(rec["category_path"])
+                    or re.search(r"_(?:Black|Wood)$", _series_key(rec)) or not isinstance(kw, (int, float)) or kw < min_kw):
+                continue
+            if series not in best or (kw, rec["raw"]["set_price_EUR"]) < best[series][:2]:
+                best[series] = (kw, rec["raw"]["set_price_EUR"], rec, sorted(codes))
+        # A family named ("WindFree") is one option, its cheapest series.
+        family = _NAMED_FAMILY_ONLY_RE.search(text)
+        options = {}
+        for series, row in best.items():
+            group = "WindFree" if family and series.startswith("WindFree_") else series
+            if group not in options or row[1] < options[group][1]:
+                options[group] = row
+        rows = sorted(options.values(), key=lambda b: b[1])[:2]
+        return [(rec, codes) for _, _, rec, codes in rows] or None
     wifi = _wished(_WIFI_WANTED_FOLDED_RE)
     premium = _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE)
     brands = _customer_brands(text)
@@ -8329,23 +8383,45 @@ def _suggested_sets():
     return None
 
 
+# "Samsung WindFree" names the family, not one of its four series.
+_NAMED_FAMILY_ONLY_RE = re.compile(r"wind[\s_-]*free(?![\s_-]*(?:comfort|avant|premi))", re.IGNORECASE)
+
+
+def _named_series(text):
+    """The residential wall series the customer named, as series keys ("HAORI", "WindFree_Comfort_S2"); a family
+    name ("WindFree") stands for all its series. [] when none is named, or when a code is (the model quotes a code)."""
+    if _codes_named(text):
+        return []
+    keys = [k for k, rx in _SERIES_RES.items() if rx.search(text) and k != "Parapetna_jednotka"]
+    if _NAMED_FAMILY_ONLY_RE.search(text):
+        keys += [k for k in _SERIES_PATTERNS if k.startswith("WindFree_") and k not in keys]
+    return keys
+
+
 _PRICED_NOTE = (" Server ich už nacenil a výsledky sú v bloku VÝSLEDKY SERVERA nižšie: ukáž ich s cenou s DPH "
                 "presne podľa nich a tie isté volania neopakuj.")
 
 
 def _picks_text(picks, priced=False):
     """The first offer's two code-picked sets, for the `ponuka` move; `priced` when code quotes them itself."""
-    why = ("najlepšia filtrácia" if _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE) else "najlacnejší vhodný set")
-    why += ", Wi-Fi v základe" if _wished(_WIFI_WANTED_FOLDED_RE) else ""
-    why += "".join(f", {name}" for name, _ in _wished_features())
+    named = bool(_named_series(_all_user_text()))
+    if named:
+        why = "rad, ktorý zákazník spomenul, najmenší set pre jeho plochu"
+    else:
+        why = ("najlepšia filtrácia" if _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE) else "najlacnejší vhodný set")
+        why += ", Wi-Fi v základe" if _wished(_WIFI_WANTED_FOLDED_RE) else ""
+        why += "".join(f", {name}" for name, _ in _wished_features())
     options = "; ".join(f"{i}) {_describe(rec, as_set=True)} {codes}" for i, (rec, codes) in enumerate(picks, 1))
+    them = "obe" if len(picks) > 1 else "ju"
     how = (" Server ich už nacenil (`quote`) a zistil funkcie radu (`lookup_product`, series_features): výsledky sú v "
-           "bloku VÝSLEDKY SERVERA nižšie. Ukáž obe s cenou s DPH presne podľa nich; tie isté nástroje znova nevolaj."
+           f"bloku VÝSLEDKY SERVERA nižšie. Ukáž {them} s cenou s DPH presne podľa nich; tie isté nástroje znova nevolaj."
            if priced else
-           " Naceň každú vlastným `quote` a ukáž obe s cenou s DPH. Funkcie radu zistíš cez `lookup_product` "
+           f" Naceň každú vlastným `quote` a ukáž {them} s cenou s DPH. Funkcie radu zistíš cez `lookup_product` "
            "('<rad> <výkon v kW>', series_features); na kódy ani funkcie nehľadaj cez `search_knowledge`.")
-    return (f" Server vybral dve možnosti podľa plochy a želaní zákazníka ({why}): {options}.{how} Iný rad "
-            "iba vtedy, keď zákazník chce niečo, čo tieto nemajú.")
+    which = "dve možnosti" if len(picks) > 1 else "možnosť"
+    rest = (" Iný rad ponúkni, iba keď oň zákazník požiada." if named else
+            " Iný rad iba vtedy, keď zákazník chce niečo, čo tieto nemajú.")
+    return f" Server vybral {which} podľa plochy a želaní zákazníka ({why}): {options}.{how}{rest}"
 
 
 def _series_query(rec):
@@ -8502,9 +8578,19 @@ _NEW_VARIANT_RE = re.compile(
 # drahsia ako ta lacnejsia?". "koľko" sent them to nova-ponuka, whose gate then demanded a new quote while the reply
 # rightly showed the earlier ones (A/B of 2026-11-07: 5 and 10 cena-neodpovedana rewrites).
 _QUOTED_COMPARE_RE = re.compile(
+    # "…A koľko zaplatíme pri každom celkovo?" asks about the same two (API A/B of 2026-11-08)
+    r"\bkolko\b[^?\n]{0,40}\bpri\s+(?:kazd|oboch|obidvoch)\w*|"
     r"\bo\s+kolko\b|\bktor\w*\s+(?:\w+\s+){0,2}(?:vyjde|je|bude|stoji)\s+(?:\w+\s+){0,2}(?:lacnejs|drahs)\w*|"
     r"\b(?:ta|ten|to|tu)\s+drahs\w*|\b(?:cenov\w*\s+)?rozdiel\s+(?:v\s+)?cen\w*|\bcenov\w*\s+rozdiel\w*|"
     r"\bhow\s+much\s+(?:more|less|cheaper)|\bwhich\s+(?:one\s+)?is\s+(?:cheaper|more\s+expensive)", re.IGNORECASE)
+# The installation's price after an offer (folded): "A koľko bude montáž?", "Koľko to bude celkovo aj s montážou a DPH?".
+# "koľko … bude" sent it to nova-ponuka in every arm of the API A/B of 2026-11-08, whose gate then demanded a quote for a
+# price the bot never states.
+_INSTALL_PRICE_ASK_RE = re.compile(
+    r"\b(?:kolko|kolik|cen\w*|stoj\w*|stat)\b[^?.!\n]{0,40}\bmontaz\w*|\bmontaz\w*[^?.!\n]{0,30}\b(?:kolko|stoj\w*|cen\w*|stat)\b|"
+    r"\bhow\s+much\b[^?.!\n]{0,40}\binstall\w*|\binstall\w*\s+(?:cost|price)", re.IGNORECASE)
+_INSTALL_ANSWER = (" Cenu montáže v chate neuvádzame: povedz jednou vetou, že ju určí projektový manažér po bezplatnej "
+                   "obhliadke, a nič neodhaduj (ani rozsah). Celkovú sumu uveď iba ako cenu s DPH z `quote` a že montáž je navyše.")
 # A question about a product shown, not a new variant (folded): "Koľko dB má AR35?", "Aká je záruka?", "Čo je WindFree?".
 _SPEC_QUESTION_RE = re.compile(r"\bco\s+(?:to\s+)?je\b|\bako\s+funguj\w*|\brozdiel\w*|\bdb\b|\bdecibel\w*|\bhluk\w*|\bhlucn\w*|\bseer\b|\bscop\b|"
                                r"\btried\w*|\bzaruk\w*|(?:^|[.?!]\s*)ma\s|\bvie\b|\bpodporuj\w*", re.IGNORECASE)
@@ -8719,17 +8805,38 @@ def _commercial_units_note():
             f"`lookup_product` („Toshiba podstropná <kW>“, „Samsung podstropná <kW>“) s vonkajšou jednotkou a ovládačom. {ceiling}")
 
 
-def _cheapest_rooms_text(latest):
+def _cheapest_rooms_plan(latest):
+    """(room sets, multi-split options) for a cheaper variant asked for with several rooms, or None."""
+    if not (_wished(_CHEAP_WISH_RE, latest) or _CHEAPER_RE.search(fold_diacritics(latest))):
+        return None
+    room_sets = _cheapest_room_sets(_all_user_text())
+    return (room_sets, _suggested_multis()[:1]) if room_sets else None
+
+
+def _cheapest_rooms_text(latest, priced=False):
     """Another variant asked for as the cheapest, with several rooms: the separate sets first, whatever the first offer
     was. q10 called multi-split the better deal at 877 € more, because this ran on the first offer only (QA 2026-11-01)."""
-    if not (_wished(_CHEAP_WISH_RE, latest) or _CHEAPER_RE.search(fold_diacritics(latest))):
+    plan = _cheapest_rooms_plan(latest)
+    if not plan:
         return ""
-    room_sets = _cheapest_room_sets(_all_user_text())
-    if not room_sets:
-        return ""
+    room_sets, multis = plan
     return (f" Pri viacerých izbách naceň ako prvé samostatné sety ({_room_sets_text(room_sets)})"
-            + (_multi_picks_text(multis[:1]) if (multis := _suggested_multis()) else "")
+            + (_multi_picks_text(multis, priced=priced) if multis else "")
             + " Ktorý variant je lacnejší, ukáž podľa súm z `quote`.")
+
+
+def _new_variant_prerun(latest, missing, min_kw):
+    """Code's calls for the variants the nova-ponuka directive names by code, when the customer named nothing new: the
+    two cheapest sets with a wished feature the offers lack, or the cheapest room sets (one brand) and one multi-split.
+    The model priced them itself; nova-ponuka was never pre-priced, 20 s at the median (A/B of 2026-11-07)."""
+    if missing:
+        return _picks_prerun([(rec, codes) for _, _, rec, codes in _feature_set_rows(min_kw)[:2]])
+    plan = _cheapest_rooms_plan(latest)
+    if not plan:
+        return []
+    room_sets, multis = plan
+    rooms_call = _room_sets_prerun(room_sets)
+    return ([rooms_call] if rooms_call else []) + [("quote", {"items": o["items"]}) for o in multis]
 
 
 def _sales_move(latest):
@@ -8760,17 +8867,24 @@ def _sales_move(latest):
             return Move("odpoved", "Zákazník porovnáva ponuky, ktoré už dostal: nový variant nenaceňuj. Sumy s DPH a "
                         "rozdiel ber z výsledkov `quote` tohto rozhovoru (`comparison_with_earlier_quotes`), ktorá je "
                         "lacnejšia, povedz podľa nich. Potom jednou vetou nadviaž na nacenené možnosti." + budget
-                        + _NO_CONTACT_YET, None)
+                        + (_INSTALL_ANSWER if "montaz" in folded_latest else "") + _NO_CONTACT_YET, None)
+        if (not missing and not new_spec and _INSTALL_PRICE_ASK_RE.search(folded_latest)
+                and not _NEW_VARIANT_RE.search(_INSTALL_PRICE_ASK_RE.sub(" ", folded_latest))):
+            return Move("odpoved", "Zákazník sa pýta na montáž k ponuke, ktorú už dostal: nový variant nenaceňuj."
+                        + _INSTALL_ANSWER + " Potom jednou vetou nadviaž na nacenené možnosti." + _NO_CONTACT_YET, None)
         if missing or (_NEW_VARIANT_RE.search(folded_latest)
                 or (not spec_question and (_codes_named(latest) or _SERIES_NAMED_RE.search(latest)
                                            or _CUSTOMER_M2_RE.search(latest) or _CUSTOMER_KW_RE.search(latest)))):
+            min_kw = _offer_min_kw(max(_customer_m2())) if _customer_m2() else 0
+            prerun = () if new_spec else tuple(_new_variant_prerun(latest, missing, min_kw))
+            priced = sum(name == "quote" for name, _ in prerun)
             return Move("nova-ponuka", "Zákazník chce iný variant (lacnejší, iný rad, inú veľkosť alebo konkrétny kód): "
                         "naceň ho cez `quote` (kódy z `lookup_product`) a uveď cenu s DPH; ktorý je lacnejší, ber z "
                         "`comparison_with_earlier_quotes`. Na nič, čo už povedal, sa znova nepýtaj."
-                        + _feature_sets_text(_offer_min_kw(max(_customer_m2())) if _customer_m2() else 0)
-                        + _cheapest_rooms_text(latest) + _commercial_units_note() + _budget_note() + _rooms_limit_note()
-                        + _NO_CONTACT_YET + _EXACT_AMOUNTS,
-                        "any")
+                        + _feature_sets_text(min_kw) + _cheapest_rooms_text(latest, priced=bool(prerun))
+                        + (_PRICED_NOTE if prerun else "")
+                        + _commercial_units_note() + _budget_note() + _rooms_limit_note() + _NO_CONTACT_YET + _EXACT_AMOUNTS,
+                        None if priced >= 2 else "any", prerun)
         if "?" in latest or _TECH_QUESTION_RE.search(latest):
             return Move("odpoved", "Zákazník sa pýta na podrobnosti: odpovedz iba podľa výsledkov nástrojov (funkcie "
                         "radu a SEER, SCOP, hlučnosť z `lookup_product`, pravidlá zo `search_knowledge`); čo v nich nie "
@@ -8849,10 +8963,14 @@ def _sales_move(latest):
     if _wished(_QUIET_WISH_RE):  # the customer's first wish, and the offer of 2026-11-02 gave no figure
         directive += (" Zákazník chce tichý chod: pri každej možnosti uveď hlučnosť vnútornej jednotky v dB z `lookup_product`"
                       + (" (pri možnostiach, ktoré nacenil server, je v bloku VÝSLEDKY SERVERA)." if prerun else "."))
-    # Two priced options cover the first offer: the first call needs no forced tool then.
-    complete = sum(name == "quote" for name, _ in prerun) >= 2
+    # Two priced options cover the first offer, and so does one of a series the customer named: the first call needs
+    # no forced tool then.
+    priced = sum(name == "quote" for name, _ in prerun)
+    one_named = priced == 1 and bool(picks) and len(picks) == 1 and bool(_named_series(text))
+    complete = priced >= 2 or one_named
     if complete:
         directive = directive.replace("naceň dve možnosti, každú vlastným `quote`, a uveď ich ceny s DPH",
+                                      "ukáž možnosť, ktorú server nacenil, s jej cenou s DPH" if one_named else
                                       "ukáž dve možnosti, ktoré server nacenil, s ich cenami s DPH", 1)
     return Move("ponuka", directive + _commercial_units_note() + _budget_note() + _rooms_limit_note() + _EXACT_AMOUNTS,
                 None if complete else "any", tuple(prerun))
