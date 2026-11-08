@@ -101,6 +101,14 @@ def no_code_picks(test):
         test.addCleanup(patcher.stop)
 
 
+def pm_places_priced(test):
+    """For the rest of the test, salons, practices and server rooms are priced as before 2026-11-08 (the owner sends them to
+    the PM now): their fit logic in quote() and the notes stay covered, should they be sold in the chat again."""
+    patcher = mock.patch.object(bot, "_PM_ONLY_PLACE_RE", re.compile(r"(?!x)x"))
+    patcher.start()
+    test.addCleanup(patcher.stop)
+
+
 def _btype(b):
     return b.get("type") if isinstance(b, dict) else getattr(b, "type", None)
 
@@ -614,6 +622,7 @@ class QuoteTests(BotTest):
         self.assertIn("error", self.q([(c, 2) for c in AR30_SET]))
 
     def test_server_room_needs_capacity_failover_and_two_systems(self):
+        pm_places_priced(self)
         self.sess.user_inputs.append("Serverovňa, tepelná záťaž 4 kW, 24/7.")
         small = self.q([("RAV-GM402ATP-E", 2), ("RAV-HM401KRTP-E", 2), ("RBC-AMSU52-E", 1)])
         self.assertIn("error", small)
@@ -1340,6 +1349,7 @@ class QuoteTests(BotTest):
         self.assertEqual(bot.sanitize_reply("Pozri [1] a [tabuľku].")[0], "Pozri [1] a [tabuľku].")
 
     def test_salon_override_turns_error_into_warning(self):  # c08
+        pm_places_priced(self)
         self.sess.user_inputs.append("Kaderníctvo 55 m², chcem lacnú nástennú.")
         self.assertIn("error", self.q([(c, 1) for c in AR30_SET]))
         q = self.q([(c, 1) for c in AR30_SET], override_reason="zákazník trvá na nástennej rezidenčnej")
@@ -1505,6 +1515,7 @@ class RoundThreeTests(BotTest):
         self.assertTrue(bot._ANY_BRAND_RE.search(bot.fold_diacritics(bot._all_user_text())))
 
     def test_salon_gets_no_wall_unit(self):  # s04
+        pm_places_priced(self)
         self.sess.user_inputs.append("Kozmetický salón 40 m², podhľad nemáme, nech to nefúka klientkam do tváre.")
         wall = bot.quote([{"code": "RAV-GM562ATP-E"}, {"code": "RAV-HM561KRTP-E"}], segment="B2B_firma")
         self.assertIn("podstropnú", wall["error"])
@@ -3055,9 +3066,13 @@ class QaFixTests(BotTest):
         self.assertEqual(cellar.name, "priemysel")
         self.assertIn("error", bot.quote([{"code": c} for c in AR30_SET]))
         self.assertTrue(bot._industrial_contact_text("sk").startswith("Takéto priestory"))
-        self.assertEqual(self.move("Potrebujeme chladenie do serverovne, záťaž 6 kW.").name, "ponuka")
-        self.assertIn("podhľad", self.move("Mám zubnú ambulanciu 35 m2.").directive)
-        self.assertNotIn("Wi-Fi", self.move("Mám zubnú ambulanciu 35 m2.").directive)
+        # the owner, 2026-11-08: salons, practices and server rooms go straight to the PM
+        self.assertEqual(self.move("Potrebujeme chladenie do serverovne, záťaž 6 kW.").name, "priemysel")
+        self.assertEqual(self.move("Mám zubnú ambulanciu 35 m2.").name, "priemysel")
+        self.assertEqual(self.move("Otváram kozmetický salón, 40 m2.").name, "priemysel")
+        self.assertIn("error", bot.quote([{"code": c} for c in AR30_SET]))
+        self.assertTrue(bot._industrial_contact_text("sk").startswith("Takéto priestory"))
+        self.assertEqual(self.move("Tak nie, žiadny salón, bude to obyčajná kancelária 30 m2.").name, "ponuka")
         self.assertEqual(self.move("Chcem kúriť v celom dome, dom má 120 m2.").name, "zisti-izby")
 
     def test_f24_the_brief_names_the_chosen_variant_and_the_room(self):
@@ -3740,6 +3755,7 @@ class IndecisiveCustomerTests(BotTest):
 
     # I03: the override after a refusal
     def test_the_override_runs_after_the_plain_call_was_refused(self):
+        pm_places_priced(self)
         wall = [{"code": c, "qty": 1} for c in self.AR35_26]
         _, shown = self.turn(
             "Kozmetický salón 30 m2, ale chcem nástennú, trvám na tom. Koľko to stojí?",
@@ -3866,6 +3882,7 @@ class IndecisiveCustomerTests(BotTest):
         self.assertIn(priced(self.AR35_26), shown)
 
     def test_a_salon_is_told_where_the_units_are(self):
+        pm_places_priced(self)
         self.say("Kozmetický salón 30 m2, betónový strop, koľko to stojí?")
         self.assertIn("Toshiba podstropná", bot.next_move().directive)
         self.assertIn("kazetu neponúkaj", bot.next_move().directive)
@@ -4020,7 +4037,7 @@ class LiveRetestFixTests(BotTest):
         self.say("Tri izby, 14, 12 a 25 m2.")
         self.q(self.AR35, 3)
         multi = self.q(self.TOSHIBA_MULTI_3)
-        self.assertIn("drahšia než 1. ponuka", multi["comparison_with_earlier_quotes"][-1]["reads"])
+        self.assertIn("drahšia než ponuka Samsung AR35 WIFI", multi["comparison_with_earlier_quotes"][-1]["reads"])
 
     # R3
     def test_a_difference_of_options_not_shown(self):
@@ -4038,6 +4055,7 @@ class LiveRetestFixTests(BotTest):
 
     # R4
     def test_a_salon_gets_no_residential_picks(self):
+        pm_places_priced(self)
         self.say("Priestor 30 m2, bez podhľadu.", "Asi kancelária. Manželka by tam radšej otvorila kozmetický salón. Koľko to stojí?")
         self.assertIsNone(bot._suggested_sets())
         self.assertNotIn("Server vybral dve možnosti", bot.next_move().directive)
@@ -4634,7 +4652,7 @@ class QuietWishTests(BotTest):
                                     "tepelnú záťaž 4 kW a beží to 24/7. Chceme Toshibu a dve nezávislé jednotky."]
         self.assertIsNone(bot._suggested_sets())
         move = bot.next_move()
-        self.assertEqual((move.name, list(move.prerun)), ("ponuka", []))
+        self.assertEqual((move.name, list(move.prerun)), ("priemysel", []))  # straight to the PM since 2026-11-08
         self.sess.user_inputs[:] = ["Serverovňa, dve miestnosti po 12 m2, každá má rack."]
         self.assertEqual(bot._suggested_multis(), [])
 

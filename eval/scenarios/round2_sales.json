@@ -138,23 +138,16 @@
       "P1-13 price incl. installation in the same turn",
       "B2B_firma segment from IČO"
     ],
-    "review": "Rezidenčné Samsung Cebu ani iné RAC/RAS neponúkne a nenacení ani na porovnanie; vecne vysvetlí, prečo komerčný rad, bez vymyslených záručných podmienok. Navrhne podstropnú CAC/RAV primeranú záťaži (nie nástennú nad kreslom, nie kazetu bez podhľadu), pri RAV pridá ovládač RBC-ASCU32Y-E. Ceny sú v segmente B2B_firma, bez DPH aj s DPH, bez ceny montáže, v ťahu so zákazníkovou otázkou.",
+    "review": "Rezidenčné Samsung Cebu ani iné RAC/RAS neponúkne a nenacení ani na porovnanie; vecne vysvetlí, prečo komerčný rad, bez vymyslených záručných podmienok. Navrhne podstropnú CAC/RAV primeranú záťaži (nie nástennú nad kreslom, nie kazetu bez podhľadu), pri RAV pridá ovládač RBC-ASCU32Y-E. Ceny sú v segmente B2B_firma, bez DPH aj s DPH, bez ceny montáže, v ťahu so zákazníkovou otázkou. Od 2026-11-08 (rozhodnutie majiteľa) ide salón, ambulancia aj serverovňa rovno k projektovému manažérovi: bot nenavrhuje systém ani modely a nenaceňuje, dá firemný kontakt alebo — ako podmienku — spätné volanie, keď zákazník nechá meno a telefón či e-mail a odsúhlasí otázku; potom lead pre PM. Body o kódoch a cenách vyššie už neplatia.",
     "expect": {
       "lead": true,
       "consent": "sales",
       "handoff_request": false,
-      "quote": true,
-      "price_before_gdpr": true,
+      "quote": null,
+      "price_before_gdpr": null,
       "commercial": true,
       "segment": "B2B_firma",
       "language": "sk",
-      "codes_any": [
-        "AC052RNCDKG/EU",
-        "AC071RNCDKG/EU",
-        "AC071BNCPKG/EU",
-        "RAV-HM561CTP-E",
-        "RAV-HM801CTP-E"
-      ],
       "must_not_say": [
         "(?:^|[.?!\\n])(?=[^.?!\\n]*záruk)(?=[^.?!\\n]*(?:neplatí|nebude\\s+platiť|zanik|stratí|prepad|nevzťahuje))(?=[^.?!\\n]*(?:komerčn|salón|prevádzk|podnikan|firemn))"
       ]

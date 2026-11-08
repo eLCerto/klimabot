@@ -103,7 +103,7 @@
       "segment": "B2B_firma",
       "language": "sk"
     },
-    "review": "CAC/RAV, N+1 dva nezávislé single-splity (nie multi-split), B2B segment, server-room funkcia.",
+    "review": "CAC/RAV, N+1 dva nezávislé single-splity (nie multi-split), B2B segment, server-room funkcia. Od 2026-11-08 (rozhodnutie majiteľa) ide salón, ambulancia aj serverovňa rovno k projektovému manažérovi: bot nenavrhuje systém ani modely a nenaceňuje, dá firemný kontakt alebo — ako podmienku — spätné volanie, keď zákazník nechá meno a telefón či e-mail a odsúhlasí otázku; potom lead pre PM. Body o kódoch a cenách vyššie už neplatia.",
     "messages": [
       "Dobrý deň, potrebujeme chladenie do serverovne, beží 24/7.",
       "Tepelný výkon serverov je asi 5 kW, miestnosť má 12 m². Potrebujeme aj záložnú jednotku.",
@@ -121,7 +121,7 @@
       "segment": "retail_B2C",
       "language": "sk"
     },
-    "review": "Komerčné kazety + dekoračný panel (+ ovládač pri RAV) v quote.",
+    "review": "Komerčné kazety + dekoračný panel (+ ovládač pri RAV) v quote. Od 2026-11-08 (rozhodnutie majiteľa) ide salón, ambulancia aj serverovňa rovno k projektovému manažérovi: bot nenavrhuje systém ani modely a nenaceňuje, dá firemný kontakt alebo — ako podmienku — spätné volanie, keď zákazník nechá meno a telefón či e-mail a odsúhlasí otázku; potom lead pre PM. Body o kódoch a cenách vyššie už neplatia.",
     "messages": [
       "Dobrý deň, zariaďujeme zubnú ambulanciu, ordinácia 30 m² a čakáreň 20 m².",
       "Máme podhľad, chceli by sme kazetové jednotky do stropu, aby to nefúkalo na pacienta.",
@@ -139,7 +139,7 @@
       "segment": "retail_B2C",
       "language": "sk"
     },
-    "review": "Komerčná podstropná CAC/RAV, nie nástenná jednotka nad kreslom; montáž bez ceny (určí PM).",
+    "review": "Komerčná podstropná CAC/RAV, nie nástenná jednotka nad kreslom; montáž bez ceny (určí PM). Od 2026-11-08 (rozhodnutie majiteľa) ide salón, ambulancia aj serverovňa rovno k projektovému manažérovi: bot nenavrhuje systém ani modely a nenaceňuje, dá firemný kontakt alebo — ako podmienku — spätné volanie, keď zákazník nechá meno a telefón či e-mail a odsúhlasí otázku; potom lead pre PM. Body o kódoch a cenách vyššie už neplatia.",
     "messages": [
       "Ahojte, mám kaderníctvo 55 m², štyri kreslá, v lete je tam nedýchateľne.",
       "Podhľad nemáme, strop je betónový.",

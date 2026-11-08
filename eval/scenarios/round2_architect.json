@@ -2,18 +2,18 @@
   {
     "id": "a01_reklamacia_support_suhlas",
     "author": "architect",
-    "title": "Reklamácia Toshiby — spätné volanie so súhlasom na podporu, žiadny lead",
+    "title": "Reklamácia Toshiby — odovzdanie tímu so súhlasom na reklamáciu",
     "targets": [
-      "P0-2 support consent",
-      "P0-1 typed-phrase bypass removed",
-      "P0-4 no auto-capture after handoff, no name heuristics ('Moje')",
-      "c14 regression"
+      "complaint handover with consent (the owner, 2026-11-01)",
+      "a yes before the question doesn't count",
+      "no auto-capture without consent",
+      "no sale started by a mention"
     ],
-    "review": "Reklamáciu bot nerieši (rozhodnutie majiteľa 2026-10-11): request_human_handoff s účelom support, žiadna otázka o súhlase, nepýta si meno ani telefón, nič nesľubuje (záruku, technika, termín) a dá zákazníkovi e-mail (a telefón) firmy. Údaje, ktoré zákazník sám napíše (správa 3), sa nikam neuložia; žiadny lead, handoff_records ani quote. Poznámka o druhej klíme do spálne je len zmienka — nanajvýš krátka ponuka pomôcť neskôr.",
+    "review": "Reklamácia je druhý druh odovzdania (rozhodnutie majiteľa 2026-11-01): bot sa ospravedlní, reklamáciu sám nerieši a nič nesľubuje (záruku, technika, termín), vypýta si meno, telefón, e-mail a obec a server pripojí otázku na súhlas na účel reklamácie. „Súhlasím“ v správe 3 prišlo pred otázkou a nerátá sa; výslovné áno v správe 4 áno, potom capture_lead zapíše reklamáciu (# Reklamácia). Poznámka o druhej klíme do spálne je len zmienka — nanajvýš krátka ponuka pomôcť neskôr, žiadna cenová ponuka.",
     "expect": {
-      "lead": false,
-      "consent": "none",
-      "handoff_request": true,
+      "lead": true,
+      "consent": "complaint",
+      "handoff_request": null,
       "quote": false,
       "price_before_gdpr": null,
       "commercial": null,
@@ -21,8 +21,7 @@
       "language": "sk",
       "codes_any": [],
       "must_not_say": [
-        "účelom prípravy cenovej ponuky",
-        "účelom vybavenia"
+        "účelom prípravy cenovej ponuky"
       ]
     },
     "messages": [
@@ -174,20 +173,16 @@
       "P0-4 'Kontakt:' is not a name",
       "c06 regression"
     ],
-    "review": "No residential line in any successful quote; if the model tried WindFree/RAS, quote returned the fit error and no override_reason was used, since the customer accepted. The accepted quote has 2 independent single-split pairs, each ≥ 4,2 kW (1,2 × 3,5 kW), plus RBC-AMSU52-E or MIM-B14; no multi-split or Twin; B2B segment; sized from the heat load, not the 9 m². PM brief: heat load 3,5 kW and 2 racks as separate facts (c06 stored '5 racks'); name Lenka Šusterová, not 'Kontakt'.",
+    "review": "No residential line in any successful quote; if the model tried WindFree/RAS, quote returned the fit error and no override_reason was used, since the customer accepted. The accepted quote has 2 independent single-split pairs, each ≥ 4,2 kW (1,2 × 3,5 kW), plus RBC-AMSU52-E or MIM-B14; no multi-split or Twin; B2B segment; sized from the heat load, not the 9 m². PM brief: heat load 3,5 kW and 2 racks as separate facts (c06 stored '5 racks'); name Lenka Šusterová, not 'Kontakt'. Od 2026-11-08 (rozhodnutie majiteľa) ide salón, ambulancia aj serverovňa rovno k projektovému manažérovi: bot nenavrhuje systém ani modely a nenaceňuje, dá firemný kontakt alebo — ako podmienku — spätné volanie, keď zákazník nechá meno a telefón či e-mail a odsúhlasí otázku; potom lead pre PM. Body o kódoch a cenách vyššie už neplatia.",
     "expect": {
       "lead": true,
       "consent": "sales",
       "handoff_request": false,
-      "quote": true,
-      "price_before_gdpr": true,
+      "quote": null,
+      "price_before_gdpr": null,
       "commercial": true,
       "segment": "B2B_firma",
       "language": "sk",
-      "codes_any": [
-        "RBC-AMSU52-E",
-        "MIM-B14"
-      ],
       "must_not_say": [
         "twin\\w*\\s+(kit\\w*\\s+)?(pre|na|ako)\\s+(redundanc|záloh)"
       ]

@@ -131,19 +131,16 @@
       "c09 regression (TO-RC-MBS flagged as invented, guessed 300 €)",
       "c06 regression (undersized N+1)"
     ],
-    "review": "The customer types the codes himself: the bot must repeat TO-RC-MBS-1, RBC-AMSU52-E and RBC-ASCU32Y-E in full, with prices only from quote (TO-RC-MBS-1 lists at 620 € before discount, not a guessed 200–300 €) and no model-code regen on them. Two independent RAV units of ≥ 4.8 kW each (size 56), no Twin or multi-split; the controller swap gets an exact quote difference plus the warning that the compact controller lacks the server-room functions. The unprompted 'Súhlasím' in turn 6 must not count unless the canonical question came right before it.",
+    "review": "The customer types the codes himself: the bot must repeat TO-RC-MBS-1, RBC-AMSU52-E and RBC-ASCU32Y-E in full, with prices only from quote (TO-RC-MBS-1 lists at 620 € before discount, not a guessed 200–300 €) and no model-code regen on them. Two independent RAV units of ≥ 4.8 kW each (size 56), no Twin or multi-split; the controller swap gets an exact quote difference plus the warning that the compact controller lacks the server-room functions. The unprompted 'Súhlasím' in turn 6 must not count unless the canonical question came right before it. Od 2026-11-08 (rozhodnutie majiteľa) ide salón, ambulancia aj serverovňa rovno k projektovému manažérovi: bot nenavrhuje systém ani modely a nenaceňuje, dá firemný kontakt alebo — ako podmienku — spätné volanie, keď zákazník nechá meno a telefón či e-mail a odsúhlasí otázku; potom lead pre PM. Body o kódoch a cenách vyššie už neplatia.",
     "expect": {
       "lead": true,
       "consent": "sales",
       "handoff_request": false,
-      "quote": true,
-      "price_before_gdpr": true,
+      "quote": null,
+      "price_before_gdpr": null,
       "commercial": true,
       "segment": "B2B_firma",
       "language": "sk",
-      "codes_any": [
-        "TO-RC-MBS-1"
-      ],
       "must_not_say": [
         "TO-RC-MBS(?!-1)",
         "RBC-AMSU52(?!-E)",

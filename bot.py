@@ -991,6 +991,9 @@ def _stems_re(stems):
 
 _SERVER_ROOM_RE = _stems_re(SIZING["server_room"]["triggers"])
 _EXPLICIT_COMMERCIAL_RES = {place: _stems_re(stems) for place, stems in SIZING["explicit_commercial"].items()}
+# Salons, practices and server rooms go straight to the PM (the owner, 2026-11-08): see _industrial_case.
+_PM_ONLY_PLACE_RE = _stems_re([stem for stems in SIZING["explicit_commercial"].values() for stem in stems]
+                              + SIZING["server_room"]["triggers"])
 _INFERRED_COMMERCIAL_RE = _stems_re(SIZING["inferred_commercial"])
 # Industrial spaces (a hall, production, a factory) are out of the chatbot's scope (the owner's
 # decision, 2026-10-18): no design, no price — the PM's contact, or the PM calls back.
@@ -1000,11 +1003,15 @@ _TECHNOLOGICAL_RE = _stems_re(SIZING["technological"]["triggers"] + SIZING["acco
 
 
 def _industrial_case():
-    return bool(_INDUSTRIAL_RE.search(_place_text()) or _TECHNOLOGICAL_RE.search(_place_text()))
+    """A space the project manager designs himself; the chatbot neither designs nor prices it. Salons, practices and server
+    rooms joined the industrial, technological and accommodation spaces on 2026-11-08 (the owner: "can go straight to the
+    PM") — their code picks failed and their model-built offers were the slowest (API A/B of 2026-11-08)."""
+    place = _place_text()
+    return bool(_INDUSTRIAL_RE.search(place) or _TECHNOLOGICAL_RE.search(place) or _PM_ONLY_PLACE_RE.search(place))
 
 
 def _industrial_contact_text(language):
-    technological = _TECHNOLOGICAL_RE.search(_place_text()) and not _INDUSTRIAL_RE.search(_place_text())
+    technological = not _INDUSTRIAL_RE.search(_place_text())  # a wine cellar, a hotel, a salon, a practice, a server room
     if language == "en":
         return (f"{'Spaces like this are' if technological else 'Industrial and agricultural spaces are'} designed individually by our project manager — please {_contact_offer('en')}. "
                 "If you leave your name and phone or e-mail here, the project manager will get back to you.")
@@ -2239,7 +2246,7 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
     if _industrial_case():
         log_event("quote_refused_industrial")
         return {"error": (
-            "Priemyselný priestor (hala, výroba), hotel, penzión ani technologické chladenie (vínna pivnica, chladiareň) tento chatbot nenaceňuje ani nenavrhuje — rieši ho projektový "
+            "Priemyselný priestor (hala, výroba), hotel, penzión, technologické chladenie (vínna pivnica, chladiareň), salón, ambulanciu ani serverovňu tento chatbot nenaceňuje ani nenavrhuje — rieši ho projektový "
             "manažér individuálne. Nenaceňuj a nenavrhuj modely; daj zákazníkovi kontakt alebo ponúkni, že ak "
             "nechá meno a telefón či e-mail, projektový manažér sa mu ozve.")}
     if len(items or []) > 20:
@@ -2435,6 +2442,11 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
     alternative = _cheaper_alternative(fit_lines, total)
     if alternative:
         result["cheaper_alternative"] = alternative
+    # najlacnejsie-tvrdenie was 7 rewrites in the API A/B of 2026-11-08: the warning sat in fit_warnings, the reply still
+    # said "najlacnejšia".
+    if alternative or any("nie je najlacnejší" in w for w in fit_warnings):
+        result["not_the_cheapest"] = ("Táto zostava nie je najlacnejšia vhodná: nenazývaj ju najlacnejšou; lacnejšiu "
+                                      "ukáž, iba keď ju naceníš.")
     budget_source = "parameter"
     # Only a budget the customer typed: the model passed 1 000 € and 1 800 € nobody had named, and the reply said "Pri vašom
     # rozpočte 1 000 €" (QA 2026-11-03, t02, t05).
@@ -2459,8 +2471,11 @@ def quote(items, segment="retail_B2C", budget_eur=None, promotion_code=None, ove
             "this_minus_other_eur": round(result["total_eur"] - other["total_eur"], 2),
             "cheaper": "táto ponuka" if diff < 0 else "predošlá ponuka" if diff > 0 else "rovnaká cena",
             # In words: a signed difference was read backwards, "lacnejší o 1 304,05 €" about the dearer one (live 2026-11-02, d06).
+            # The earlier offer by its product, not "1. ponuka": the model turned the number into "Poradie 1" (interne-info,
+            # API A/B of 2026-11-08).
             "reads": ("rovnaká cena" if not diff else
-                      f"táto ponuka je o {_eur(abs(diff))} s DPH {'lacnejšia' if diff < 0 else 'drahšia'} než {i}. ponuka"),
+                      f"táto ponuka je o {_eur(abs(diff))} s DPH {'lacnejšia' if diff < 0 else 'drahšia'} než ponuka "
+                      f"{other['lines'][0]['description'].split(' – ')[0]}"),
         })
     if comparisons:
         result["comparison_with_earlier_quotes"] = comparisons[-4:]
@@ -4730,6 +4745,32 @@ _TYKANIE_RE = re.compile(
 _CUSTOMER_TYKA_RE = re.compile(r"\b(?:ahoj|čau|čaute|čus|nazdar|servus|poraď|pošli|ukáž)\b", re.IGNORECASE)
 
 
+# The example sentences the directives quote („…“) are in vykanie; a customer who tyká got them copied into a tykanie reply,
+# and oslovenie-mix became the top rewrite (5 → 11 across the arms of the API A/B of 2026-11-08). Code turns them into
+# tykanie; the instructions around them already address the model with "ty".
+_TYKANIE_PHRASES = {"vybrali ste si": "tvoja voľba je"}
+_TYKANIE_WORDS = {
+    "vám": "ti", "vás": "ťa", "váš": "tvoj", "vaša": "tvoja", "vaše": "tvoje", "vašu": "tvoju", "vášho": "tvojho",
+    "vašom": "tvojom", "vašej": "tvojej", "vašim": "tvojim", "vašich": "tvojich", "vašou": "tvojou", "vášmu": "tvojmu",
+    "odsúhlasíte": "odsúhlasíš", "necháte": "necháš", "napíšete": "napíšeš", "potvrdíte": "potvrdíš", "chcete": "chceš",
+    "máte": "máš", "rozhodnete": "rozhodneš", "môžete": "môžeš", "dostanete": "dostaneš", "nájdete": "nájdeš",
+    "uvidíte": "uvidíš", "budete": "budeš", "viete": "vieš", "potrebujete": "potrebuješ", "vyberiete": "vyberieš",
+    "napíšte": "napíš", "pošlite": "pošli", "uveďte": "uveď", "dajte": "daj", "nechajte": "nechaj", "potvrďte": "potvrď",
+    "odsúhlaste": "odsúhlas", "zavolajte": "zavolaj", "pozrite": "pozri",
+}
+_TYKANIE_SWAP_RE = re.compile(r"\b(" + "|".join(sorted(map(re.escape, [*_TYKANIE_PHRASES, *_TYKANIE_WORDS]), key=len, reverse=True))
+                              + r")\b", re.IGNORECASE)
+
+
+def _as_tykanie(text):
+    """The quoted example sentences of a directive in tykanie (only inside „…“)."""
+    def swap(m):
+        word = m.group(0)
+        new = _TYKANIE_PHRASES.get(word.lower()) or _TYKANIE_WORDS[word.lower()]
+        return new[0].upper() + new[1:] if word[0].isupper() else new
+    return re.sub(r"„[^“]*“", lambda q: _TYKANIE_SWAP_RE.sub(swap, q.group(0)), text)
+
+
 def _customer_tyka():
     return any(_TYKANIE_RE.search(m) or _CUSTOMER_TYKA_RE.search(m) for m in S().user_inputs)
 
@@ -5176,6 +5217,14 @@ def _reply_amounts(text):
     return out
 
 
+# A number the customer judges or compares as a price, without a currency: "a 5000 je drahé", "3x 895 je menej ako 3564"
+# — the bot quoting it back was cena-z-nastroja (API A/B of 2026-11-08).
+_PRICE_JUDGED_AFTER_RE = re.compile(r"\s*(?:je|sú|su|bude|by\s+bolo)\s+(?:\w+\s+){0,2}?(?:drah|lacn|veľa|vela|moc|príliš|prilis|"
+                                    r"menej|viac|dosť|dost|nad\s+rozpo|pod\s+rozpo)", re.IGNORECASE)
+_PRICE_COMPARED_BEFORE_RE = re.compile(r"(?:\b(?:menej|viac|lacnejš\w*|drahš\w*|lacnejs\w*|drahs\w*)\s+(?:ako|než|nez)|\b\d\s*[x×])\s*$",
+                                       re.IGNORECASE)
+
+
 def _customer_amounts():
     """Euro amounts the customer typed: numbers next to a currency, or after a budget/price
     word and not followed by a unit. A whitelist, so '32 A', '12 ľudí', '20 m²' or an IČO
@@ -5184,7 +5233,9 @@ def _customer_amounts():
     for message in S().user_inputs:
         for m in _CUSTOMER_NUMBER_RE.finditer(message):
             after, before = message[m.end():m.end() + 14], message[max(0, m.start() - 30):m.start()]
-            if _CURRENCY_AFTER_RE.match(after) or (_BUDGET_WORDS_RE.search(before) and not _UNIT_AFTER_RE.match(after)):
+            if _CURRENCY_AFTER_RE.match(after) or (_BUDGET_WORDS_RE.search(before) and not _UNIT_AFTER_RE.match(after)) or (
+                    not _UNIT_AFTER_RE.match(after) and (_PRICE_JUDGED_AFTER_RE.match(message[m.end():m.end() + 30])
+                                                         or _PRICE_COMPARED_BEFORE_RE.search(before))):
                 out |= _number_readings(m.group(1))
     return out
 
@@ -5193,7 +5244,8 @@ def _customer_amounts():
 # "nech je to do 1 500 €"). quote() uses it when the model doesn't pass budget_eur, so a
 # claim about the budget can always be checked against code.
 _BUDGET_TRIGGER_RE = re.compile(
-    r"rozpo[čc]\w*|budget|\bdo(?=\s*€?\s*\d[\d\s.,]*\s*(?:€|eur))|\bmax\w*(?=\s*€?\s*\d[\d\s.,]*\s*(?:€|eur))",
+    # "zmesti sa aspon jedna do tych 1800e aj s montazou?" (API A/B of 2026-11-08)
+    r"\bzmest\w*[^.?!\n\d]{0,25}\bdo\b|rozpo[čc]\w*|budget|\bdo(?=\s*€?\s*\d[\d\s.,]*\s*(?:€|eur))|\bmax\w*(?=\s*€?\s*\d[\d\s.,]*\s*(?:€|eur))",
     re.IGNORECASE)
 _ALL_IN_WORDS_RE = re.compile(
     r"all[\s-]in|s\s+montá[žz]ou|vrátane\s+montá[žz]e|v[čc]etn[ěe]\s+montá[žz]e|including\s+installation|"
@@ -8781,8 +8833,11 @@ def _budget_note():
     rozpočet" while `cheaper_alternative` fit it)."""
     if not _customer_budget():
         return ""
+    # "Montáž je v rozpočte tiež" was rozpocet-tvrdenie (API A/B of 2026-11-08): installation has no price here.
+    install = (" Rozpočet zahŕňa aj montáž: povedz iba, či sa doň zmestia jednotky; že sa zmestí aj montáž, netvrď — jej cenu "
+               "určí projektový manažér po bezplatnej obhliadke." if _all_in_budget() else "")
     return (" Zákazník uviedol rozpočet: o každej možnosti povedz podľa `budget.status` a `budget.note` z jej `quote`, či "
-            "sa do neho zmestí; ak ho prekračuje a `quote` vrátil `cheaper_alternative`, naceň ju a ukáž aj tú.")
+            "sa do neho zmestí; ak ho prekračuje a `quote` vrátil `cheaper_alternative`, naceň ju a ukáž aj tú." + install)
 
 
 def _rooms_limit_note():
@@ -8848,6 +8903,14 @@ def _sales_move(latest):
     if _LEAVING_RE.search(folded_latest) and "?" not in latest and not _contact_in(latest):
         return Move("pokracuj", "Zákazník rozhovor končí alebo si to chce premyslieť: netlač, nič nové neponúkaj ani "
                     f"nenaceňuj a nepýtaj si kontakt. Stručne sa rozlúč a daj kontakt: {_contact_offer()}.", None)
+    # The company's contact or someone's personal details asked for before any sale: the contact, no question about the
+    # space (b04 in the API A/B of 2026-11-08: "Tak mi dajte aspoň firemný kontakt" got zisti-priestor, and the review
+    # called it a return to selling).
+    if (not sess.quotes and _CONTACT_ONLY_ASK_RE.search(folded_latest) and not _size_known()
+            and not _PRICE_QUESTION_RE.search(latest)):
+        return Move("pokracuj", "Zákazník chce kontakt na firmu alebo na niekoho z nej: osobné údaje zamestnancov ani iných "
+                    f"ľudí nedávame (povedz to jednou vetou, ak sa na ne pýta) a daj firemný kontakt: {_contact_offer()}. "
+                    "Na priestor sa nepýtaj; nanajvýš jednou vetou ponúkni pomoc s výberom klimatizácie.", None)
     if sess.quotes:
         contact_given = _contact_in(latest)
         if sess.consent is None and (contact_given or _chose_offer(latest)):
@@ -8976,6 +9039,13 @@ def _sales_move(latest):
                 None if complete else "any", tuple(prerun))
 
 
+# (folded) "Tak mi dajte aspoň firemný kontakt", "súkromné číslo na pána Malíška", "ako sa volá technik… kde býva?"
+_CONTACT_ONLY_ASK_RE = re.compile(
+    r"\bfiremn\w*\s+(?:kontakt|cisl|telefon|adres|e-?mail)\w*|"
+    r"\b(?:kontakt|cislo|telefon\w*|adres\w*|e-?mail\w*)\b[^.?!\n]{0,30}\b(?:na\s+(?:vas|firm\w*|pan\w*|majitel\w*|technik\w*|"
+    r"veduc\w*|predajc\w*))\b|"
+    r"\b(?:technik|majitel|zamestnan|veduc)\w*[^.?!\n]{0,40}\b(?:vola|byva|cislo|adres\w*)\b|"
+    r"\b(?:ako\s+sa\s+vola|kde\s+byva)\b[^.?!\n]{0,40}\b(?:technik|majitel|zamestnan|veduc)\w*", re.IGNORECASE)
 _ASKS_FIRM_CONTACT_RE = re.compile(r"\bdajte\s+mi\b|\btelefon\w*\s+na\b|\bcislo\s+na\b|\badres\w*|\bphone\s+number\b|\baddress\b|\bnumber\s+for\b",
                                    re.IGNORECASE)
 _NEW_UNIT_WISH_RE = re.compile(r"\b(?:chcel\w*|chcem|potrebuj\w*|kupil\w*)\b[^.?!\n]{0,40}\b(?:este\s+jed\w*|druh\w*|dals\w*|nov\w*)\b", re.IGNORECASE)
@@ -9031,8 +9101,8 @@ def next_move():
     if _industrial_case():
         return Move("priemysel", (
             "Zákazník chce chladiť priemyselný alebo poľnohospodársky priestor (hala, výroba, továreň, chliev, "
-            "maštaľ, farma, skleník), ubytovacie zariadenie (hotel, penzión) alebo technologické chladenie (vínna "
-            "pivnica, chladiareň). Tento "
+            "maštaľ, farma, skleník), ubytovacie zariadenie (hotel, penzión), technologické chladenie (vínna "
+            "pivnica, chladiareň), salón, ambulanciu alebo serverovňu. Tento "
             "chatbot ho nerieši: nenavrhuj systém, výkon ani modely, netvrď, že to klimatizácia zvládne, nehľadaj a "
             "nenaceňuj, nepýtaj sa na plochu ani zóny. Krátko napíš, že také priestory navrhuje individuálne "
             f"projektový manažér, a ponúkni dve možnosti: kontakt ({_contact_offer()}), alebo nech nechá meno a "
@@ -9059,11 +9129,32 @@ def next_move():
                         "zákazník požiada.", None)
         return Move("zapis", "Zákazník súhlasil so spracovaním údajov. Ak ešte chýba meno alebo telefón či e-mail, "
                     "požiadaj iba o to, čo chýba; keď ich máš, zavolaj `capture_lead` a krátko poďakuj.", None)
-    sales = _with_questions(_sales_move(latest), latest)
+    sales = _with_budget_requote(_with_questions(_sales_move(latest), latest), latest)
     decline = _decline_text(latest)
     if decline:
-        return Move("neponukame", f"{decline} Potom: {sales.directive}", None)
+        # The sale's prerun stays: its directive says the server priced the options (a decline dropped them).
+        return Move("neponukame", f"{decline} Potom: {sales.directive}", sales.tool_choice if sales.prerun else None,
+                    sales.prerun)
     return sales
+
+
+def _with_budget_requote(move, latest):
+    """A budget named after the offers: code re-runs the last two offers' quotes, which then carry `budget.status` — the
+    earlier ones had none, and "Cena jednotiek sa zmestí do rozpočtu 1 800 €" was rozpocet-tvrdenie (API A/B of
+    2026-11-08)."""
+    sess = S()
+    budget = _customer_budget()
+    if move.prerun or not sess.quotes or not budget or not _BUDGET_TRIGGER_RE.search(latest):
+        return move
+    latest_quotes = list({_quote_key(q): q for q in sess.quotes}.values())[-2:]
+    stale = [q for q in latest_quotes if (q.get("budget") or {}).get("budget_eur") != budget]
+    if not stale:
+        return move
+    calls = tuple(("quote", {"items": [{"code": c, "qty": line["qty"]} for line in q["lines"] for c in line["codes"]],
+                             "segment": q["segment"]}) for q in stale)
+    return move._replace(directive=move.directive + " Server ponuky prepočítal s rozpočtom zákazníka (VÝSLEDKY SERVERA): "
+                         "či sa zmestí, povedz iba podľa ich `budget.status`; tie isté `quote` znova nevolaj.",
+                         prerun=calls)
 
 
 def _turn_prerun():
@@ -9130,8 +9221,9 @@ def _other_language(text):
 def build_server_context(note=None):
     """This call's server context (see the caching note above), with an optional server note."""
     # The direction first: one move, decided by code (see "Conversation policy").
+    directive = _turn_move().directive
     parts = [f"ĎALŠÍ KROK (rozhodol server podľa rozhovoru; drž sa ho, ostatné pokyny ho dopĺňajú): "
-             f"{_turn_move().directive}"]
+             f"{_as_tykanie(directive) if _customer_tyka() else directive}"]
     prerun = _turn_prerun()
     if prerun:
         parts.append(prerun)

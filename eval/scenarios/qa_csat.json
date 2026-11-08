@@ -100,7 +100,7 @@
   "id": "q07",
   "author": "qa_csat_2026-11-01",
   "title": "Kaderníctvo, s.r.o.",
-  "review": "Pozri docs/qa_csat_2026-11-01.md.",
+  "review": "Pozri docs/qa_csat_2026-11-01.md. Od 2026-11-08 (rozhodnutie majiteľa) ide salón, ambulancia aj serverovňa rovno k projektovému manažérovi: bot nenavrhuje systém ani modely a nenaceňuje, dá firemný kontakt alebo — ako podmienku — spätné volanie, keď zákazník nechá meno a telefón či e-mail a odsúhlasí otázku; potom lead pre PM. Body o kódoch a cenách vyššie už neplatia.",
   "expect": {
    "max_usd": 0.07
   },
