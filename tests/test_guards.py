@@ -4816,6 +4816,94 @@ class BudgetAndPromiseTests(BotTest):  # API run of e695916: rozpocet-tvrdenie a
         self.assertEqual(bot._fix_have_data("Ďakujem, máme vaše údaje."), "Ďakujem, máme vaše údaje.")
 
 
+class FlowAfterE695916Tests(BotTest):  # the AI review's flow findings and the rewrites of the API run of e695916
+    def test_the_same_price_asked_again_is_answered_short(self):
+        self.sess.user_inputs[:] = ["Mám dvojizbový byt, spálňa 14 m2, obývačku nechám tak. Koľko to bude stáť?"]
+        q = bot.quote([{"code": c} for c in AR30_SET])
+        self.sess.conversation.append({"role": "assistant", "content": [
+            {"type": "text", "text": f"Samsung AR30 WIFI stojí {bot._eur(q['total_with_DPH_23pct_eur'])} s DPH."}]})
+        for again in ("Prosím vás, povedzte mi už tú cenu, píšem to tretíkrát.", "Áno, len spálňa, 14 m2. Cena?"):
+            self.sess.user_inputs[1:] = [again]
+            move = bot.next_move()
+            self.assertEqual((move.name, move.directive.startswith(bot._PRICE_AGAIN_TEXT)), ("odpoved", True), again)
+        for other in ("A koľko by stála obývačka 20 m2?", "Máte niečo lacnejšie?", "Koľko stojí HAORI?"):
+            self.sess.user_inputs[1:] = [other]
+            self.assertEqual(bot.next_move().name, "nova-ponuka", other)
+
+    def test_what_the_previous_reply_said_is_not_said_again(self):
+        said = ("Keď odsúhlasíte otázku na súhlas, odovzdám reklamáciu nášmu tímu a ten sa vám ozve. "
+                "Recyklačný poplatok je 5 až 15 € za jednu klimatizáciu. Montáž určí projektový manažér po bezplatnej obhliadke.")
+        self.sess.conversation.append({"role": "assistant", "content": [{"type": "text", "text": said}]})
+        reply = ("Rozumiem, že vás to hnevá. Keď odsúhlasíte otázku na súhlas, odovzdám reklamáciu nášmu tímu a ten sa vám ozve.")
+        self.assertEqual(bot._drop_repeats(reply, "reklamacia", "Takže žiadny telefón."), "Rozumiem, že vás to hnevá.")
+        answer = ("Samsung má ovládač v balení.\n- Recyklačný poplatok: 5 až 15 € za jednu klimatizáciu.\n"
+                  "- Montáž sa neoceňuje, jej cenu určí projektový manažér po bezplatnej obhliadke.\n- Cena s DPH: 895,56 € "
+                  "(bez recyklačného poplatku).")
+        out = bot._drop_repeats(answer, "odpoved", "Má ovládač?")
+        self.assertNotIn("5 až 15", out)
+        self.assertNotIn("Montáž", out)
+        self.assertIn("895,56 €", out)
+        self.assertEqual(bot._drop_repeats(answer, "odpoved", "A koľko je recyklačný poplatok a montáž?"), answer)
+        alone = "Keď odsúhlasíte otázku na súhlas, odovzdám reklamáciu nášmu tímu a ten sa vám ozve."
+        self.assertEqual(bot._drop_repeats(alone, "reklamacia", "ok"), alone, "never the whole reply")
+
+    def test_a_new_unit_asked_for_during_a_complaint_is_sold(self):
+        self.sess.user_inputs[:] = ["Klimatizácia, ktorú ste mi minulý rok montovali, nechladí. Chcem reklamáciu.",
+                                    "A keď už píšem — koľko by stála ešte jedna klíma do detskej izby, 12 m2? Stačí obyčajná."]
+        self.assertTrue(bot._support_case())
+        self.assertNotEqual(bot.next_move().name, "reklamacia")
+        self.assertFalse(bot._new_unit_wished("novu klimu nechcem!!! chcem aby ste opravili tu co tecie"))
+
+    def test_multi_split_against_separate_sets_prices_both(self):
+        for ask in ("Čo vyjde lacnejšie: dve samostatné klimy, alebo jeden multi-split?",
+                    "What's cheaper overall: two separate split units, or one multi-split with two indoor units?"):
+            self.assertTrue(bot._MULTI_VS_SETS_RE.search(bot.fold_diacritics(ask)), ask)
+        self.sess.user_inputs[:] = ["Byt, obývačka 28 m2 a spálňa 14 m2. Koľko vyjde viac: multi-split alebo dve samostatné klimy?"]
+        move = bot.next_move()
+        self.assertEqual(move.name, "ponuka")
+        self.assertIn("porovnať samostatné sety a multi-split", move.directive)
+        self.assertGreaterEqual(sum(name == "quote" for name, _ in move.prerun), 2)
+
+    def test_the_offers_so_far_are_listed_by_product(self):
+        self.sess.user_inputs[:] = ["Spálňa 14 m2.", "A má tá druhá ovládač?"]
+        bot.quote([{"code": c} for c in AR30_SET])
+        bot.quote([{"code": c} for c in SEIYA_SET])
+        self.sess.turn_move = None
+        context = bot.build_server_context()
+        self.assertIn("PONUKY Z TOHTO ROZHOVORU", context)
+        self.assertIn(bot._eur(self.sess.quotes[0]["total_with_DPH_23pct_eur"]), context)
+
+    def test_a_choice_between_both_offered_brands_is_allowed(self):
+        self.sess.user_inputs[:] = ["Spálňa 14 m2."]
+        bot.quote([{"code": c} for c in AR30_SET])
+        ask = "Ktorú možnosť by ste chceli, Samsung alebo Toshiba?"
+        self.assertTrue(bot._forbidden_questions(ask), "one brand offered: still the brand question")
+        bot.quote([{"code": c} for c in SEIYA_SET])
+        self.assertEqual(bot._forbidden_questions(ask), [])
+
+    def test_where_the_prices_come_from_is_dropped(self):
+        self.assertEqual(bot._drop_tool_source("Ceny sú z ponukového nástroja:\n- Samsung: 895,56 €"), "- Samsung: 895,56 €")
+        self.assertEqual(bot._drop_tool_source("Cena s DPH: 895,56 €. Všetky sumy sú zo systému `quote`."),
+                         "Cena s DPH: 895,56 €.")
+
+    def test_a_multi_split_and_a_set_of_one_turn_are_summed_by_code(self):
+        self.sess.user_inputs[:] = ["Dom: hore spálňa 14 m2 a detská 12 m2 na jeden multi-split, dole obývačka 25 m2 samostatne."]
+        self.sess.turn_quotes_start = len(self.sess.quotes)
+        multi = bot.quote([{"code": "AJ040TXJ2KG/EU", "qty": 1}, {"code": "AR50F07C1BHNEU", "qty": 2}],
+                          override_reason="zákazník chce tieto jednotky")
+        self.assertNotIn("error", multi, multi)
+        single = bot.quote([{"code": c} for c in ["AR50F09C1AHNEU", "AR50F09C1AHXEU"]])
+        self.assertNotIn("error", single, single)
+        together = single["together_with_earlier_quotes"][0]
+        self.assertAlmostEqual(together["total_with_DPH_23pct_eur"],
+                               multi["total_with_DPH_23pct_eur"] + single["total_with_DPH_23pct_eur"], places=2)
+
+    def test_a_word_opening_a_question_is_no_name(self):
+        bot._auto_extract_lead_info("Tá lacnejšia mi stačí. Zavolá mi niekto? Som Mária Hudáková, 0905 123 456, Trnava.")
+        self.assertNotIn("Zavolá", self.sess.pii_seen)
+        self.assertIn("Hudáková", self.sess.pii_seen)
+
+
 class HallAndContactTests(BotTest):  # AI review of the API run of 9657449
     def test_halusky_are_no_hall(self):
         self.sess.user_inputs[:] = ["A aký je recept na bryndzové halušky?", "Dobre, tak klímu do spálne, má 14 m². Koľko stojí?"]
@@ -4837,7 +4925,10 @@ class NoiseAndComparisonTests(BotTest):
         self.assertEqual((luzon["indoor_noise_min_dB"], luzon["indoor_noise_max_dB"]), ("19", "36"))
         seiya = bot._code_specs("RAS-B10B2KVG-E2")  # Toshiba "19/--/42": low/mid/high
         self.assertEqual((seiya["indoor_noise_min_dB"], seiya["indoor_noise_max_dB"]), ("19", "42"))
-        self.assertNotIn("indoor_noise_max_dB", bot._code_specs("AR70H07CAABNEU"), "no figure the sources don't give")
+        black = bot._code_specs("AR70H07CAABNEU")  # the white unit's figures (the owner, 2026-11-08)
+        self.assertEqual((black["indoor_noise_min_dB"], black["indoor_noise_max_dB"]), ("19", "34"))
+        cebu = bot._code_specs("AR50F18C1AHNEU")  # the price list's quiet 25 dB, Samsung's page adds the 41 dB high speed
+        self.assertEqual((cebu["indoor_noise_min_dB"], cebu["indoor_noise_max_dB"]), ("25", "41"))
         cassette = bot._code_specs("AJ035TNNDKG/EU")  # "35/31/27" high/mid/low, Samsung's product page
         self.assertEqual((cassette["indoor_noise_min_dB"], cassette["indoor_noise_max_dB"]), ("27", "35"))
         one_way = bot._code_specs("AJ026TN1DKG/EU")

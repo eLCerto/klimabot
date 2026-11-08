@@ -28,7 +28,7 @@
       "AJ052_BNM": "MSP Duct (multi-only)",
       "AJ026/035/052_TNJ": "Console parapetná (multi-only)"
     },
-    "noise_note": "noise_indoor_high_low_dBA (vnútorná jednotka, vysoké/nízke otáčky, dB(A)) pri 2,0 kW nástenných jednotkách a noise_indoor_high_mid_low_dBA (vysoké/stredné/nízke otáčky, dB(A)) pri kazetách doplnené z produktových stránok Samsung (samsung-climatesolutions.com, noise_source pri jednotke), stav 2026-11-08; cenník ich neuvádza. AR70H07CAABNEU (čierna) tam uvedená nie je."
+    "noise_note": "noise_indoor_high_low_dBA (vnútorná jednotka, vysoké/nízke otáčky, dB(A)) pri nástenných jednotkách a noise_indoor_high_mid_low_dBA (vysoké/stredné/nízke otáčky, dB(A)) pri kazetách, kanálových a parapetných jednotkách doplnené z produktových stránok Samsung (samsung-climatesolutions.com, noise_source pri jednotke), stav 2026-11-08; cenník ich neuvádza. Čierne WindFree Premiere Plus (AR70H…CAABNEU) majú hodnoty bielych — je to tá istá jednotka (rozhodnutie majiteľa, 2026-11-08), Samsung uvádza iba bielu."
   },
   "outdoor_units": {
     "description": "FJM vonkajšie jednotky pre Multi-Split. Cena pre samostatnú vonkajšiu jednotku.",
@@ -242,7 +242,9 @@
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
         "price_EUR": 914,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "38/16",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-premiere-plus.ar70h09caawneu.html"
       },
       {
         "size": "12",
@@ -254,7 +256,9 @@
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
         "price_EUR": 1014,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "40/16",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-premiere-plus.ar70h12caawneu.html"
       }
     ],
     "WindFree_Premiere_Plus_Black": [
@@ -268,7 +272,9 @@
         "price_EUR": 812,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "34/19",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-premiere-plus.html"
       },
       {
         "size": "09",
@@ -280,7 +286,9 @@
         "price_EUR": 951,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "38/16",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-premiere-plus.ar70h09caawneu.html"
       },
       {
         "size": "12",
@@ -292,7 +300,9 @@
         "price_EUR": 1055,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "40/16",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/windfree-premiere-plus.ar70h12caawneu.html"
       }
     ],
     "WindFree_Premiere_White": [
@@ -306,7 +316,9 @@
         "gas_mm": 9.52,
         "price_EUR": 740,
         "liquid_mm": 6.35,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "37/16",
+        "noise_source": "https://samsung-climatesolutions.com/lt/b2c/products/fjm/windfree-premiere.html"
       },
       {
         "size": "09",
@@ -318,7 +330,9 @@
         "gas_mm": 9.52,
         "price_EUR": 806,
         "liquid_mm": 6.35,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "38/16",
+        "noise_source": "https://samsung-climatesolutions.com/lt/b2c/products/fjm/windfree-premiere.ar70h09c1awneu.html"
       },
       {
         "size": "12",
@@ -330,7 +344,9 @@
         "gas_mm": 9.52,
         "price_EUR": 895,
         "liquid_mm": 6.35,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "40/16",
+        "noise_source": "https://samsung-climatesolutions.com/lt/b2c/products/fjm/windfree-premiere.ar70h12c1awneu.html"
       },
       {
         "size": "18",
@@ -342,7 +358,9 @@
         "gas_mm": 12.7,
         "price_EUR": 1377,
         "liquid_mm": 6.35,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "41/25",
+        "noise_source": "https://samsung-climatesolutions.com/lt/b2c/products/fjm/windfree-premiere.ar70h18c1awneu.html"
       },
       {
         "size": "24",
@@ -354,7 +372,9 @@
         "gas_mm": 15.88,
         "price_EUR": 1819,
         "liquid_mm": 6.35,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "45/25",
+        "noise_source": "https://samsung-climatesolutions.com/lt/b2c/products/fjm/windfree-premiere.ar70h24c1awneu.html"
       }
     ],
     "WindFree_Premiere_Black": [
@@ -444,7 +464,9 @@
         "price_EUR": 616,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "37/16",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/windfree-avant-s2.html"
       },
       {
         "size": "09",
@@ -456,7 +478,9 @@
         "price_EUR": 677,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "38/16",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/windfree-avant-s2.ar70f09c1awneu.html"
       },
       {
         "size": "12",
@@ -468,7 +492,9 @@
         "price_EUR": 752,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "40/16",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/windfree-avant-s2.ar70f12c1awneu.html"
       },
       {
         "size": "18",
@@ -480,7 +506,9 @@
         "price_EUR": 1157,
         "liquid_mm": 6.35,
         "gas_mm": 12.7,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "41/25",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/windfree-avant-s2.ar70f18c1awneu.html"
       },
       {
         "size": "24",
@@ -492,7 +520,9 @@
         "price_EUR": 1528,
         "liquid_mm": 6.35,
         "gas_mm": 15.88,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "45/25",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/windfree-avant-s2.ar70f24c1awneu.html"
       }
     ],
     "WindFree_Comfort_S2": [
@@ -520,7 +550,9 @@
         "price_EUR": 488,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "38/16",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/windfree-comfort-s2.ar60f09c1awneu.html"
       },
       {
         "size": "12",
@@ -532,7 +564,9 @@
         "price_EUR": 543,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "38/16",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/windfree-comfort-s2.ar60f12c1awneu.html"
       },
       {
         "size": "18",
@@ -544,7 +578,9 @@
         "price_EUR": 835,
         "liquid_mm": 6.35,
         "gas_mm": 12.7,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "41/25",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/windfree-comfort-s2.ar60f18c1awneu.html"
       },
       {
         "size": "24",
@@ -556,7 +592,9 @@
         "price_EUR": 1103,
         "liquid_mm": 6.35,
         "gas_mm": 15.88,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "45/25",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/windfree-comfort-s2.ar60f24c1awneu.html"
       }
     ],
     "Cebu_S2": [
@@ -570,7 +608,9 @@
         "price_EUR": 374,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "37/19",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/cebu-s2.html"
       },
       {
         "size": "09",
@@ -582,7 +622,9 @@
         "price_EUR": 411,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "37/19",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/cebu-s2.ar50f09c1ahneu.html"
       },
       {
         "size": "12",
@@ -594,7 +636,9 @@
         "price_EUR": 457,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "38/19",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/cebu-s2.ar50f12c1ahneu.html"
       },
       {
         "size": "18",
@@ -606,7 +650,9 @@
         "price_EUR": 704,
         "liquid_mm": 6.35,
         "gas_mm": 12.7,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "41/25",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/cebu-s2.ar50f18c1ahneu.html"
       },
       {
         "size": "24",
@@ -618,7 +664,9 @@
         "price_EUR": 938,
         "liquid_mm": 6.35,
         "gas_mm": 15.88,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "45/25",
+        "noise_source": "https://samsung-climatesolutions.com/gb/b2c/products/fjm/cebu-s2.ar50f24c1ahneu.html"
       }
     ],
     "Luzon_S2": [
@@ -646,7 +694,9 @@
         "price_EUR": 396,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "37/19",
+        "noise_source": "https://samsung-climatesolutions.com/lt/b2c/products/fjm/luzon-s2.ar50f09c1bhneu.html"
       },
       {
         "size": "12",
@@ -658,7 +708,9 @@
         "price_EUR": 440,
         "liquid_mm": 6.35,
         "gas_mm": 9.52,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "38/19",
+        "noise_source": "https://samsung-climatesolutions.com/lt/b2c/products/fjm/luzon-s2.ar50f12c1bhneu.html"
       },
       {
         "size": "18",
@@ -670,7 +722,9 @@
         "price_EUR": 677,
         "liquid_mm": 6.35,
         "gas_mm": 12.7,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "41/25",
+        "noise_source": "https://samsung-climatesolutions.com/lt/b2c/products/fjm/luzon-s2.ar50f18c1bhneu.html"
       },
       {
         "size": "24",
@@ -682,7 +736,9 @@
         "price_EUR": 894,
         "liquid_mm": 6.35,
         "gas_mm": 15.88,
-        "supply": "1f/220-240/50"
+        "supply": "1f/220-240/50",
+        "noise_indoor_high_low_dBA": "45/25",
+        "noise_source": "https://samsung-climatesolutions.com/lt/b2c/products/fjm/luzon-s2.ar50f24c1bhneu.html"
       }
     ]
   },
@@ -838,7 +894,9 @@
           "weight_kg": 15.0,
           "liquid_mm": 6.35,
           "gas_mm": 9.52,
-          "price_EUR": 890
+          "price_EUR": 890,
+          "noise_indoor_high_mid_low_dBA": "33/29/23",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/lsp-duct.html"
         },
         {
           "size": "035",
@@ -849,7 +907,9 @@
           "weight_kg": 15.0,
           "liquid_mm": 6.35,
           "gas_mm": 9.52,
-          "price_EUR": 922
+          "price_EUR": 922,
+          "noise_indoor_high_mid_low_dBA": "34/30/25",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/lsp-duct.aj035tnlpegeu.html"
         }
       ]
     },
@@ -877,7 +937,9 @@
           "weight_kg": 18.9,
           "liquid_mm": 6.35,
           "gas_mm": 12.7,
-          "price_EUR": 1001
+          "price_EUR": 1001,
+          "noise_indoor_high_mid_low_dBA": "33/29/23",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/msp-duct.html"
         }
       ]
     }
@@ -900,7 +962,9 @@
           "weight_kg": 15.7,
           "liquid_mm": 6.35,
           "gas_mm": 9.52,
-          "price_EUR": 729
+          "price_EUR": 729,
+          "noise_indoor_high_mid_low_dBA": "36/32/27",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/console.html"
         },
         {
           "size": "035",
@@ -911,7 +975,9 @@
           "weight_kg": 15.7,
           "liquid_mm": 6.35,
           "gas_mm": 9.52,
-          "price_EUR": 811
+          "price_EUR": 811,
+          "noise_indoor_high_mid_low_dBA": "38/35/30",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/console.aj035tnjdkgeu.html"
         },
         {
           "size": "052",
@@ -922,7 +988,9 @@
           "weight_kg": 15.7,
           "liquid_mm": 6.35,
           "gas_mm": 12.7,
-          "price_EUR": 965
+          "price_EUR": 965,
+          "noise_indoor_high_mid_low_dBA": "43/39/32",
+          "noise_source": "https://samsung-climatesolutions.com/gb/b2b/products/fjm/console.aj052tnjdkgeu.html"
         }
       ]
     }
