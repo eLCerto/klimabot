@@ -9,6 +9,7 @@ import re
 import secrets
 import smtplib
 import ssl
+import subprocess
 import threading
 import time
 import unicodedata
@@ -173,6 +174,7 @@ class Session:
         self.turn_move = None             # (customer message count, Move): next_move() decided once per turn
         self.turn_claims = None           # (customer message count, [(fact, values)]): false claims in that message
         self.undersize_warned = set()     # quote keys of undersized sets the customer has been told about
+        self.turn_prerun = None           # (customer message count, text): the tools code ran for the offer
 
 
 _current_session = contextvars.ContextVar("klimabot_session")
@@ -191,8 +193,28 @@ def S():
 use_session(Session())  # default session for the CLI and for startup logging
 
 
+def _commit():
+    """The running code's commit for the logs (turn_end, session_start), so production metrics split by deploy:
+    KLIMABOT_COMMIT (the Docker image gets it from `make build`), else git, else "unknown"."""
+    env = os.getenv("KLIMABOT_COMMIT", "").strip()
+    if env and env != "unknown":
+        return env
+    try:
+        out = subprocess.run(["git", "-C", str(Path(__file__).resolve().parent), "describe", "--always", "--dirty",
+                              "--abbrev=7"], capture_output=True, text=True, timeout=3)
+        return out.stdout.strip() or "unknown"
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+
+
+COMMIT = _commit()
+
 CONTEXT_CHAR_BUDGET = 8000
-RETRIEVE_CANDIDATES = 25
+# Candidates the reranker scores: two batches of 8. Measured on 2026-11-07 on tests/retrieval_golden.json at 2 threads:
+# 25 → 16 is 1.45x faster (1.73 → 1.19 s locally; ~9 s per search on the demo server) at hit@k 37/37 → 36/37,
+# MRR 0.836 → 0.827, weak-match flags unchanged. An int8-quantized reranker was 2.5x faster but moved the score
+# scale (6 answerable questions under SEARCH_MIN_SCORE): it would need the threshold recalibrated first.
+RETRIEVE_CANDIDATES = 16
 RETRIEVE_TOP_K = 5
 # A search whose best reranker score (raw, without the authority bonus) is below this found nothing that
 # answers it: its results go out under _WEAK_MATCH_NOTE. Calibrated on 2026-10-27 on 374 real queries from the
@@ -1621,14 +1643,23 @@ def _check_filtration_policy():
 _check_filtration_policy()
 
 
+# The tiers in words: the model echoed "filtráciou triedy 1" from the numbered ranking and the gate regenerated it as
+# internal information (interne-info, the top regeneration of the A/B of 2026-11-06).
+_TIER_WORDS = {1: "najlepšia filtrácia", 2: "o stupeň slabšia filtrácia", 3: "slabšia filtrácia",
+               4: "základná filtrácia"}
+_TIER_WORDS_HAS = {1: "najlepšiu filtráciu", 2: "o stupeň slabšiu filtráciu", 3: "slabšiu filtráciu",
+                   4: "iba základnú filtráciu"}  # "<rad> má …"
+
+
 def _filtration_ranking_text():
-    tiers = [f"{t['tier']}. " + ", ".join(e["name"] for e in t["entries"]) + f" ({t['label']})"
+    tiers = [f"{_TIER_WORDS[t['tier']]} ({t['label']}): " + ", ".join(e["name"] for e in t["entries"])
              for t in FILTRATION["tiers"]]
     return ("Zákazník spomenul alergiu, prach, filtráciu, kvalitu vzduchu alebo kvalitu klimatizácie. Poradie filtrácie "
-            "nástenných radov (od najlepšej; rady v jednej triede sú rovnocenné — rešpektuj značku, ktorú zákazník chce, "
-            "inak ponúkni lacnejší): " + "; ".join(tiers) + ". Odporúčaj triedu 1. Žiadny rad nenazývaj lepšou ani "
-            "horšou filtráciou, než mu dáva toto poradie (rad triedy 1 nemá „štandardný filter“), a nemeň odporúčanie "
-            "len preto, že zákazník namietne. Čísla tried sú interné: zákazníkovi ich nepíš, opíš filtre slovami.")
+            "nástenných radov, od najlepšej (rady v jednej skupine sú rovnocenné — rešpektuj značku, ktorú zákazník chce, "
+            "inak ponúkni lacnejší): " + "; ".join(tiers) + ". Odporúčaj rady s najlepšou filtráciou. Žiadny rad "
+            "nenazývaj lepšou ani horšou filtráciou, než mu dáva toto poradie (rad s najlepšou filtráciou nemá "
+            "„štandardný filter“), a nemeň odporúčanie len preto, že zákazník namietne. Poradie neopisuj číslami ani "
+            "triedami, opíš filtre slovami.")
 
 
 # "Chcem najlepšiu klimatizáciu" means the best filtration and the most features (the owner, 2026-10-21) — not
@@ -1648,9 +1679,9 @@ def _filtration_rank(rec):
 def _best_wish_text():
     tier1 = next(t for t in FILTRATION["tiers"] if t["tier"] == 1)
     return ("Zákazník chce najlepšiu klimatizáciu: to znamená najlepšiu filtráciu a najviac funkcií (majiteľ). Ponúkaj "
-            "iba rady triedy 1 z poradia filtrácie — " + ", ".join(e["name"] for e in tier1["entries"]) + " — a z nich "
+            "iba rady s najlepšou filtráciou — " + ", ".join(e["name"] for e in tier1["entries"]) + " — a z nich "
             "ten s najviac funkciami (key_features); ak zákazník značku nevybral, jednu možnosť od každej značky. Druhá "
-            "možnosť nie je lacnejší rad. Rady triedy 1 sú vo filtrácii rovnocenné: netvrď, že jeden filtruje lepšie.")
+            "možnosť nie je lacnejší rad. Tieto rady sú vo filtrácii rovnocenné: netvrď, že jeden filtruje lepšie.")
 
 
 def _best_filtration_sets(rec, text, room_m2=None):
@@ -2030,11 +2061,11 @@ def _fit_check(fit_lines, override_reason=None, facts=None):
                 e["name"] for t in FILTRATION["tiers"] if t["tier"] == 1 for e in t["entries"]]
             reason = ("alergiu, prach, filtráciu alebo kvalitu vzduchu" if allergy else
                       "že chce najlepšiu klimatizáciu (najlepšia filtrácia a najviac funkcií)")
-            warnings.append(f"zákazník spomenul {reason}: {entry['name']} má filtráciu triedy {tier} ({entry['filtration']})"
+            warnings.append(f"zákazník spomenul {reason}: {entry['name']} má {_TIER_WORDS_HAS[tier]} ({entry['filtration']})"
                             + (" — alergikom ho neodporúčaj" if allergy and tier == 4 else "")
-                            + (f"; triedu 1 majú {', '.join(best)} — ponúkni ich ako prvé a cenu zisti cez quote"
+                            + (f"; najlepšiu filtráciu majú {', '.join(best)} — ponúkni ich ako prvé a cenu zisti cez quote"
                                + (" s presne týmito kódmi; tento quote je cena radu "
-                                  f"{entry['name']}, nie radu triedy 1" if cat == "single_split_sets" else "")
+                                  f"{entry['name']}, nie radu s najlepšou filtráciou" if cat == "single_split_sets" else "")
                                if best else ""))
     # A Toshiba multi-split outdoor unit with one indoor unit runs in cooling only ("1 jednotka len pri
     # chladiacej prevádzke", combinations_table) — the scenario's bot sold a home a single cassette on one.
@@ -2662,12 +2693,12 @@ def _brand_size_sets(text):
                 rank = _filtration_rank(rec)
                 out.append({"description": _describe(rec, as_set=True), "series": _series_key(rec), "codes": sorted(codes),
                             "cooling_kW": sizes[0], "wifi_standard": _has_wifi(rec),
-                            "filtration_tier": rank[0] if rank else None, **_set_specs(rec)})
+                            "filtration": _TIER_WORDS[rank[0]] if rank else None, **_set_specs(rec)})
     if not out:
         return None
     return {"series_sets": out, "note": (
-        "Nástenné sety značky v najmenšej veľkosti, ktorá stačí, od najlacnejšieho (filtration_tier: poradie filtrácie, "
-        "1 = najlepšia; číslo je interné, zákazníkovi ho nepíš). Kódy setu pošli do `quote`; cenu zisti iba cez `quote`. "
+        "Nástenné sety značky v najmenšej veľkosti, ktorá stačí, od najlacnejšieho (filtration: miesto radu v poradí "
+        "filtrácie). Kódy setu pošli do `quote`; cenu zisti iba cez `quote`. "
         + _NOISE_NOTE)}
 
 
@@ -4231,7 +4262,7 @@ print("Buildujem BM25 index...")
 BM25 = BM25Okapi([tokenize(c[0]) for c in KB])
 
 log_event(
-    "session_start",
+    "session_start", commit=COMMIT,
     kb_chunks=len(KB), kb_files=len(set(s for _, s in KB)),
     products=len(PRODUCT_BY_CODE), aliases=len(ALIAS_MAP),
     log_path=str(S().log_path),
@@ -4947,7 +4978,11 @@ _SK_TYPOS = {"Vďakujem": "Ďakujem", "vďakujem": "ďakujem", "nviem": "neviem"
              "Táto variant": "Tento variant", "nacenením ho": "nacením ho",
              # "Záväzný vzťah vznikne až po podpise" stands; a chat prepares no binding offer, and an AI has no taste
              "záväznú ponuku": "cenovú ponuku", "Osobne by som vybral": "Odporúčam",
-             "Ako odborník by som pre vás vybral": "Odporúčam vám"}
+             "Ako odborník by som pre vás vybral": "Odporúčam vám",
+             # flagged by `pravopis` in the A/B of 2026-11-06 and on the demo (the model's own forms)
+             "necenujem": "nenaceňujem", "Necenujem": "Nenaceňujem", "necenujeme": "nenaceňujeme",
+             "Necenujeme": "Nenaceňujeme", "Residenčné": "Rezidenčné", "residenčné": "rezidenčné",
+             "kľudne": "pokojne", "Kľudne": "Pokojne", "podimenzované": "poddimenzované", "racků": "rackov"}
 _SK_TYPO_RE = re.compile(r"\b(?:" + "|".join(_SK_TYPOS) + r")\b")
 _REPEAT_GREETING_RE = re.compile(r"^\s*Dobrý\s+deň[,.!]?\s+(?=\S)")
 
@@ -6597,8 +6632,8 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
     if filters:
         violations.append(
             f"nepodlozene-udaje: filtráciu radu opisuješ inak, než ju radí poradie filtrácie ('{filters[0].strip()[:100]}'). "
-            "Rady triedy 1 (DAISEIKAI 10, HAORI, WindFree Avant S2, Première) nemajú „štandardný / základný filter“ "
-            "a sú rovnocenné; „najlepšia filtrácia“ patrí iba triede 1. Inak filtráciu vynechaj."
+            "Rady s najlepšou filtráciou (DAISEIKAI 10, HAORI, WindFree Avant S2, Première) nemajú „štandardný / "
+            "základný filter“ a sú rovnocenné; „najlepšia filtrácia“ patrí iba im. Inak filtráciu vynechaj."
         )
     classes = _wrong_energy_classes(text)
     if classes:
@@ -6743,8 +6778,8 @@ def validate_assistant_reply(text, prior_conversation_text="", compat_checked_ou
             violations.append(
                 "alergie-filtracia: zákazník spomenul alergiu/astmu/citlivosť na "
                 "vzduch, ale reply ponúka entry model (SEIYA/AR30/35/Luzon/Cebu) "
-                "bez prémiovej filtrácie. Pre alergikov odporúčaj triedu 1 z poradia "
-                "filtrácie v kontexte servera; žiadne zdravotné sľuby."
+                "bez prémiovej filtrácie. Pre alergikov odporúčaj rady s najlepšou "
+                "filtráciou z poradia v kontexte servera; žiadne zdravotné sľuby."
             )
 
     # multi-split-pravidla: presenting a multi-split set (outdoor code + €) without
@@ -7795,6 +7830,30 @@ def _drop_kw_sentences(text):
     return _tidy_after_cut("\n".join(kept)) or text
 
 
+# An area in the reply: "50 až 65 m²", "12–15 m2", "20 m²".
+_REPLY_M2_RE = re.compile(r"(\d+(?:[,.]\d+)?)(?:\s*(?:–|-|až|do|alebo)\s*(\d+(?:[,.]\d+)?))?\s*(?:m²|m2\b|štvorcov\w*\s+metr)",
+                          re.IGNORECASE)
+
+
+def _drop_invented_m2(text):
+    """No room sizes the customer didn't give: "Dvojizbový byt býva zvyčajne 50 až 65 m²" to a customer who didn't know
+    the area (plocha_neznama, every version in the A/B of 2026-11-06). The customer's numbers and the total of their
+    areas stay."""
+    typed = {float(n.replace(",", ".")) for n in re.findall(r"\d+(?:[,.]\d+)?", _all_user_text())}
+    areas = _customer_m2()
+    typed |= {round(sum(areas), 1)} if areas else set()
+
+    def invented(sentence):
+        return any(float(n.replace(",", ".")) not in typed for m in _REPLY_M2_RE.finditer(sentence) for n in m.groups() if n)
+
+    lines = text.split("\n")
+    if not any(invented(x) for line in lines for x in _SENTENCE_SPLIT_RE.split(line)):
+        return text
+    kept = [" ".join(x for x in _SENTENCE_SPLIT_RE.split(line) if not invented(x)) for line in lines]
+    log_event("m2_sentence_dropped")
+    return _tidy_after_cut("\n".join(kept)) or text
+
+
 def _drop_contact_requests(text):
     """An offer asks for no contact yet (the move says so): sentences that do go, and no consent paragraph follows."""
     lines = []
@@ -8035,8 +8094,9 @@ CRITICAL_RULES_TEXT = (
     "so svojimi správami. Ak to nesedí, oprav ho hneď a vecne číslami, bez „máte pravdu“, a chybu priznaj, iba ak ju vidíš "
     "vo vlastnej správe. DPH je 23 %.\n"
     "- **Toto NIE je objednávka, je to žiadosť o cenovú ponuku.** Po `capture_lead` "
-    "**NIKDY** nepíš 'tvoja objednávka je zaznamenaná / potvrdená'. Správne: "
-    "*'zaznamenal som tvoj záujem / žiadosť o ponuku, PM sa ozve do 1 prac. dňa'*. "
+    "**NIKDY** nepíš 'vaša objednávka je zaznamenaná / potvrdená'. Správne, až keď `capture_lead` prešiel: "
+    "*'vašu žiadosť o cenovú ponuku som odovzdal projektovému manažérovi, ozve sa vám do 1 pracovného dňa'*. "
+    "Kým súhlas nie je, výber iba potvrď: *'Ďakujem, vybrali ste si …'* — nie „zapísal / zaznamenal som“. "
     "Záväzný kúpny vzťah vzniká až po obhliadke a podpise s PM.\n"
     "- **'vyber mi to' / 'vyberte mi' / 'navrhnite mi' / 'je mi to jedno' → bot "
     "VYBERIE svoju top-1 odporúčanú voľbu a pokračuje rovno na zber kontaktov. "
@@ -8085,7 +8145,7 @@ CRITICAL_RULES_TEXT = (
     "daj kontakt na firmu alebo ponúkni, že ak zákazník nechá meno a telefón či e-mail, projektový manažér "
     "sa mu ozve.\n"
     "- **Alergia / astma / prach / 'kvalita vzduchu' → najlepšia filtrácia.** "
-    "Odporúčaj triedu 1 z poradia filtrácie, ktoré ti pošle server v kontexte, a drž sa ho aj pri "
+    "Odporúčaj rady s najlepšou filtráciou z poradia, ktoré ti pošle server v kontexte, a drž sa ho aj pri "
     "námietke. **NIE** entry rady SEIYA, AR30/35, Luzon, Cebu (iba základný filter). "
     "Žiadne zdravotné sľuby ('vylieči', 'zabráni astme', 'odstráni alergény') — iba čo "
     "filter technicky robí; viď [[schvalene-tvrdenia]].\n"
@@ -8248,16 +8308,45 @@ def _suggested_sets():
     return None
 
 
-def _picks_text(picks):
-    """The first offer's two code-picked sets, for the `ponuka` move."""
+_PRICED_NOTE = (" Server ich už nacenil a výsledky sú v bloku VÝSLEDKY SERVERA nižšie: ukáž ich s cenou s DPH "
+                "presne podľa nich a tie isté volania neopakuj.")
+
+
+def _picks_text(picks, priced=False):
+    """The first offer's two code-picked sets, for the `ponuka` move; `priced` when code quotes them itself."""
     why = ("najlepšia filtrácia" if _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE) else "najlacnejší vhodný set")
     why += ", Wi-Fi v základe" if _wished(_WIFI_WANTED_FOLDED_RE) else ""
     why += "".join(f", {name}" for name, _ in _wished_features())
     options = "; ".join(f"{i}) {_describe(rec, as_set=True)} {codes}" for i, (rec, codes) in enumerate(picks, 1))
-    return (f" Server vybral dve možnosti podľa plochy a želaní zákazníka ({why}): {options}. "
-            "Naceň každú vlastným `quote` a ukáž obe s cenou s DPH. Funkcie radu zistíš cez `lookup_product` "
-            "('<rad> <výkon v kW>', series_features); na kódy ani funkcie nehľadaj cez `search_knowledge`. Iný rad "
+    how = (" Server ich už nacenil (`quote`) a zistil funkcie radu (`lookup_product`, series_features): výsledky sú v "
+           "bloku VÝSLEDKY SERVERA nižšie. Ukáž obe s cenou s DPH presne podľa nich; tie isté nástroje znova nevolaj."
+           if priced else
+           " Naceň každú vlastným `quote` a ukáž obe s cenou s DPH. Funkcie radu zistíš cez `lookup_product` "
+           "('<rad> <výkon v kW>', series_features); na kódy ani funkcie nehľadaj cez `search_knowledge`.")
+    return (f" Server vybral dve možnosti podľa plochy a želaní zákazníka ({why}): {options}.{how} Iný rad "
             "iba vtedy, keď zákazník chce niečo, čo tieto nemajú.")
+
+
+def _series_query(rec):
+    """The lookup_product query for a set's series and size, as the model writes it: "Toshiba SEIYA Classic 2 2.5"."""
+    return f"{_describe(rec, as_set=True).split(' – ')[0]} {rec['raw']['cooling_kW']:g}"
+
+
+def _picks_prerun(picks):
+    """Code's calls for its two picked sets: a quote of each and its series' features."""
+    calls = []
+    for rec, codes in picks:
+        calls += [("quote", {"items": [{"code": c, "qty": 1} for c in codes]}),
+                  ("lookup_product", {"model_code": _series_query(rec)})]
+    return calls
+
+
+def _room_sets_prerun(room_sets):
+    """The cheapest sets per room as one quote, when they are of one brand (one quote is one brand), else None."""
+    if len({x["description"].split()[0] for x in room_sets}) != 1:
+        return None
+    counts = Counter(tuple(x["codes"]) for x in room_sets)
+    return ("quote", {"items": [{"code": c, "qty": n} for codes, n in counts.items() for c in codes]})
 
 
 def _suggested_multis():
@@ -8309,15 +8398,18 @@ def _suggested_multis():
     return [next(o for o in options if o["brand"] == b) for b in dict.fromkeys(o["brand"] for o in options)][:2]
 
 
-def _multi_picks_text(options):
-    """The multi-split sets picked by code, for the offer moves."""
+def _multi_picks_text(options, priced=False):
+    """The multi-split sets picked by code, for the offer moves; `priced` when code quotes them itself."""
     rows = []
     for i, o in enumerate(options, 1):
         sizes = ", ".join(f"{room:g} m² → {kw:g} kW" for room, kw in o["rooms"]).replace(".", ",")
         rows.append(f"{i}) {o['series']} ({sizes}): items {json.dumps(o['items'])}")
+    how = (" Server ich už nacenil (`quote`), výsledky sú v bloku VÝSLEDKY SERVERA nižšie: ukáž ich s cenou s DPH "
+           "presne podľa nich a tie isté quote neopakuj" if priced else
+           " Naceň každú vlastným `quote` presne s týmito items, kódy nehľadaj")
     return (" Server vybral multi-split zostavy (najlacnejší vhodný rad, jedna vnútorná jednotka na izbu, najmenšia "
-            "vonkajšia, ktorá ich unesie): " + "; ".join(rows) + ". Naceň každú vlastným `quote` presne s týmito items, "
-            "kódy nehľadaj; funkcie radu zistíš cez `lookup_product` ('<rad> <výkon v kW>').")
+            "vonkajšia, ktorá ich unesie): " + "; ".join(rows) + f".{how}; funkcie radu zistíš cez `lookup_product` "
+            "('<rad> <výkon v kW>').")
 
 
 def _room_sets_text(room_sets):
@@ -8357,7 +8449,9 @@ _LEAVING_RE = re.compile(r"\bidem\s+inde\b|\bzabudnite\b(?!\s+na\s+(?!to\b))|\bz
 # of the 77 regenerations were wrong-direction drafts (cena-neodpovedana, dve-moznosti, zakazana-otazka). next_move()
 # ranks the cases: the first that applies decides, its directive is the server context's first line, and an offer
 # turn's first call must call a tool (tool_choice any) instead of asking a question the gate then regenerates.
-Move = namedtuple("Move", "name directive tool_choice")  # tool_choice: None or "any" (the turn's first call)
+# tool_choice: None or "any" (the turn's first call). prerun: the tool calls code makes before the first call when it
+# picked the offer itself — ((name, input), …), see run_user_turn_streaming.
+Move = namedtuple("Move", "name directive tool_choice prerun", defaults=((),))
 
 # The customer answered which rooms (folded text): "obe izby, každá má 20 m2", "len obývačku". _ROOMS_COUNT_RE knew
 # only numbers, so the multi-room note kept asking after the live customer had answered (2026-10-27).
@@ -8391,14 +8485,16 @@ _MANY_ROOMS_RE = re.compile(r"\b(?:[2-9]|dve|dva|tri|styri|pat|obe|obidve|oba|vs
                             r"miestnost|spaln|room|bedroom)\w*|\bkazd\w*\s+(?:izb\w*\s+)?(?:ma|je|po)\b", re.IGNORECASE)
 
 _CONTACT_GIVEN_TEXT = (
-    "Zákazník si vybral a nechal kontakt. Poďakuj a jednou vetou zopakuj vybranú zostavu; kontakt si znova nepýtaj, doplň "
-    "iba to, čo chýba. Kým súhlas nie je zaznamenaný, nepíš „zaznamenal som“ ani „ozve sa“; ďalší krok iba ako podmienku "
+    "Zákazník si vybral a nechal kontakt. Začni „Ďakujem, vybrali ste si …“ a jednou vetou zopakuj vybranú zostavu; "
+    "kontakt si znova nepýtaj, doplň iba to, čo chýba. Kým súhlas nie je zaznamenaný, o ničom nepíš, že je zapísané, "
+    "zaznamenané či uložené (ani výber, ani údaje o firme), ani „ozve sa“; ďalší krok iba ako podmienku "
     "(„Keď odsúhlasíte otázku nižšie, projektový manažér sa vám ozve.“). Otázku na súhlas pripojí server sám.")
 _OFFER_CHOSEN_TEXT = (
     # The "Toto chcem" button: every first draft said "zaznamenal som" or "ozve sa" and was regenerated twice
     # (live demo and replay of 2026-10-21).
-    "Zákazník si práve vybral ponuku. Poďakuj, jednou vetou zopakuj vybranú zostavu a požiadaj o meno, telefón, "
-    "e-mail a obec. Kým súhlas nie je zaznamenaný, nepíš „zaznamenal som“, „odovzdám“ ani „potom sa vám ozve“; "
+    "Zákazník si práve vybral ponuku. Začni „Ďakujem, vybrali ste si …“, jednou vetou zopakuj vybranú zostavu a "
+    "požiadaj o meno, telefón, e-mail a obec. Kým súhlas nie je zaznamenaný, o ničom nepíš, že je zapísané alebo "
+    "zaznamenané (ani výber), ani „odovzdám“ či „potom sa vám ozve“; "
     "ďalší krok iba ako podmienku („Ak mi necháte meno a telefón a odsúhlasíte otázku nižšie, projektový manažér sa "
     "vám ozve.“). Otázku na súhlas pripojí server sám.")
 
@@ -8665,25 +8761,39 @@ def _sales_move(latest):
                       "povedz, že celý dom alebo byt navrhne projektový manažér pri bezplatnej obhliadke.")
     many_rooms = ((_FLAT_ROOMS_RE.search(folded) and not one_room and not whole_place_only)
                   or (_MANY_ROOMS_RE.search(folded) and not one_room) or len(rooms) >= 2)
+    # Code prices what it picked itself, before the first call (see run_user_turn_streaming): the model spent a thinking
+    # round fetching those prices, and offer turns were the slowest (12–14 s at the median, A/B of 2026-11-06).
+    prerun = []
     if many_rooms:
         multis = _suggested_multis()
         room_sets = _cheapest_room_sets(text) if _wished(_CHEAP_WISH_RE) else None
+        rooms_call = _room_sets_prerun(room_sets) if room_sets else None
         if room_sets:  # replay 2026-11-01: "lowest price" got a multi-split, the separate sets only when challenged
             directive += (" Zákazník chce najnižšiu cenu: ako prvú možnosť naceň samostatné sety do izieb ("
-                          + _room_sets_text(room_sets) + "), ako druhú multi-split.")
+                          + _room_sets_text(room_sets) + "), ako druhú multi-split."
+                          + (_PRICED_NOTE if rooms_call else ""))
             multis = multis[:1]
-        directive += (_multi_picks_text(multis) if multis else
+            prerun += [rooms_call] if rooms_call else []
+        directive += (_multi_picks_text(multis, priced=True) if multis else
                       " Na 2–5 izieb naceň multi-split (vonkajšia + vnútorné jednotky; kódy cez `lookup_product` "
                       "'<značka> multi-split <výkon jednej jednotky v kW>') a ako druhú možnosť multi-split druhej "
                       "značky alebo samostatné sety.")
+        prerun += [("quote", {"items": o["items"]}) for o in multis]
     picks = _suggested_sets()
     if picks:
-        directive += _picks_text(picks)
+        directive += _picks_text(picks, priced=True)
+        prerun += _picks_prerun(picks)
     elif not many_rooms:
         directive += _feature_sets_text(_offer_min_kw(max(_customer_m2())) if _customer_m2() else 0)
     if _wished(_QUIET_WISH_RE):  # the customer's first wish, and the offer of 2026-11-02 gave no figure
         directive += " Zákazník chce tichý chod: pri každej možnosti uveď hlučnosť vnútornej jednotky v dB z `lookup_product`."
-    return Move("ponuka", directive + _commercial_units_note() + _budget_note() + _rooms_limit_note() + _EXACT_AMOUNTS, "any")
+    # Two priced options cover the first offer: the first call needs no forced tool then.
+    complete = sum(name == "quote" for name, _ in prerun) >= 2
+    if complete:
+        directive = directive.replace("naceň dve možnosti, každú vlastným `quote`, a uveď ich ceny s DPH",
+                                      "ukáž dve možnosti, ktoré server nacenil, s ich cenami s DPH", 1)
+    return Move("ponuka", directive + _commercial_units_note() + _budget_note() + _rooms_limit_note() + _EXACT_AMOUNTS,
+                None if complete else "any", tuple(prerun))
 
 
 _ASKS_FIRM_CONTACT_RE = re.compile(r"\bdajte\s+mi\b|\btelefon\w*\s+na\b|\bcislo\s+na\b|\badres\w*|\bphone\s+number\b|\baddress\b|\bnumber\s+for\b",
@@ -8772,6 +8882,14 @@ def next_move():
     return sales
 
 
+def _turn_prerun():
+    """The results of the tools code ran for this turn's offer, as the server context shows them, or ""."""
+    sess = S()
+    if sess.turn_prerun and sess.turn_prerun[0] == len(sess.user_inputs):
+        return sess.turn_prerun[1]
+    return ""
+
+
 def _turn_move():
     """The move decided when the customer's latest message arrived (a quote made mid-turn mustn't flip the
     direction before the reply is written); decided now outside a turn (tests, the CLI's first call)."""
@@ -8830,6 +8948,9 @@ def build_server_context(note=None):
     # The direction first: one move, decided by code (see "Conversation policy").
     parts = [f"ĎALŠÍ KROK (rozhodol server podľa rozhovoru; drž sa ho, ostatné pokyny ho dopĺňajú): "
              f"{_turn_move().directive}"]
+    prerun = _turn_prerun()
+    if prerun:
+        parts.append(prerun)
     changes = _changes_note()
     if changes:
         parts.append(changes)
@@ -9275,6 +9396,12 @@ def _refresh_lead_brief():
     yield ("handoff", {"markdown": sess.handoff_path.read_text(encoding="utf-8"), "path": _rel(sess.handoff_path)})
 
 
+def _refused_quote_key(inp):
+    """A quote call's key for the refused-quote check: its items, and whether it carried override_reason."""
+    return json.dumps([sorted((str(i.get("code")), i.get("qty")) for i in inp.get("items") or [] if isinstance(i, dict)),
+                       bool(inp.get("override_reason"))], ensure_ascii=False)
+
+
 def run_user_turn_streaming(user_input):
     """Generator: drive one user turn end-to-end, yielding (event_name, data) tuples.
 
@@ -9401,6 +9528,39 @@ def run_user_turn_streaming(user_input):
     history = sess.conversation[:turn_start]
     turn_api = [sess.conversation[turn_start]]
 
+    # The offer code picked itself, priced before the first call (Move.prerun). The results reach the model as server
+    # data (_turn_prerun), because this turn's request holds only the model's own rounds, whose thinking stays valid;
+    # the stored history gets them as a tool round, so later turns see the codes and figures like any other.
+    first_tool_choice = move.tool_choice
+    if move.prerun:
+        uses, results, shown = [], [], []
+        for name, inp in move.prerun:
+            yield ("tool_call", {"name": name, "input": inp})
+            tool_calls += 1
+            content_str, is_error = dispatch_tool(name, inp)
+            log_event("tool_call", name=name, input=inp, output=content_str[:500], is_error=is_error, prerun=True)
+            if name == "quote" and is_error:  # code's own pick refused: the model has to fix it, so it must call a tool
+                refused_quotes.add(_refused_quote_key(inp))
+                refused_calls += 1
+                first_tool_choice = "any"
+            else:
+                seen_lookups.add((name, json.dumps(inp, sort_keys=True, ensure_ascii=False)))
+            if name == "quote" and not is_error:  # a multi-split quote ran the compat check itself
+                outdoor = ((json.loads(content_str).get("compatibility") or {}).get("outdoor_code") or "").strip().upper()
+                if outdoor:
+                    sess.compat_checked_outdoors |= {outdoor, outdoor.replace("/EU", "")}
+            yield ("tool_result", {"name": name, "is_error": is_error, "output_preview": content_str[:300]})
+            tool_id = f"toolu_server_{secrets.token_hex(8)}"
+            uses.append({"type": "tool_use", "id": tool_id, "name": name, "input": inp})
+            results.append({"type": "tool_result", "tool_use_id": tool_id, "content": content_str,
+                            **({"is_error": True} if is_error else {})})
+            shown.append(f"`{name}` {json.dumps(inp, ensure_ascii=False)}"
+                         + (" → CHYBA, zostavu oprav podľa nej:" if is_error else " →") + f"\n{content_str}")
+        sess.conversation += [{"role": "assistant", "content": uses}, {"role": "user", "content": results}]
+        sess.turn_prerun = (len(sess.user_inputs), "VÝSLEDKY SERVERA (nástroje, ktoré server v tomto kroku spustil za "
+                            "teba; platia ako tvoje vlastné volania):\n\n" + "\n\n".join(shown))
+        log_event("offer_prerun", calls=len(move.prerun), refused=sum("CHYBA" in x for x in shown))
+
     def budget_for_next_call(max_tokens, pending_usd=0.0, context_tokens=None):
         """'ok', 'final' (only an answer without tools still fits) or 'stop'. `pending_usd`
         is a call already made but not yet charged."""
@@ -9426,7 +9586,7 @@ def run_user_turn_streaming(user_input):
             if verdict == "stop" or calls >= TURN_MAX_CALLS:
                 stop_kind = "limit" if sess.cost_usd + projected_call_cost(max_tokens) > SESSION_USD_CAP else "turn"
                 break
-            if verdict == "final" and calls == 0 and move.tool_choice:
+            if verdict == "final" and calls == 0 and first_tool_choice:
                 # An offer needs quote, and only an answer without tools still fits: q05 got "skúsim to znova" with
                 # nothing behind it, turn after turn (QA 2026-11-01). Code closes with what is true.
                 stop_kind = "limit"
@@ -9441,7 +9601,7 @@ def run_user_turn_streaming(user_input):
             server_context = build_server_context(note)
             # An offer move's first call must call a tool: drafts that asked instead were the top regeneration.
             extra = ({"tool_choice": {"type": "none"}} if force_final
-                     else {"tool_choice": {"type": "any"}} if force_tool or (calls == 0 and move.tool_choice) else {})
+                     else {"tool_choice": {"type": "any"}} if force_tool or (calls == 0 and first_tool_choice) else {})
             force_tool = False
             calls += 1
             try:
@@ -9739,6 +9899,8 @@ def run_user_turn_streaming(user_input):
             log_event("false_claim_corrected", facts=len(missed))
         if is_final and move.name.startswith("zisti-") and not _customer_numbers(_CUSTOMER_KW_RE):
             attempt_text = _drop_kw_sentences(attempt_text)
+        if is_final and move.name.startswith("zisti-"):
+            attempt_text = _drop_invented_m2(attempt_text)
         # An undersized set shown with no word about it gets the warning from code, once per set.
         if is_final and attempt_text.strip() and not _UNDERSIZE_TALK_RE.search(attempt_text):
             unwarned = [q for q in _quotes_in_reply([q for q in sess.quotes if q.get("undersized")], attempt_text)
@@ -9869,9 +10031,7 @@ def run_user_turn_streaming(user_input):
                 elif block.name == "quote":
                     # The same items with override_reason are another call: keyed on items alone, the plain call
                     # that came first blocked the fit check's documented way out (QA 2026-11-02, d07).
-                    quote_key = json.dumps([sorted((str(i.get("code")), i.get("qty")) for i in block.input.get("items") or []
-                                                   if isinstance(i, dict)), bool(block.input.get("override_reason"))],
-                                           ensure_ascii=False)
+                    quote_key = _refused_quote_key(block.input)
                     if quote_key in refused_quotes:
                         over = "repeat_refused_quote"
                     elif refused_calls >= TURN_MAX_REFUSED_QUOTES:
@@ -9890,7 +10050,7 @@ def run_user_turn_streaming(user_input):
                         "Teraz sa ešte nenaceňuje — tento quote sa nespustil. Drž sa ĎALŠIEHO KROKU: najprv sa "
                         "zákazníka opýtaj, čo ešte potrebuješ vedieť; ponuka s cenami príde, keď odpovie."
                     ) if over == "discovery_quote" else (
-                        "Tento dopyt si v tomto kroku už dostal, výsledok máš vyššie — nevolaj ho znova."
+                        "Tento dopyt si v tomto kroku už dostal, výsledok už máš — nevolaj ho znova."
                     ) if over == "repeat_lookup" else (
                         "Táto zostava už bola odmietnutá a zopakovanie nepomôže: zmeň ju podľa chyby vyššie."
                         if over == "repeat_refused_quote" else
@@ -10003,7 +10163,7 @@ def run_user_turn_streaming(user_input):
     sess.conversation = maybe_summarize(sess.conversation)
     log_event("turn_end", calls=calls, tool_calls=tool_calls, searches=search_count,
               usd=round(sess.cost_usd - turn_usd_start, 4), session_usd=round(sess.cost_usd, 4),
-              seconds=round(time.time() - turn_t0, 1), stop=stop_kind)
+              seconds=round(time.time() - turn_t0, 1), stop=stop_kind, commit=COMMIT)
     yield ("done", {"session_tokens": sess.input_tokens, "session_usd": round(sess.cost_usd, 4),
                     "messages": len(sess.conversation)})
 

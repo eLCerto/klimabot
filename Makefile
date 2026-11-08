@@ -2,9 +2,12 @@
 # Recipes avoid shell syntax, so they run the same from PowerShell (cmd) and Git Bash (sh).
 .PHONY: build web down
 
+# The checkout's commit, logged with every turn by the app (bot.py COMMIT); empty without git.
+COMMIT := $(shell git describe --always --dirty --abbrev=7)
+
 # Build the image: PyTorch, both models and the KB index go into it (slow the first time).
 build:
-	docker compose build
+	docker compose build --build-arg KLIMABOT_COMMIT=$(COMMIT)
 
 # Start the web app in the background and wait until it answers.
 web:

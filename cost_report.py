@@ -141,7 +141,10 @@ def summarize(path):
         "lead_before_consent": False,
         "lead_without_sales_consent": False,
         "complaints": 0,                       # complaint handovers (complaint_captured)
+        # Reply quality per deploy: commit (turn_end's `commit`) -> turns, seconds, model calls, regenerations by rule
+        "by_commit": {},
     }
+    turn_rules = Counter()                     # regeneration rules of the turn under way
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -219,9 +222,20 @@ def summarize(path):
                 s["violations"][rule] += 1
         elif ev == "bot_reply_regen_triggered":
             s["regens"] += 1
+            turn_rules["__regens"] += 1
             for v in r.get("violations", []) or []:
                 rule = v.split(":", 1)[0].strip() if isinstance(v, str) else "?"
                 s["violations"][rule] += 1
+                turn_rules[rule] += 1
+        elif ev == "turn_end":
+            b = s["by_commit"].setdefault(r.get("commit") or "unknown", {
+                "turns": 0, "seconds": [], "calls": [], "regens": 0, "rules": Counter()})
+            b["turns"] += 1
+            b["seconds"].append(r.get("seconds") or 0)
+            b["calls"].append(r.get("calls") or 0)
+            b["regens"] += turn_rules.pop("__regens", 0)
+            b["rules"].update(turn_rules)
+            turn_rules = Counter()
         elif ev == "bot_reply_sanitized":
             s["sanitizations"] += 1
         elif ev == "capture_lead_blocked_gdpr":
@@ -418,6 +432,37 @@ def print_validator_triggers(rows):
             print(f"    {rule:<32} {n:>5}  ({avg_per_session:.2f}/session)")
 
 
+def _pct(values, q):
+    values = sorted(values)
+    return values[min(len(values) - 1, int(q * len(values)))] if values else 0
+
+
+def print_quality_by_commit(rows):
+    """Reply quality per deploy (the commit in turn_end, logged since 2026-11-07): turns, seconds per turn (median and
+    90th percentile), model calls per turn, regenerations per turn and the rules behind them."""
+    merged = {}
+    for _, s in rows:
+        for commit, b in s["by_commit"].items():
+            m = merged.setdefault(commit, {"turns": 0, "seconds": [], "calls": [], "regens": 0, "rules": Counter(),
+                                           "sessions": 0})
+            m["turns"] += b["turns"]
+            m["seconds"] += b["seconds"]
+            m["calls"] += b["calls"]
+            m["regens"] += b["regens"]
+            m["rules"].update(b["rules"])
+            m["sessions"] += 1
+    if not merged:
+        return
+    print()
+    print("=== Reply quality by commit (turn_end) ===")
+    print(f"  {'commit':<16} {'sess':>5} {'turns':>6} {'s p50':>6} {'s p90':>6} {'calls/t':>8} {'regen/t':>8}  top rules")
+    for commit, m in sorted(merged.items(), key=lambda kv: -kv[1]["turns"]):
+        n = max(1, m["turns"])
+        rules = ", ".join(f"{r} {c}" for r, c in m["rules"].most_common(4))
+        print(f"  {commit:<16} {m['sessions']:>5} {m['turns']:>6} {_pct(m['seconds'], .5):>6.1f} {_pct(m['seconds'], .9):>6.1f} "
+              f"{sum(m['calls']) / n:>8.2f} {m['regens'] / n:>8.2f}  {rules}")
+
+
 def print_drop_off(rows):
     """For sessions that did NOT capture a lead, group the last user
     message by 'where it died'. Helps spot patterns: e.g. 'most leads die
@@ -534,6 +579,7 @@ def render_report(rows):
         totals = print_per_session(rows)
         print_funnel(rows)
         print_validator_triggers(rows)
+        print_quality_by_commit(rows)
         print_drop_off(rows)
         print_auto_capture_stats(rows)
         print_gdpr_audit(rows)

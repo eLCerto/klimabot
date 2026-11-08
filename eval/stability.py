@@ -40,11 +40,12 @@ MOVE_DIRECTIONS = {
     "zisti-priority": {"zisti-priority"},
     "kontakt": {"kontakt"}, "neponukame": {"neponukame"},
     "odpoved": {"odpoved", "ponuka", "zisti-priority"}, "pokracuj": ALL,
-    "zapis": {"odpoved", "kontakt", "odkaz"}, "po-zapise": ALL,  # the thanks may give the company contact
+    "zapis": {"odpoved", "kontakt", "odkaz", "ponuka"}, "po-zapise": ALL,  # the thanks may give the contact or recap the price
     "bezpecnost": {"bezpecnost"}, "reklamacia": {"kontakt", "odkaz"},
     "priemysel": {"odkaz", "kontakt", "odpoved"}, "vlastna-montaz": {"odkaz", "odpoved"},
 }
-_EUR_RE = re.compile(r"\d[\d\s.,]*\s*€|€\s*\d")
+# "EUR" too: English replies wrote "1,107.00 EUR" and read as no price (A/B of 2026-11-06).
+_EUR_RE = re.compile(r"\d[\d\s.,]*\s*(?:€|EUR\b)|(?:€|\bEUR)\s*\d")
 _QUESTION_SENTENCES_RE = re.compile(r"[^.!?\n]*\?")
 _DECLINE_RE = re.compile(r"neponúk|nepredáv|nezaober|nezahŕň|nerobíme|neposkytuj|nemôžeme|nie je (?:súčasť|predmet|naš)|"
                          r"nemáme (?:\w+ )?(?:informáci|podklad)|v podkladoch (?:som )?(?:to |nič )?(?:nemám|nemáme|nenašiel)|"
@@ -52,14 +53,18 @@ _DECLINE_RE = re.compile(r"neponúk|nepredáv|nezaober|nezahŕň|nerobíme|nepos
 _OFFER_DECLINE_RE = re.compile(r"neponúk|nepredáv|nezaober|nerobíme")
 _ASKING_SENTENCES_RE = re.compile(r"[^.!?\n]*\b(?:povedzte|napíšte|tell me)\b[^.!?\n]*[.:]?[^.!?\n]*")  # a question without "?"
 _PRIORITY_WORDS_RE = re.compile(r"tich|filtr|wi-?fi|dizajn|najnižš")
+# A question put as a lead-in to a list: "Čo je pre vás dôležité:" and the options as bullets, no "?" (A/B of 2026-11-06).
+_LIST_QUESTION_RE = re.compile(r"[^.!?\n]*:[ \t]*\n(?:[ \t]*\n)?[ \t]*(?:[-*•]|\d+[.)])")
 
 
-def direction(reply, quoted, company_email, asks_contact):
-    """Where a reply heads, read by code from its text, whether a quote was made this turn and the bot's own
-    contact-request check. A first question about the type of space counts as zisti-priestor even when it also
-    asks about the rooms (the directive asks both)."""
+def direction(reply, quoted, company_email, asks_contact, quoted_before=False):
+    """Where a reply heads, read by code from its text, whether a quote was made this turn (or earlier:
+    `quoted_before`, an offer may show a quote again without a new call) and the bot's own contact-request check.
+    A first question about the type of space counts as zisti-priestor even when it also asks about the rooms (the
+    directive asks both)."""
     low = reply.lower()
-    questions = " ".join(_QUESTION_SENTENCES_RE.findall(low) + _ASKING_SENTENCES_RE.findall(low))
+    questions = " ".join(_QUESTION_SENTENCES_RE.findall(low) + _ASKING_SENTENCES_RE.findall(low)
+                         + _LIST_QUESTION_RE.findall(low))
     if re.search(r"\b112\b", reply):
         return "bezpecnost"
     # "v podkladoch nemám" next to a quoted price is an honest side answer, not a decline (a customer's question is
@@ -68,7 +73,7 @@ def direction(reply, quoted, company_email, asks_contact):
         return "neponukame"
     if asks_contact(reply):
         return "kontakt"
-    if quoted and _EUR_RE.search(reply):
+    if (quoted or quoted_before) and _EUR_RE.search(reply):
         return "ponuka"
     if company_email and company_email.lower() in low and not _EUR_RE.search(reply):
         return "odkaz"
@@ -159,7 +164,8 @@ def run(repo, run_dir, reps, workers, use_api=False, budget_usd=3.0, only=None, 
             quoted = len(sess.quotes) > quotes_before
             turns.append({"customer": turn["customer"], "expect": turn["expect"], "reply": reply, "quoted": quoted,
                           "asks_contact": bool(bot._asks_contact(reply)),
-                          "direction": direction(reply, quoted, bot.COMPANY_EMAIL, bot._asks_contact),
+                          "direction": direction(reply, quoted, bot.COMPANY_EMAIL, bot._asks_contact,
+                                                 quoted_before=quotes_before > 0),
                           "calls": sum(1 for e, _ in events if e == "turn_complete"),
                           "regens": sum(1 for e, d in events
                                         if e == "notice" and d.get("text", "").startswith("Validator zamietol")),

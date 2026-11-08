@@ -93,6 +93,14 @@ def api_error(cls, status, body, headers=None):
     return cls(json.dumps(body), response=response, body=body)
 
 
+def no_code_picks(test):
+    """For the rest of the test, code picks no offer (as for a salon or a named series): the model prices it."""
+    for name, value in (("_suggested_sets", lambda: None), ("_suggested_multis", lambda: [])):
+        patcher = mock.patch.object(bot, name, value)
+        patcher.start()
+        test.addCleanup(patcher.stop)
+
+
 def _btype(b):
     return b.get("type") if isinstance(b, dict) else getattr(b, "type", None)
 
@@ -550,6 +558,7 @@ class GateTests(BotTest):
         self.assertEqual(bot._untrusted_amounts(f"Rozdiel je {diff} €."), [])
 
     def test_price_question_gets_a_quote_in_the_same_turn(self):  # q02
+        no_code_picks(self)
         events, _ = self.turn(
             "Spálňa 14 m2, koľko by to stálo aj s montážou?",
             resp(text("Akú značku preferujete, Samsung alebo Toshiba?")),
@@ -635,7 +644,7 @@ class QuoteTests(BotTest):
         shorai = [("RAS-B10P2KVSG-E", 1), ("RAS-10P2AVSG-E", 1)]
         self.sess.user_inputs.append("Detská izba 12 m2, mám alergiu na prach.")
         warning = " ".join(self.q(shorai)["fit_warnings"])
-        self.assertIn("triedy 2", warning)
+        self.assertIn("má o stupeň slabšiu filtráciu", warning)
         self.assertIn("Toshiba HAORI", warning)
         self.assertIn("Toshiba DAISEIKAI 10", warning)
         self.assertIn("Poradie filtrácie", bot.build_server_context())
@@ -758,7 +767,8 @@ class QuoteTests(BotTest):
     def test_a_filter_wish_brings_the_filtration_ranking(self):  # live demo: "kvalitný filter" got the AR35
         self.sess.user_inputs.append("mam zaujem o kvalitny filter a wifi")
         warning = " ".join(self.q([("AR40H09C1AMNEU", 1), ("AR40H09C1AMXEU", 1)])["fit_warnings"])
-        self.assertIn("triedy 4", warning)
+        self.assertIn("má iba základnú filtráciu", warning)
+        self.assertNotRegex(warning, r"tried\w*\s*[1-4]")
         self.sess.user_inputs[:] = ["Spálňa 12 m2, nepotrebujem filtráciu."]
         self.assertFalse(bot._wished(bot._ALLERGY_RE))
 
@@ -1101,7 +1111,7 @@ class QuoteTests(BotTest):
         samsung = bot.lookup_product("Samsung 1.4 kW")["series_sets"]
         self.assertTrue(samsung and all(s["codes"] for s in samsung))
         self.assertEqual(len({s["cooling_kW"] for s in samsung}), 1, "one size: the smallest that covers it")
-        self.assertIn("filtration_tier", samsung[0])
+        self.assertIn("filtration", samsung[0])
         self.assertTrue(bot.lookup_product("Toshiba 1,4 kW")["series_sets"])
         self.sess.conversation += [{"role": "user", "content": "Dom, 3 izby 12, 15 a 20 m²."},
                                    {"role": "assistant", "content": "Čo je pre vás najdôležitejšie — tichý chod, filtrácia?"}]
@@ -1112,6 +1122,7 @@ class QuoteTests(BotTest):
         self.assertIn("netvrď, že výkon nestačí", bot.build_server_context())
 
     def test_a_quote_made_but_not_shown_is_regenerated(self):  # live demo 2026-10-24: "Koľko by stála?"
+        no_code_picks(self)
         price = priced(AR30_SET)
         events, shown = self.turn(
             "Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?",
@@ -1401,7 +1412,7 @@ class RoundThreeTests(BotTest):
     def test_the_filtration_warning_gives_the_better_sets_codes(self):  # live demo 2026-10-27: AR60F for AR70F
         self.sess.user_inputs[:] = ["spálňa 14 m2", "ma tato klima wifi a dobry filter?"]
         comfort = bot.quote([{"code": "AR60F09C1AWNEU"}, {"code": "AR60F09C1AWXEU"}])
-        warning = next(w for w in comfort["fit_warnings"] if "triedy 3" in w)
+        warning = next(w for w in comfort["fit_warnings"] if "má slabšiu filtráciu" in w)
         self.assertIn("tento quote je cena radu Samsung WindFree Comfort S2", warning)
         named = re.findall(r"(Samsung WindFree Avant S2 [\d,]+ kW) \(([A-Z0-9]+) \+ ([A-Z0-9]+)\)", warning)
         self.assertEqual(len(named), 1, warning)
@@ -1409,11 +1420,11 @@ class RoundThreeTests(BotTest):
         avant = bot.quote([{"code": named[0][1]}, {"code": named[0][2]}])
         self.assertNotIn("error", avant)
         self.assertIn("Avant S2", avant["lines"][0]["description"])
-        self.assertFalse(any("triedy" in w for w in avant.get("fit_warnings", [])), "tier 1: no warning")
+        self.assertFalse(any("filtráciu" in w for w in avant.get("fit_warnings", [])), "tier 1: no warning")
         # Without a size, sets of about the quoted capacity.
         self.sess.user_inputs[:] = ["ma tato klima wifi a dobry filter?"]
         warning = next(w for w in bot.quote([{"code": "AR60F09C1AWNEU"}, {"code": "AR60F09C1AWXEU"}])["fit_warnings"]
-                       if "triedy 3" in w)
+                       if "má slabšiu filtráciu" in w)
         self.assertIn("Samsung WindFree Avant S2 2,5 kW (AR70F09C1AWNEU + AR70F09C1AWXEU)", warning)
 
     def test_dph_label_must_match(self):  # a03, d01
@@ -2579,6 +2590,7 @@ class PolicyTests(BotTest):
         self.assertEqual(bot.next_move().name, "zapis")
 
     def test_an_offer_turn_must_call_a_tool_and_keeps_its_direction(self):
+        no_code_picks(self)  # an offer code can't pick: the model prices it
         samsung, toshiba = (["AR40H09C1AMNEU", "AR40H09C1AMXEU"], ["RAS-10B2AVG-E2", "RAS-B10B2KVG-E2"])
         reply = (f"**Samsung AR35 WIFI** (2,6 kW): **{priced(samsung)}** s DPH.\n\n"
                  f"**Toshiba SEIYA Classic 2** (2,5 kW): **{priced(toshiba)}** s DPH.\n\nKtorá vám viac vyhovuje?")
@@ -3171,8 +3183,11 @@ class CsatFixTests(BotTest):
     def test_c01_c02_the_offer_goes_straight_to_the_picked_sets(self):
         m = self.move("Dobrý deň, chceme klimatizovať byt - spálňu 14 m2, detskú izbu 11 m2 a obývačku 24 m2. "
                       "Ideálne jednou vonkajšou jednotkou a s ovládaním cez mobil.")
-        self.assertEqual((m.name, m.tool_choice), ("ponuka", "any"))
+        # Code priced both picks itself (Move.prerun): the first call needs no forced tool.
+        self.assertEqual((m.name, m.tool_choice), ("ponuka", None))
         self.assertIn("Server vybral multi-split", m.directive)
+        self.assertIn("Server ich už nacenil", m.directive)
+        self.assertEqual([name for name, _ in m.prerun], ["quote", "quote"])
 
     def test_a_bare_size_narrows_a_multi_split_lookup(self):
         self.assertLess(len(json.dumps(bot.lookup_product("Samsung multi-split 2.5"))), 6000)
@@ -3839,6 +3854,7 @@ class IndecisiveCustomerTests(BotTest):
         self.assertIn("samostatné sety", bot.next_move().directive)
 
     def test_an_offer_with_no_amount_is_regenerated_with_a_tool(self):
+        no_code_picks(self)
         _, shown = self.turn("Klímu do spálne 14 m2, čo najlacnejšiu. Koľko to stojí?",
                              resp(text("Dajte mi, prosím, chvíľu.")),
                              resp(tool("quote", items=[{"code": c} for c in self.AR35_26])),
@@ -4339,6 +4355,135 @@ class HagglerTests(BotTest):
         line = bot._after_note_line({"text": "Sľúbili ste 990 €.", "server_check": "Suma 990,00 € v tomto rozhovore nezaznela."})
         self.assertIn("„Sľúbili ste 990 €.“", line)
         self.assertIn("Server: nesedí", line)
+
+
+class LatencyRegenTests(BotTest):
+    """The changes after the A/B of 2026-11-06: code prices its own offer before the first call, the filtration ranking
+    and the contact moves without the wording that regenerated, the spelling fixes, invented room sizes, the commit in
+    the logs and the direction scorer."""
+
+    MSG = "Dobrý deň, spálňa 14 m2, koľko by stála klimatizácia?"
+
+    def picks(self, message):
+        self.sess.user_inputs.append(message)  # read the picks the way the turn will
+        try:
+            return [codes for _, codes in bot._suggested_sets()]
+        finally:
+            self.sess.user_inputs.pop()
+
+    def offer_reply(self, picks):
+        return ("\n\n".join(f"Možnosť {i}: **{priced(c)}** s DPH." for i, c in enumerate(picks, 1))
+                + "\n\nKtorá vám viac vyhovuje?")
+
+    def test_code_prices_its_own_picks_before_the_first_call(self):
+        picks = self.picks(self.MSG)
+        events, shown = self.turn(self.MSG, resp(text(self.offer_reply(picks))))
+        self.assertEqual(len(bot.client.calls), 1, "one model call: the prices came from code")
+        first = bot.client.calls[0]
+        self.assertNotIn("tool_choice", first)
+        self.assertEqual(len(first["messages"]), 1, "this turn's request holds no code-written round")
+        context = json.dumps(first["messages"][-1], ensure_ascii=False)
+        self.assertIn("VÝSLEDKY SERVERA", context)
+        self.assertIn("Server ich už nacenil", context)
+        self.assertNotIn("každú vlastným `quote`", context)
+        for codes in picks:
+            self.assertIn(codes[0], context)
+        self.assertEqual(len(self.sess.quotes), 2)
+        self.assertIn(priced(picks[1]), shown)
+        # The stored history has the round, so later turns see the codes.
+        uses = [b for m in self.sess.conversation if m["role"] == "assistant" and isinstance(m["content"], list)
+                for b in m["content"] if _btype(b) == "tool_use"]
+        self.assertEqual([b["name"] for b in uses], ["quote", "lookup_product", "quote", "lookup_product"])
+        assert_no_dangling_tool_use(self.sess.conversation)
+        self.assertEqual(sum(1 for e, _ in events if e == "tool_call"), 4)
+        self.assertEqual(sum(1 for e, _ in events if e == "quote"), 2, "a price card for each shown total")
+        self.assertIn('"event": "offer_prerun"', self.log_text())
+        self.assertIn('"prerun": true', self.log_text())
+        self.turn("Ďakujem, ešte to zvážim.", resp(text("Rozumiem. Ktorá z dvoch možností vás zaujala viac?")))
+        assert_no_dangling_tool_use(bot.client.calls[0]["messages"])
+        self.assertIn(picks[0][0], json.dumps([_plain(m) for m in bot.client.calls[0]["messages"]], ensure_ascii=False))
+
+    def test_the_model_repeating_a_pick_quote_does_not_run_it_again(self):
+        picks = self.picks(self.MSG)
+        self.turn(self.MSG, resp(tool("quote", items=[{"code": c, "qty": 1} for c in picks[0]])),
+                  resp(text(self.offer_reply(picks))))
+        self.assertEqual(len(self.sess.quotes), 2)
+        self.assertIn('"limit": "repeat_lookup"', self.log_text())
+
+    def test_a_refused_pick_leaves_the_offer_to_the_model(self):
+        bad = bot.Move("ponuka", "Teraz príde prvá ponuka.", None, (("quote", {"items": [{"code": "NEEXISTUJE", "qty": 1}]}),))
+        reply = f"Samsung: **{priced(AR30_SET)}** s DPH.\n\nToshiba: **{priced(SEIYA_SET)}** s DPH.\n\nKtorá vám vyhovuje?"
+        with mock.patch.object(bot, "next_move", lambda: bad):
+            _, shown = self.turn("Spálňa 14 m2, koľko to stojí?",
+                                 resp(tool("quote", items=[{"code": c} for c in AR30_SET]),
+                                      tool("quote", items=[{"code": c} for c in SEIYA_SET])),
+                                 resp(text(reply)))
+        self.assertEqual(bot.client.calls[0]["tool_choice"], {"type": "any"}, "the offer still needs a price")
+        self.assertIn("CHYBA", json.dumps(bot.client.calls[0]["messages"][-1], ensure_ascii=False))
+        self.assertIn(priced(SEIYA_SET), shown)
+        assert_no_dangling_tool_use(self.sess.conversation)
+
+    def test_an_offer_code_cannot_pick_keeps_the_forced_tool(self):
+        m = self.move_for("Spálňa 14 m2, koľko stojí HAORI?")
+        self.assertEqual((m.name, m.tool_choice, m.prerun), ("ponuka", "any", ()))
+
+    def move_for(self, message):
+        self.sess.user_inputs.append(message)
+        return bot.next_move()
+
+    def test_discovery_drops_room_sizes_the_customer_never_gave(self):  # plocha_neznama, every version
+        self.sess.user_inputs[:] = ["dobry den, byt 2 izby, spalna a obyvacka, neviem kolko m2 taka normalna"]
+        self.assertEqual(bot._drop_invented_m2("Dvojizbový byt býva zvyčajne 50 až 65 m². Spálňa býva 12–15 m2. "
+                                               "Čo je pre vás dôležité?"), "Čo je pre vás dôležité?")
+        self.sess.user_inputs[:] = ["Spálňa 14 m2 a obývačka 25 m2."]
+        kept = "Pre spálňu 14 m² a obývačku 25 m² (spolu 39 m²) máte dve možnosti. Čo je pre vás dôležité?"
+        self.assertEqual(bot._drop_invented_m2(kept), kept)
+        self.sess.user_inputs[:] = []
+        _, shown = self.turn("dobry den, byt 2 izby, spalna a obyvacka, neviem kolko m2 taka normalna",
+                             resp(text("Dvojizbový byt býva zvyčajne 50 až 65 m². Čo je pre vás dôležité: tichý chod, "
+                                       "filtrácia, Wi-Fi alebo čo najnižšia cena?")))
+        self.assertNotIn("65 m²", shown)
+        self.assertIn("Čo je pre vás dôležité", shown)
+        self.assertIn('"event": "m2_sentence_dropped"', self.log_text())
+
+    def test_turn_end_logs_the_commit_and_the_report_splits_by_it(self):
+        self.turn("Dobrý deň.", resp(text("Dobrý deň, s čím vám môžem pomôcť pri výbere klimatizácie?")))
+        self.assertIn(f'"commit": "{bot.COMMIT}"', self.log_text())
+        report = cost_report.render_report([(self.sess.log_path, cost_report.summarize(self.sess.log_path))])
+        self.assertIn("Reply quality by commit", report)
+        self.assertIn(bot.COMMIT, report)
+        with mock.patch.dict(os.environ, {"KLIMABOT_COMMIT": "abc1234"}):
+            self.assertEqual(bot._commit(), "abc1234")
+
+    def test_spelling_fixes_and_words(self):
+        self.assertIn("Montáž nenaceňujem", bot.sanitize_reply("Montáž necenujem, určí ju projektový manažér.")[0])
+        self.assertEqual(bot._misspelled_words("Montáž nenaceňujem a dealerské ceny nemáme, inverterové jednotky áno."), [])
+
+    def test_the_filtration_ranking_has_no_tier_numbers(self):  # "filtráciou triedy 1" was cut as interne-info
+        self.sess.user_inputs.append("Spálňa 14 m2, mám alergiu.")
+        context = bot.build_server_context()
+        self.assertIn("najlepšia filtrácia", context)
+        self.assertNotRegex(context, r"tried\w*\s*[1-4]")
+        self.assertFalse(bot._internal_leak_sentences("Obe majú najlepšiu filtráciu (jemný filter PM2.5)."))
+        series = bot.lookup_product("Samsung 2,5 kW")["series_sets"]
+        self.assertTrue(all(isinstance(x["filtration"], (str, type(None))) for x in series))
+
+    def test_the_prompt_confirms_a_choice_without_recording_claims(self):
+        prompt = "\n".join(b["text"] for b in bot.build_system_blocks())
+        self.assertNotIn("tvoj záujem", prompt)
+        self.assertIn("Ďakujem, vybrali ste si", prompt)
+        self.assertIn("Ďakujem, vybrali ste si", bot._OFFER_CHOSEN_TEXT)
+
+    def test_the_direction_scorer_reads_eur_lists_and_earlier_quotes(self):
+        sys.path.insert(0, str(REPO / "eval"))
+        import stability
+        no_contact = lambda reply: False  # noqa: E731
+        self.assertEqual(stability.direction("Option 1: 1,107.00 EUR with VAT.", True, "", no_contact), "ponuka")
+        self.assertEqual(stability.direction("Čo je pre vás dôležité:\n- tichý chod\n- Wi-Fi", False, "", no_contact),
+                         "zisti-priority")
+        self.assertEqual(stability.direction("Toshiba stojí 1 107,00 € s DPH.", False, "", no_contact,
+                                             quoted_before=True), "ponuka")
+        self.assertEqual(stability.direction("Toshiba stojí 1 107,00 € s DPH.", False, "", no_contact), "odpoved")
 
 
 class RetrievalTests(BotTest):

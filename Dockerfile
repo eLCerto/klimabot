@@ -52,6 +52,11 @@ RUN --mount=type=cache,id=klimabot-kb,target=/kb-build-cache \
  && cp /kb-build-cache/.kb_vecs.npy /kb-build-cache/.kb_hash.txt /app/.kb_cache/ \
  && rm -rf /tmp/build-data
 
+# The commit the image is built from (`make build` passes it): logged with every turn, so the logs split by deploy.
+# Declared after the KB step, so a new commit doesn't invalidate the layers above.
+ARG KLIMABOT_COMMIT=unknown
+ENV KLIMABOT_COMMIT=$KLIMABOT_COMMIT
+
 USER app
 ENV HOST=0.0.0.0 \
     PORT=7860 \

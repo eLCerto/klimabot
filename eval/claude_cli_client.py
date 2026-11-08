@@ -198,6 +198,8 @@ class ClaudeCLIClient:
             # tool_choice any: the policy's offer turns and the regenerations that must call a tool — the API
             # enforces it, so the prompt has to as well, or CLI runs measure a bot without it.
             choice = (tool_choice or {}).get("type")
+            if choice == "tool":  # one named tool (judge.py's report_review): with one tool offered, the same as any
+                choice = "any"
             task = ("Napíš konečnú odpoveď asistenta zákazníkovi, bez blokov tool_call." if choice == "none" else
                     "Napíš ďalšiu správu asistenta: musí obsahovať aspoň jeden blok tool_call (nástroj si vyber)."
                     if choice == "any" else "Napíš ďalšiu správu asistenta (text a/alebo bloky tool_call).")

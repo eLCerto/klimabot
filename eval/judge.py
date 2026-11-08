@@ -191,12 +191,19 @@ def main():
     ap.add_argument("--only", help="conversation ids or their prefixes, comma-separated (c01,c03)")
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--budget-usd", type=float, default=1.0)
+    ap.add_argument("--cli", action="store_true",
+                    help="through the local Claude Code CLI (the subscription) instead of the paid API; no budget")
     args = ap.parse_args()
+    only = {x.strip() for x in args.only.split(",")} if args.only else None
+    if args.cli:  # the owner doesn't want test runs on the API: same reviewer, the subscription's account
+        sys.path.insert(0, str(REPO / "eval"))
+        from claude_cli_client import ClaudeCLIClient
+        judge(args.run_dir, ClaudeCLIClient(model=args.model), args.model, float("inf"), only)
+        return
     load_dotenv(REPO / ".env")
     key = os.getenv("ANTHROPIC_API_KEY", "")
     if not key or key.endswith("..."):  # the same check as bot.py: missing, or the .env.example placeholder
         raise SystemExit("ANTHROPIC_API_KEY is missing or still the placeholder from .env.example.")
-    only = {x.strip() for x in args.only.split(",")} if args.only else None
     judge(args.run_dir, anthropic.Anthropic(api_key=key, max_retries=2), args.model, args.budget_usd, only)
     print(f"→ {Path(args.run_dir) / 'judge.md'}")
 
