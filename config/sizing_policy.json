@@ -33,5 +33,5 @@
   },
   "office_words": ["kancelári", "kancelari", "coworking"],
   "office_residential_ok_up_to_m2": 25,
-  "wifi_triggers": ["wifi", "wi-fi", "wi fi", "aplikáci", "aplikaci", "appk", "z mobilu", "cez mobil", "smartthings"]
+  "wifi_triggers": ["wifi", "wi-fi", "wi fi", "aplikáci", "aplikaci", "appk", "z mobilu", "cez mobil", "z telefónu", "cez telefón", "smartthings"]
 }

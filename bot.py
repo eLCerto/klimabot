@@ -1033,7 +1033,9 @@ _CUSTOMER_M2_RE = re.compile(
     re.IGNORECASE)
 # "25, 15 a 12 m2": the unit stands only after the last number. Reading just that one made 12 m² the largest room and
 # the fit check refused every correct multi-split (QA 2026-11-01). "12,5" stays one number.
-_M2_LIST_RE = re.compile(rf"((?:\d+(?:[.,]\d(?!\d))?(?:\s*,\s+|\s*,(?=\d{{2}}\b)|\s*[+/&]\s*|\s+(?:a|i|aj|and)\s+))+)(\d+(?:[.,]\d+)?)\s*{_M2_UNIT}",
+_M2_LIST_RE = re.compile(rf"((?:\d+(?:[.,]\d(?!\d))?(?:\s*,\s+|\s*,(?=\d{{2}}\b)|\s*[+/&]\s*|\s+(?:a|i|aj|and)\s+))+)(\d+(?:[.,]\d+)?)\s*"
+                         # "14 a 22 metrov", "14 a 22 m" (robustness suite, 2026-11-09), as _CUSTOMER_M2_RE reads one area
+                         rf"(?:{_M2_UNIT}|(?:m|metrov)\b(?!\s*(?:potrub\w*|kábl\w*|kabl\w*|výšk\w*|vysk\w*|dlh\w*|dĺžk\w*)))",
                          re.IGNORECASE)
 _NOT_AREA_BEFORE_RE = re.compile(r"potrub|vzdialen|výšk|vysk|dĺžk|dlzk|kábel|kabel", re.IGNORECASE)
 # "spolu 40 m²", "celkom 54 m2": a total, not a room. So is the whole flat or house: "Byt má 50 m2" was the
@@ -1554,7 +1556,10 @@ _CHEAP_WISH_RE = re.compile(
     # "Ide mi hlavne o cenu" got the second option at twice the budget (QA 2026-11-01)
     r"\bide\s+(?:mi|nam)\s+(?:\w+\s+)?o\s+cenu\b|\bhlavne\s+(?:o\s+)?cen\w*|\bcena\s+je\s+(?:hlavn|najdolezit|rozhodujuc)\w*|"
     # "Tichá, ale nie drahá" got two premium sets (QA 2026-11-02, d01)
-    r"\bnie\s+(?:moc\s+|prilis\s+|velmi\s+)?drah\w*|\bnestoj\w*\s+majland|"
+    r"\bnie\s+(?:je\s+|bola\s+|bude\s+)?(?:moc\s+|prilis\s+|velmi\s+)?drah\w*|\bnestoj\w*\s+majland|"
+    # "Najdôležitejšia je cena" (QA of 2026-11-09, p06), "cena je pre mňa najdôležitejšia"
+    r"\bnajdolezitejs\w*\s+(?:pre\s+(?:mna|nas)\s+)?(?:je\s+)?(?:pre\s+(?:mna|nas)\s+)?cena\b|"
+    r"\bcena\s+je\s+pre\s+(?:mna|nas)\s+(?:hlavn|najdolezit|rozhodujuc)\w*|"
     # the bot's own priorities question offers "čo najnižšia cena", and the answer wasn't read (QA 2026-11-02, d10)
     r"\bnajniz\w*\s+cen\w*|"
     # "Hľadám čo najlepšiu cenu" got HAORI and DAISEIKAI, "Len cena" a second question about priorities (QA 2026-11-03)
@@ -1565,6 +1570,9 @@ _BRAND_RES = {"Samsung": re.compile(r"\bsamsung", re.IGNORECASE), "Toshiba": re.
 _ANY_BRAND_RE = re.compile(
     r"znack\w*\s+(?:mi\s+|nam\s+)?(?:je\s+)?(?:jedno|jedna|nezalezi)|nezalezi\s+(?:mi\s+)?na\s+znack|"
     r"(?:nerie\w*|neriesim|nerozhoduje)\s+znack|any\s+brand|brand\s+doesn'?t\s+matter", re.IGNORECASE)
+# "Filtrácia ma nezaujíma", "Wi-Fi nepotrebujem", "Lacné veci nekupujem" (robustness suite, 2026-11-09). Not "nechcem":
+# "tichú, nechcem hlučnú" keeps the wish.
+_NEGATED_AFTER_RE = re.compile(r"\W*(?:\w+\W+)?(?:nezaujima\w*|nepotrebuj\w*|nerie[sš]\w*|nekupuj\w*|netreba)\b", re.IGNORECASE)
 _NEGATED_BEFORE_RE = re.compile(
     r"\b(?:nechcem|nechceme|nerie\w+|nepotrebuj\w*|netreba|nemusi|nezalezi\s+mi\s+na|nie|ani|bez|without|"
     r"not|no|don'?t\s+(?:need|want))\b[\w\s,]{0,18}$", re.IGNORECASE)
@@ -1579,7 +1587,8 @@ def _wished(regex, text=None):
         if last[1] > last[0]:
             return False
     text = fold_diacritics(_all_user_text() if text is None else text)
-    return any(not _NEGATED_BEFORE_RE.search(text[max(0, m.start() - 30):m.start()]) for m in regex.finditer(text))
+    return any(not _NEGATED_BEFORE_RE.search(text[max(0, m.start() - 30):m.start()])
+               and not _NEGATED_AFTER_RE.match(text[m.end():m.end() + 40]) for m in regex.finditer(text))
 
 
 # A brand the customer rules out ("Samsung nechcem", "nie Samsung", "Toshibu nie, s tou mám zlú skúsenosť", "Samsung je
@@ -1634,7 +1643,8 @@ def _customer_brands(text):
     return named or [b for b in _BRAND_RES if excluded and b not in excluded]
 
 
-_WIFI_WANTED_FOLDED_RE = re.compile("|".join(re.escape(fold_diacritics(t)) for t in SIZING["wifi_triggers"]), re.I)
+_WIFI_WANTED_FOLDED_RE = re.compile("|".join(re.escape(fold_diacritics(t)).replace(r"\ ", r"\s+") for t in SIZING["wifi_triggers"]),
+                                    re.I)
 
 # Allergy, dust, air quality or a filter wish in the customer's words (folded, not negated: "nie som alergik").
 _ALLERGY_RE = re.compile(
@@ -6382,8 +6392,9 @@ def _support_case():
     if sess.quotes:
         return False  # the conversation turned to buying something: the sales flow applies
     text = _all_user_text()
-    return bool(sess.support_handoffs or _COMPLAINT_RE.search(text)
-                or (_FAULT_RE.search(text) and _OUR_INSTALL_RE.search(text)))
+    folded = fold_diacritics(text)  # "vasa firma mi montovala", "reklamacia": the patterns are also matched without diacritics
+    return bool(sess.support_handoffs or _COMPLAINT_RE.search(text) or _COMPLAINT_FOLDED_RE.search(folded)
+                or (_FAULT_FOLDED_RE.search(folded) and (_OUR_INSTALL_RE.search(text) or _OUR_INSTALL_FOLDED_RE.search(folded))))
 
 
 # --- What the customer claims about the offers ---
@@ -7158,7 +7169,10 @@ _PRICE_QUESTION_RE = re.compile(
     r"\bcenu\b|\bhow\s+much\b|\bwhat\s+(?:would|does|will)\b[^?\n]{0,40}\bcost\b|\bprice\b|"
     r"\blacnej\w*|\bni[žz]š\w*\s+(?:rad|model|tried)\w*|\bcheaper\b|"
     # "maximálne 900 eur… Zmestím sa do toho?" got a question about priorities (QA 2026-11-01)
-    r"\bzmest[íi]\w*|\bvojd\w*\s+sa\b|\bfits?\b[^?\n]{0,30}\bbudget\b|\bcena\s*\?",
+    r"\bzmest[íi]\w*|\bvojd\w*\s+sa\b|\bfits?\b[^?\n]{0,30}\bbudget\b|\bcena\s*\?|"
+    # "Za koľko?", "Čo by to stálo?", "Mám rozpočet 1500 eur, dá sa to?" (QA and robustness suite of 2026-11-09)
+    r"\bza\s+ko[ľl]ko\b|\b[čc]o\s+by\s+(?:to\s+|ma\s+)?(?:st[áa]l|vy[šs]l)\w*|"
+    r"\brozpo[čc]\w*[^?\n]{0,60}\b(?:d[áa]\s+sa|vyjde|sta[čc][íi])\b",
     re.IGNORECASE)
 
 
@@ -7846,16 +7860,17 @@ _OUR_INSTALL_RE = re.compile(
     r"\bste\s+(?:\w+\s+){0,4}?(?:montovali|inštalovali|namontovali|nainštalovali|dodali|predali)\b|"
     r"\b(?:montovali|inštalovali|namontovali|nainštalovali|dodali|predali)\s+ste\b|\bvaš\w*\s+montáž\w*\s+(?:mi|nám)\b|"
     r"\b(?:kúpil\w*|kúpen\w*|zakúpen\w*|objednal\w*|objednan\w*|dodan\w*|namontovan\w*|nainštalovan\w*)\s+"
-    r"(?:sme\s+|som\s+|ste\s+)?(?:\w+\s+){0,2}od\s+vás\b|\byou\s+(?:installed|sold|supplied|fitted)\b|"
+    r"(?:sme\s+|som\s+|ste\s+)?(?:\w+\s+){0,2}(?:od|u)\s+vás\b|\byou\s+(?:installed|sold|supplied|fitted)\b|"
     r"\b(?:bought|purchased|got)\s+(?:\w+\s+){0,2}from\s+you\b|"
     # "vaša firma mi minulé leto montovala klimatizáciu" (QA of 2026-11-09, p08: a complaint recorded as a sales lead)
-    r"\bvaš\w*\s+(?:firm|spoločnos|spolocnos|technik|montér|monter|chlap|ľud|lud)\w*\s+(?:\w+\s+){0,4}?"
+    r"\bv[aá][šs]\w*\s+(?:firm|spoločnos|spolocnos|technik|montér|monter|chlap|ľud|lud)\w*\s+(?:\w+\s+){0,4}?"
     r"(?:montoval|inštaloval|instaloval|namontoval|nainštaloval|nainstaloval|dodal|predal|robil)\w*",
     re.IGNORECASE)
 _FAULT_RE = re.compile(
     r"\bnechlad\w*|\bnekúr\w*|\bnefung\w*|\bpokazen\w*|\bkvap\w*|\bteč\w*|\btecie\b|\bbliká\b|\bporuch[auy]\b|"
     r"\bnot\s+(?:cooling|working)|\bbroken\b|\bleak\w*",
     re.IGNORECASE)
+_FAULT_FOLDED_RE = re.compile(fold_diacritics(_FAULT_RE.pattern), re.IGNORECASE)
 
 
 # Danger the customer reports (smoke, sparks, a burning or gas smell, an electric shock): the
@@ -8635,7 +8650,8 @@ _ONE_ROOM_RE = re.compile(
     r"(?:spaln|obyvac|kuchyn|detsk|pracovn|izb|bedroom|living|room|kitchen)\w*|"
     r"\b(?:jedn\w*|one)\s+(?:izb|miestnost|spaln|obyvac|room|bedroom)\w*|\bnecham\s+tak\b", re.IGNORECASE)
 _COLOUR_WISH_RE = re.compile(r"\bciern\w*|\bblack\b|\bdrev\w*|\bwood\w*|\bfarb\w*|dizajn|design", re.IGNORECASE)
-_QUIET_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bdb\b|\bquiet\w*|\bsilent\b", re.IGNORECASE)
+# "nech nehučí", "aby to v noci nehučalo" (robustness suite, 2026-11-09)
+_QUIET_WISH_RE = re.compile(r"\btich\w*|\bhluc\w*|\bnehuc\w*|\bdb\b|\bquiet\w*|\bsilent\b", re.IGNORECASE)
 # Looks, which code doesn't pick for. A quiet wish gets the cheapest set per brand with its dB (the owner, 2026-11-08):
 # "tichá" left the pick to the model in 6 of the 22 offer turns code didn't price, 33 s against 15 s at the median (A/B
 # of 2026-11-07).
@@ -9780,6 +9796,9 @@ def _promo_codes(message):
         return []
     return sorted({m.group(0) for m in _PROMO_TOKEN_RE.finditer(message) if not _canonical_code(m.group(0))})
 
+
+_COMPLAINT_FOLDED_RE = re.compile(fold_diacritics(_COMPLAINT_RE.pattern), re.IGNORECASE)
+_OUR_INSTALL_FOLDED_RE = re.compile(fold_diacritics(_OUR_INSTALL_RE.pattern), re.IGNORECASE)
 
 _REFRIGERANT_ASK_RE = re.compile(r"\b(?:freon\w*|chladiv\w*|r32|r410a?|r134a?|r407c?)\b", re.IGNORECASE)
 _NON_VAT_PAYER_RE = re.compile(r"\bneplatitel\w*\s+(?:dph|dane)", re.IGNORECASE)
