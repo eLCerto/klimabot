@@ -1,10 +1,12 @@
 ---
 name: komercne-priestory-automaticky-cac-rav
-description: Komerčné priestory (obchod, gastro, fitness, väčšia kancelária) → automaticky Samsung CAC alebo Toshiba RAV, nikdy nezačínaj RAC/RAS. Serverovňa, ambulancia a salón idú od 2026-11-08 rovno k projektovému manažérovi.
+description: Komerčné priestory (obchod, gastro, fitness) → automaticky Samsung CAC alebo Toshiba RAV, nikdy nezačínaj RAC/RAS. Kancelária, aj väčšia, dostane bežné nástenné sety. Serverovňa, ambulancia a salón idú od 2026-11-08 rovno k projektovému manažérovi.
 type: feedback
 ---
 
-> **Od 2026-11-08 (majiteľ): serverovňa, ambulancia či ordinácia a salón (kaderníctvo, barber, kozmetika, manikúra, pedikúra) chatbot nenavrhuje ani nenaceňuje — idú rovno k projektovému manažérovi, rovnako ako priemyselné priestory ([[priemyselne-priestory]]).** Časti tohto pravidla o serverovni, ambulancii a salóne platia pre projektového manažéra, nie pre chat. Pre ostatné komerčné priestory (obchod, gastro, fitness, väčšia kancelária) platí ďalej:
+> **Od 2026-11-08 (majiteľ): serverovňa, ambulancia či ordinácia a salón (kaderníctvo, barber, kozmetika, manikúra, pedikúra) chatbot nenavrhuje ani nenaceňuje — idú rovno k projektovému manažérovi, rovnako ako priemyselné priestory ([[priemyselne-priestory]]).** Časti tohto pravidla o serverovni, ambulancii a salóne platia pre projektového manažéra, nie pre chat. Pre ostatné komerčné priestory (obchod, gastro, fitness) platí ďalej:
+
+> **Od 2026-11-09 (majiteľ): kancelária, aj väčšia či open space, nie je komerčný priestor.** Dostane bežné nástenné sety ako byt, nacenené bez výhrad; vhodnosť pre kanceláriu posúdi projektový manažér pri obhliadke.
 
 Komerčný priestor → **automaticky Samsung CAC alebo Toshiba RAV**, nie rezidenčné RAC/RAS. Aj keď je rozpočet napätý.
 
@@ -26,7 +28,6 @@ Komerčný priestor → **automaticky Samsung CAC alebo Toshiba RAV**, nie rezid
 - **Obchod:** „obchod", „predajňa", „butik", „showroom", „retail"
 - **Gastro:** „reštaurácia", „kaviareň", „bar", „cukráreň", „bistro", „pizzeria"
 - **Fitness:** „fitness", „posilňovňa", „telocvičňa", „yoga štúdio"
-- **Kancelária:** „kancelária", „open space", „zasadačka", „meeting room", „coworking" *(pozor: <25 m², 1–2 osoby = môže byť RAC)*
 
 ### 2. Workflow
 
@@ -62,7 +63,6 @@ Postup:
 | **Manikúra / barber / kozmetika** | WindFree 1-Way kazeta (najnižší prievan) | RAV podstropná HM401-801 CTP-E alebo 60×60 slim | Klient sedí pod jednotkou 30–60 min — tichá + bez prievanu. Nikdy nástennú nad pracoviskom. |
 | **Kaderníctvo / salón** (50–80 m²) | 4-Way Cassette (RN4) alebo 360 | RAV podstropná alebo 4-cestná kazeta | Veľa osôb, výpary chemikálií — odporúč Plazma/Air Purification. |
 | **Obchod / predajňa** (do 100 m²) | 4-Way Cassette (RN4) alebo MSP kanálová | RAV kazety, kanálové, nástenné HM801 KRTP-E | Vstupné dvere → predimenzovať o 15–20 %. |
-| **Open-space kancelária** | Multi-zónové CAC (DPM Twin/Triple) alebo kazety 60×60 | RAV Twin/Triple kit alebo viacero RAV s RBC-AMSU52-E | BMS (Modbus/BACnet) väčšinou žiadaná. |
 | **Reštaurácia / kaviareň** | MSP kanálová alebo 4-Way kazeta s Air Purification | RAV štandardná kanálová HM__BTP-E s antikoróznym výmenníkom | Odsávanie pár samostatne. Antikorózia pri otvorenom uhlí/grile. |
 | **Fitness / telocvičňa** | High-výkonové CAC (AC100-140) — kanálová alebo 4-cestná | RAV DI 110/140 alebo SDI 110 | Vlhkosť >60 %, predimenzovať. |
 | **Zasadačka** (do 30 m²) | WindFree Mini 4-Way (60×60) alebo WindFree QMD | RAV 60×60 slim alebo HM561 CTP-E podstropná | Kazeta lepšia ako nástenná. |
@@ -92,11 +92,9 @@ Postup:
 | 10 kW | 2× 5 kW | FJM AJ100 + 2× indoor | 2× nezávislý 10 kW |
 | 14 kW | 2× 7,1 kW | Twin kit 14 kW | 2× nezávislý 14 kW (3f) |
 
-### 4. Kancelária — rozlíšenie veľkosti
+### 4. Kancelária
 
-- **<25 m² / 1–2 osoby** (domáca, freelancer): RAC/RAS OK. WindFree Comfort S2 alebo SHORAI CURVE.
-- **25–60 m² / 3–8 osôb**: hraničné — pri 5+ ľuďoch denne / 8+ h prevádzky → CAC/RAV.
-- **>60 m² alebo open-space**: vždy CAC/RAV.
+Kancelária akejkoľvek veľkosti, aj open space, dostane bežné nástenné sety ako byt, dimenzované podľa plochy (majiteľ, 2026-11-09). Ceny ukáž bez výhrad a nepíš, že ich neodporúčaš. Komerčný rad (CAC/RAV) ponúkni, iba keď oň zákazník sám požiada; vhodnosť pre kanceláriu posúdi projektový manažér pri obhliadke.
 
 ### 5. Príklad
 

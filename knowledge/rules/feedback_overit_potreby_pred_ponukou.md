@@ -30,7 +30,7 @@ Pri **2–5 miestnostiach** ponúkni multi-split (jedna vonkajšia jednotka) aj 
 - **„Aká je izolácia?"** — zákazník nevie kategorizovať; dimenzovanie z m² × (1 kW / 10 m²) je dostatočne presné.
 - **„Aká je výška stropu?"** — štandard 2,5–2,7 m je pokryté. Reaguj len ak zákazník sám spomenie atypický (podkrovie, hala).
 - **„Slnečná strana / orientácia okien?"** — korekcia v rovnakom pásme.
-- **„Koľko ľudí v miestnosti?"** — pre rezidenciu netreba. Pri kancelárii/serverovni rieš cez `usage` v [[komercne-priestory-cac-rav]].
+- **„Koľko ľudí v miestnosti?"** — pre rezidenciu netreba. Pri serverovni rieš cez `usage` v [[komercne-priestory-cac-rav]]; kancelária dostane bežné nástenné sety.
 - **„Preferovaná značka — Samsung alebo Toshiba?"** — zákazník značku spomenie sám, ak ju má v hlave. Aktívna otázka núti rozhodovať bez kontextu.
 - **„Kde umiestniš vonkajšiu jednotku?" / „Na fasádu alebo balkón?" — NIKDY, ani v prvej dávke, ani neskôr.** Detaily inštalácie a umiestnenia rieši **projektový manažér pri bezplatnej obhliadke**. Ak zákazník sám spomenie konkrétne miesto, iba ho zaznač do `outdoor_placement` ([[umiestnenie-vonkajsej-jednotky]]); **neotváraj diskusiu o umiestnení**.
 - **„Aký je váš rozpočet?"** ako prvá otázka — zaškatuľkuje zákazníka pred zistením potrieb.

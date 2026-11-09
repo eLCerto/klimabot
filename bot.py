@@ -1947,9 +1947,9 @@ def _fit_check(fit_lines, override_reason=None, facts=None):
             if not _customer_numbers(_CUSTOMER_KW_RE):
                 warnings.append("serverovňa bez tepelnej záťaže v kW od zákazníka — výkon over pri obhliadke")
     elif residential and _INFERRED_COMMERCIAL_RE.search(place_text):
-        small_office = _OFFICE_RE.search(text) and m2 and max(m2) <= SIZING["office_residential_ok_up_to_m2"]
-        if not small_office:
-            warnings.append("zákazník spomenul komerčný priestor — over, či nepatrí Samsung CAC alebo Toshiba RAV")
+        # An office of any size is no such place (the owner, 2026-11-09: a 30 m² office was told its residential prices
+        # weren't recommended and got no price, F4 of the QA of 2026-11-09).
+        warnings.append("zákazník spomenul komerčný priestor — over, či nepatrí Samsung CAC alebo Toshiba RAV")
     largest = None  # the room a single set cools, in m² (set below when the customer gave a size)
     if m2 and place != "serverovňa":
         indoor = sum((rec["raw"].get("cooling_kW") or 0) * qty for rec, _, qty, cat in fit_lines
@@ -8538,9 +8538,9 @@ CRITICAL_RULES_TEXT = (
     "rode (rád pomôžem, overil som).\n"
     "- **Komerčný priestor → Samsung CAC alebo Toshiba RAV, NIE RAC/RAS.** "
     "Triggery: ambulancia, ordinácia, serverovňa, salón, kaderníctvo, manikúra, "
-    "kozmetika, obchod, predajňa, butik, reštaurácia, kaviareň, fitness, "
-    "open-space kancelária >25 m². Komerčné rady majú vyššiu životnosť "
-    "kompresora a vhodnú filtráciu pre 24/7 prevádzku.\n"
+    "kozmetika, obchod, predajňa, butik, reštaurácia, kaviareň, fitness. Komerčné rady majú vyššiu životnosť "
+    "kompresora a vhodnú filtráciu pre 24/7 prevádzku. **Kancelária, aj väčšia či open space, nie je komerčný "
+    "priestor:** dostane bežné nástenné sety ako byt a ich ceny ukáž bez výhrad.\n"
     "- **Priemyselné a poľnohospodárske priestory (hala, výroba, továreň, chliev, maštaľ, farma) nerieš.** "
     "Nenavrhuj systém ani výkon, nenaceňuj; "
     "daj kontakt na firmu alebo ponúkni, že ak zákazník nechá meno a telefón či e-mail, projektový manažér "
@@ -8662,11 +8662,65 @@ _DESIGN_FIRST_RE = re.compile(r"\b(?:skor|hlavne|najma|radsej|ide\s+(?:mi|nam)\s
                               r"\b(?:dizajn|design|vzhlad)\w*\s+je\s+(?:\w+\s+)?(?:dolezit|hlavn|rozhodujuc)\w*|\bkrajs\w*", re.IGNORECASE)
 
 
-def _suggested_sets(after_offer=False):
+_SET_QUIET_DB = {}  # set codes → the indoor unit's dB at its lowest speed, filled on first use
+
+
+def _quiet_db(codes):
+    """The set's indoor unit at its lowest speed, in dB, from the price lists; None when they give no figure."""
+    if not _SET_QUIET_DB:
+        for key, rec in _SETS.items():
+            value = str(_set_specs(rec).get("indoor_noise_min_dB") or "")
+            _SET_QUIET_DB[key] = int(value) if value.isdigit() else None
+    return _SET_QUIET_DB.get(frozenset(codes))
+
+
+def _white_wall_set(rec):
+    return ("/single_split/" in rec["source"] and not _NON_WALL_PATH_RE.search(rec["category_path"])
+            and not re.search(r"_(?:Black|Wood)$", _series_key(rec)) and isinstance(rec["raw"].get("cooling_kW"), (int, float)))
+
+
+def _quiet_ranking_text():
+    """The wall series by the indoor unit's noise at its lowest speed, quietest first, each with its smallest set for
+    the room: "Tichšiu nástennú jednotku v našej ponuke som nenašiel" while three Samsung series are quieter (QA
+    2026-11-09, p07)."""
+    m2 = _customer_m2()
+    min_kw = _offer_min_kw(max(m2)) if m2 else 0
+    best = {}
+    for codes, rec in _SETS.items():
+        kw = rec["raw"].get("cooling_kW")
+        if not _white_wall_set(rec) or kw < min_kw or _quiet_db(codes) is None:
+            continue
+        name = re.sub(r" White$", "", _describe(rec, as_set=True).split(" – ")[0])
+        if name not in best or kw < best[name][0]:
+            best[name] = (kw, _quiet_db(codes))
+    by_db = {}
+    for name, (_, db) in sorted(best.items()):
+        by_db.setdefault(db, []).append(name)
+    ranking = "; ".join(f"{db} dB — {', '.join(names)}" for db, names in sorted(by_db.items()))
+    size = "najmenší set každého radu pre túto plochu" if m2 else "najmenší set každého radu"
+    return ("Hlučnosť nástenných radov podľa cenníkov (vnútorná jednotka pri najnižších otáčkach, " + size + "), od "
+            f"najtichšieho: {ranking}. Ktorý rad je tichší, povedz iba podľa tohto poradia; netvrď, že tichší nie je, keď "
+            "je v poradí tichší rad, aj inej značky. Rady s rovnakým číslom sú rovnako tiché. Nižšie poradie neopisuj "
+            "číslami poradia, iba decibelmi.")
+
+
+def _quoted_sets():
+    """(codes, record) of the single-split sets this conversation quoted."""
+    found = []
+    for q in S().quotes:
+        codes = frozenset(c for line in q["lines"] for c in line["codes"])
+        if codes in _SETS:
+            found.append((codes, _SETS[codes]))
+    return found
+
+
+def _suggested_sets(after_offer=False, quiet=False, cheaper_than=None):
     """Two (record, codes) sets for the first offer: one per brand (two series when the customer named one
     brand), the smallest size that covers the m², white, cheapest first — tier-1 filtration for "the best" or an
     allergy, Wi-Fi as standard when wished. None when code can't read the request well enough. `after_offer`: the
-    picks for a wish said after an offer (_repick_after_offer)."""
+    picks for a wish said after an offer (_repick_after_offer). `quiet`: the quietest sets quieter than every set
+    quoted so far, of any brand not ruled out when the wanted one has none quieter (F3 of the QA of 2026-11-09).
+    `cheaper_than` ({brand: catalog price}): sets cheaper than those, with the best filtration that is (F7)."""
     sess = S()
     text = _all_user_text()
     folded = fold_diacritics(text)
@@ -8689,7 +8743,7 @@ def _suggested_sets(after_offer=False):
     if not m2 or len(set(m2)) > 1:
         return None
     min_kw = _offer_min_kw(m2[0])
-    named = _named_series(text)
+    named = _named_series(text) if not (quiet or cheaper_than) else []
     if named:
         # The series the customer named, its smallest white set that covers the room — one option per series is
         # fine then (_single_first_offer). 8 of the 22 offer turns code didn't price named one (A/B of 2026-11-07).
@@ -8715,18 +8769,35 @@ def _suggested_sets(after_offer=False):
     premium = _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE)
     brands = _customer_brands(text)
     wanted = _wished_features()
+    excluded = _excluded_brands()
+    quietest_quoted = min((db for db in (_quiet_db(c) for c, _ in _quoted_sets()) if db is not None), default=None)
     candidates = []
     for codes, rec in _SETS.items():
         kw = rec["raw"].get("cooling_kW")
         rank = _filtration_rank(rec)
-        if ("/single_split/" not in rec["source"] or _NON_WALL_PATH_RE.search(rec["category_path"])
-                or re.search(r"_(?:Black|Wood)$", _series_key(rec)) or not isinstance(kw, (int, float)) or kw < min_kw
-                or (wifi and not _has_wifi(rec)) or (premium and not (rank and rank[0] == 1))
-                or (len(brands) == 1 and rec["brand"] != brands[0]) or (wanted and not _has_features(rec, wanted))):
+        price, db = rec["raw"]["set_price_EUR"], _quiet_db(codes)
+        if (not _white_wall_set(rec) or kw < min_kw or (wifi and not _has_wifi(rec)) or rec["brand"] in excluded
+                or (wanted and not _has_features(rec, wanted))):
             continue
-        candidates.append((rec["raw"]["set_price_EUR"], kw, rec, sorted(codes)))
+        if cheaper_than is not None:
+            # Still a filter better than the basic one, and cheaper than what this brand (else any) was offered.
+            cap = cheaper_than.get(rec["brand"], min(cheaper_than.values()))
+            if not rank or rank[0] > 3 or price >= cap:
+                continue
+        elif premium and not (rank and rank[0] == 1):
+            continue
+        if quiet and (db is None or (quietest_quoted is not None and db >= quietest_quoted)):
+            continue
+        # quiet: the quietest first; cheaper: the best filtration first; else the cheapest
+        order = (db, price) if quiet else (rank[0], price) if cheaper_than is not None else (price, kw)
+        candidates.append((order, kw, rec, sorted(codes)))
+    if len(brands) == 1 and (not quiet or any(c[2]["brand"] == brands[0] for c in candidates)):
+        candidates = [c for c in candidates if c[2]["brand"] == brands[0]]  # quieter: another brand when theirs has none
+        brands_kept = brands
+    else:
+        brands_kept = [] if quiet else brands
     # One per brand, unless only one brand has what the customer asked for (an ionizer: Toshiba only).
-    per_brand = len(brands) != 1 and len({c[2]["brand"] for c in candidates}) > 1
+    per_brand = len(brands_kept) != 1 and len({c[2]["brand"] for c in candidates}) > 1
     picks = []
     for _, _, rec, codes in sorted(candidates, key=lambda c: (c[0], c[1])):
         series = re.sub(r"_(?:White|Black|Wood)$", "", _series_key(rec))
@@ -8734,8 +8805,9 @@ def _suggested_sets(after_offer=False):
             continue
         picks.append((rec, codes, series))
         if len(picks) == 2:
-            return [(rec, codes) for rec, codes, _ in picks]
-    return None
+            break
+    # After an offer one new pick is an answer too (the other may be the one already shown).
+    return [(rec, codes) for rec, codes, _ in picks] if len(picks) == 2 or (after_offer and picks) else None
 
 
 # "Samsung WindFree" names the family, not one of its four series.
@@ -8757,10 +8829,26 @@ _PRICED_NOTE = (" Server ich už nacenil a výsledky sú v bloku VÝSLEDKY SERVE
                 "presne podľa nich a tie isté volania neopakuj.")
 
 
-def _picks_text(picks, priced=False):
-    """The first offer's two code-picked sets, for the `ponuka` move; `priced` when code quotes them itself."""
-    named = bool(_named_series(_all_user_text()))
-    if named:
+def _picks_text(picks, priced=False, mode=None):
+    """The first offer's two code-picked sets, for the `ponuka` move; `priced` when code quotes them itself. `mode`
+    "quiet" or "cheaper" for the re-picks of _repick_after_offer."""
+    named = bool(_named_series(_all_user_text())) and not mode
+    extra = ""
+    if mode == "quiet":
+        why = "tichšie ako všetko, čo zákazník videl — vnútorná jednotka pri najnižších otáčkach podľa cenníka"
+        picks_db = ", ".join(f"{_describe(rec, as_set=True).split(' – ')[0]} {_quiet_db(codes)} dB" for rec, codes in picks)
+        extra = f" Hlučnosť (vnútorná jednotka pri najnižších otáčkach): {picks_db}."
+        wanted = _customer_brands(_all_user_text())
+        if len(wanted) == 1 and all(rec["brand"] != wanted[0] for rec, _ in picks):
+            extra += f" Tichší set značky {wanted[0]} v cenníku nie je: povedz to a ponúkni tieto."
+    elif mode == "cheaper":
+        why = "lacnejšie ako predošlá ponuka, s čo najlepšou filtráciou"
+        extra = " " + " ".join(f"{_describe(rec, as_set=True).split(' – ')[0]} má {_TIER_WORDS_HAS[_filtration_rank(rec)[0]]}."
+                               for rec, _ in picks)
+        if all(_filtration_rank(rec)[0] > 1 for rec, _ in picks):
+            extra += (" Povedz jasne, že lacnejší set s najlepšou filtráciou nie je — ten už zákazník videl; tieto sú "
+                      "lacnejšie a filtrujú slabšie.")
+    elif named:
         why = "rad, ktorý zákazník spomenul, najmenší set pre jeho plochu"
     else:
         why = ("najlepšia filtrácia" if _wished(_BEST_WISH_RE) or _wished(_ALLERGY_RE) else "najlacnejší vhodný set")
@@ -8776,7 +8864,7 @@ def _picks_text(picks, priced=False):
     which = "dve možnosti" if len(picks) > 1 else "možnosť"
     rest = (" Iný rad ponúkni, iba keď oň zákazník požiada." if named else
             " Iný rad iba vtedy, keď zákazník chce niečo, čo tieto nemajú.")
-    return f" Server vybral {which} podľa plochy a želaní zákazníka ({why}): {options}.{how}{rest}"
+    return f" Server vybral {which} podľa plochy a želaní zákazníka ({why}): {options}.{extra}{how}{rest}"
 
 
 def _series_query(rec):
@@ -9304,7 +9392,9 @@ _MULTI_VS_SETS_RE = re.compile(
 # A wish said after an offer that changes what code picks, or a multi-split asked for by name (live 2026-11-09:
 # "potrebujem čistenie vzduchu čo najlepšie" after the cheapest multi-splits went to odpoved, the model priced two pairs
 # of separate sets instead, and the customer asked "prečo mi teraz neponúkaš multisplit?").
-_REPICK_WISH_RES = (_ALLERGY_RE, _BEST_WISH_RE, _WIFI_WANTED_FOLDED_RE, _MULTI_TEXT_RE)
+# A quieter set asked for after an offer re-picks too ("nemáte niečo ešte tichšie?", F3 of the QA of 2026-11-09). The
+# multi-split stays last: in a question about the offers shown, only it counts.
+_REPICK_WISH_RES = (_ALLERGY_RE, _BEST_WISH_RE, _WIFI_WANTED_FOLDED_RE, _QUIET_WISH_RE, _MULTI_TEXT_RE)
 # A request put as a question (folded): "Máte niečo s najlepšou filtráciou?", "Dala by sa aj s Wi-Fi?", "Existuje
 # tichšia?" — not "Má Wi-Fi?" or "Ktorá je najlepšia?", which ask about the offers shown.
 _REQUEST_ASK_RE = re.compile(r"\b(?:mate|mali\s+by\s+ste|ponukate|existuj\w*|dal[ao]?\s+by\s+sa|da\s+sa|nieco|nejak\w*|"
@@ -9352,8 +9442,19 @@ def _repick_after_offer(latest):
                  [("quote", {"items": o["items"]}) for o in multis] + _multi_series_lookups(multis)) if multis else None)
     if _wished(_MULTI_TEXT_RE, latest):  # one room: the model answers what a multi-split is for
         return None
-    picks = [p for p in (_suggested_sets(after_offer=True) or []) if frozenset(p[1]) not in quoted]
-    return (_picks_text(picks, priced=True), _picks_prerun(picks)) if picks else None
+    # "Máte niečo lacnejšie, ale stále s dobrou filtráciou?" after the best-filtration offers got the same Avant S2 again
+    # (F7 of the QA of 2026-11-09): the owner wants the cheaper set, with the best filtration that is cheaper.
+    mode = "quiet" if _wished(_QUIET_WISH_RE, latest) else None
+    cheaper_than = None
+    if _wished(_CHEAP_WISH_RE, latest) and _wished(_ALLERGY_RE, latest):
+        cheaper_than = {}
+        for _, rec in _quoted_sets():
+            price = rec["raw"]["set_price_EUR"]
+            cheaper_than[rec["brand"]] = min(price, cheaper_than.get(rec["brand"], price))
+        mode = "cheaper" if cheaper_than else mode
+    picks = [p for p in (_suggested_sets(after_offer=True, quiet=mode == "quiet", cheaper_than=cheaper_than or None) or [])
+             if frozenset(p[1]) not in quoted]
+    return (_picks_text(picks, priced=True, mode=mode), _picks_prerun(picks)) if picks else None
 
 
 def _sales_move(latest):
@@ -9461,10 +9562,13 @@ def _sales_move(latest):
     place_text = _place_text()
     reask = _priorities_unanswered(latest)
     if reask or not (_offer_due(latest) or price_question or _preferences_known() or _SERVER_ROOM_RE.search(place_text)):
-        # Wi-Fi and design are no priorities in a practice or an office (QA 2026-11-01).
+        # Wi-Fi and design are no priorities in a practice or an office (QA 2026-11-01); an office gets wall sets like a
+        # flat (the owner, 2026-11-09), so no ceiling question there.
         commercial = _INFERRED_COMMERCIAL_RE.search(place_text) or any(rx.search(place_text) for rx in _EXPLICIT_COMMERCIAL_RES.values())
         wishes = ("Je to komerčný priestor: opýtaj sa, či má podhľad, a čo je dôležité (tichý chod, filtrácia vzduchu, cena)"
                   if commercial else
+                  "Pred prvou ponukou sa jednou otázkou opýtaj, čo je pre zákazníka dôležité (tichý chod, filtrácia "
+                  "vzduchu, čo najnižšia cena)" if _OFFICE_RE.search(place_text) else
                   "Pred prvou ponukou sa jednou otázkou opýtaj, čo je pre zákazníka dôležité (tichý chod, filtrácia "
                   "vzduchu, Wi-Fi ovládanie z mobilu, dizajn, čo najnižšia cena)")
         if reask:
@@ -9875,6 +9979,8 @@ def build_server_context(note=None):
         status += "\n" + _filtration_ranking_text()
     if _wished(_BEST_WISH_RE):
         status += "\n" + _best_wish_text()
+    if _wished(_QUIET_WISH_RE):
+        status += "\n" + _quiet_ranking_text()
     excluded = _excluded_brands()
     if excluded:
         status += (f"\nZákazník značku {excluded[0]} nechce: neponúkaj ju ani ako lacnejšiu alternatívu a nenaceňuj ju, kým "

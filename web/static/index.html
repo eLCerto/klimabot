@@ -23,7 +23,7 @@
       --border-strong: #cbd5e1;
       --text: #0f172a;
       --text-2: #475569;
-      --text-3: #64748b;
+      --text-3: #5b6b80;  /* 4.9:1 or more on every light surface (WCAG AA, axe 2026-11-09) */
       --accent: #0284c7;
       --accent-strong: #0369a1;
       --accent-strong-hover: #075985;
@@ -45,7 +45,7 @@
         color-scheme: dark;
         --bg: #0b1220; --surface: #111a2b; --surface-2: #0f1727; --border: #1e293b; --border-strong: #334155;
         --text: #e2e8f0; --text-2: #a8b5c7; --text-3: #8696ab;
-        --accent: #38bdf8; --accent-strong: #0284c7; --accent-strong-hover: #0369a1;
+        --accent: #38bdf8; --accent-strong: #0369a1; --accent-strong-hover: #075985;
         --accent-soft: rgb(56 189 248 / 0.12); --accent-text: #7dd3fc; --bubble-user: #0369a1; --ring: rgb(56 189 248 / 0.25);
         --success-bg: rgb(16 185 129 / 0.12); --success-border: rgb(16 185 129 / 0.32); --success-text: #6ee7b7;
         --warning-bg: rgb(245 158 11 / 0.10); --warning-border: rgb(245 158 11 / 0.30); --warning-text: #fcd34d;
@@ -59,7 +59,7 @@
       color-scheme: dark;
       --bg: #0b1220; --surface: #111a2b; --surface-2: #0f1727; --border: #1e293b; --border-strong: #334155;
       --text: #e2e8f0; --text-2: #a8b5c7; --text-3: #8696ab;
-      --accent: #38bdf8; --accent-strong: #0284c7; --accent-strong-hover: #0369a1;
+      --accent: #38bdf8; --accent-strong: #0369a1; --accent-strong-hover: #075985;
       --accent-soft: rgb(56 189 248 / 0.12); --accent-text: #7dd3fc; --bubble-user: #0369a1; --ring: rgb(56 189 248 / 0.25);
       --success-bg: rgb(16 185 129 / 0.12); --success-border: rgb(16 185 129 / 0.32); --success-text: #6ee7b7;
       --warning-bg: rgb(245 158 11 / 0.10); --warning-border: rgb(245 158 11 / 0.30); --warning-text: #fcd34d;
@@ -146,6 +146,7 @@
 
     /* Tabs: only on narrow screens, where the panels can't sit side by side. */
     .view-tabs { display: none; flex: none; gap: 4px; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .view-tablist { flex: 1; display: flex; gap: 4px; }
     .view-tabs button {
       flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
       height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--text-2);
@@ -463,14 +464,16 @@
     </button>
   </div>
 </header>
-<div class="demo-strip" id="demo-banner" role="note" hidden></div>
+<aside class="demo-strip" id="demo-banner" aria-label="Upozornenie k ukážke" hidden></aside>
 
-<nav class="view-tabs" role="tablist" aria-label="Zobrazenie">
+<nav class="view-tabs" aria-label="Zobrazenie">
+  <div class="view-tablist" role="tablist" aria-label="Zobrazenie">
   <button role="tab" type="button" id="tab-chat" data-view="chat" aria-controls="panel-chat" aria-selected="true">Rozhovor</button>
   <button role="tab" type="button" id="tab-brief" data-view="brief" aria-controls="panel-brief" aria-selected="false" tabindex="-1">
     Zápis pre PM <span class="dot" id="brief-dot" aria-label="nový" hidden></span>
   </button>
   <button role="tab" type="button" id="tab-notes" data-view="notes" aria-controls="panel-notes" aria-selected="false" tabindex="-1" class="debug-only">Poznámky</button>
+  </div>
 </nav>
 
 <main class="workspace">
@@ -888,7 +891,7 @@ function h(tag, className, text) {
 function addQuoteCard(card) {
   const T = CARD_TEXT[card.language] || CARD_TEXT.sk;
   const el = h("section", "quote-card");
-  el.setAttribute("aria-label", T.title);
+  el.setAttribute("aria-label", `${T.title}: ${(card.lines || []).map((l) => l.description).join(", ")}`);
   const head = h("header", "qc-head");
   const title = h("span", "qc-title");
   title.innerHTML = ICONS.tag;

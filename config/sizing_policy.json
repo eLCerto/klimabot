@@ -17,7 +17,7 @@
     "salon": ["kaderníctv", "kadernictv", "barber", "manikúr", "manikur", "nechtov", "kozmetick", "kozmetik", "pedikúr", "pedikur", "salón", "salon"],
     "ambulancia": ["ambulanci", "ordinácia", "ordinaci", "zubár", "zubar", "klinik", "mudr"]
   },
-  "inferred_commercial": ["obchod", "predajň", "predajn", "butik", "showroom", "reštaurác", "restaurac", "kaviar", "cukrár", "fitness", "posilňov", "posilnov", "telocvič", "open space", "open-space", "openspace", "kancelári", "kancelari", "coworking"],
+  "inferred_commercial": ["obchod", "predajň", "predajn", "butik", "showroom", "reštaurác", "restaurac", "kaviar", "cukrár", "fitness", "posilňov", "posilnov", "telocvič"],
   "industrial": {
     "note": "Priemyselné a poľnohospodárske priestory (hala, výroba, továreň; chliev, maštaľ, stajňa, kurín, farma, skleník) chatbot nerieši: nenavrhuje ani nenaceňuje, dá kontakt na projektového manažéra alebo ponúkne, že sa PM ozve (majiteľ: priemysel 2026-10-18, poľnohospodárstvo 2026-10-24). Kmene slov sa porovnávajú od začiatku slova, s diakritikou aj bez; samotné „farma“ chýba zámerne (zachytilo by „farmácia“).",
     "triggers": ["priemysel", "industri", "hala$", "haly$", "halu$", "hale$", "halou$", "výrobn", "vyrobn", "továr", "tovaren", "tovarn", "fabrik", "závod", "zavod", "logistick", "factory", "warehouse", "production hall",
@@ -31,7 +31,7 @@
     "note": "Hotel, penzión a podobné ubytovanie: správne riešenie navrhne projektový manažér, chatbot nenavrhuje ani nenaceňuje (majiteľ, 2026-11-01).",
     "triggers": ["hotel", "penzión", "penzion", "hostel", "ubytovň", "ubytovn", "ubytovac", "guesthouse", "guest house"]
   },
-  "office_words": ["kancelári", "kancelari", "coworking"],
-  "office_residential_ok_up_to_m2": 25,
+  "office_words": ["kancelári", "kancelari", "coworking", "open space", "open-space", "openspace"],
+  "_office_note": "Kancelária, aj väčšia či open space, dostane bežné nástenné sety ako byt; nie je komerčný priestor pre CAC/RAV (majiteľ, 2026-11-09). office_words iba vynechajú Wi-Fi a dizajn z otázky na priority.",
   "wifi_triggers": ["wifi", "wi-fi", "wi fi", "aplikáci", "aplikaci", "appk", "z mobilu", "cez mobil", "z telefónu", "cez telefón", "smartthings"]
 }

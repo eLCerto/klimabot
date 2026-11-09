@@ -4965,7 +4965,7 @@ class CsatSpeedLengthTests(BotTest):
 
 
 class ExploratoryQaFixTests(BotTest):
-    """The exploratory QA on the real API of 2026-11-09 (docs/qa_exploratory_2026-11-09.md): F1, F2, F6."""
+    """The exploratory QA on the real API of 2026-11-09 (docs/qa_exploratory_2026-11-09.md): F1–F4, F6, F7."""
 
     def test_f1_sizes_without_a_unit_are_read(self):
         for message, areas in (("spalna a obyvacka, spalna 12 a obyvacka 20", [12.0, 20.0]),
@@ -4992,6 +4992,80 @@ class ExploratoryQaFixTests(BotTest):
         self.assertEqual(bot._fix_have_data("Ďakujem, máme meno a telefónne číslo."), "Ďakujem za meno a telefónne číslo.")
         self.assertEqual(bot._fix_have_data("Ďakujem, pán Kováč, mám vaše meno, telefón a obec."),
                          "Ďakujem, pán Kováč, za vaše meno, telefón a obec.")
+
+    CHEAPEST_SAMSUNG, CHEAPEST_TOSHIBA = ["AR40H09C1AMNEU", "AR40H09C1AMXEU"], ["RAS-10B2AVG-E2", "RAS-B10B2KVG-E2"]
+
+    def after_offer(self, first, quoted, latest):
+        """The customer's first message, these sets quoted, then the latest message."""
+        self.sess.user_inputs[:] = [first]
+        for codes in quoted:
+            bot.quote([{"code": c} for c in codes])
+        self.sess.user_inputs.append(latest)
+        return bot.next_move()
+
+    def test_f3_quieter_after_an_offer_brings_quieter_sets(self):  # p07: "Tichšiu… som nenašiel"; WindFree has 16 dB
+        m = self.after_offer("Spálňa 14 m2, koľko stojí?", [self.CHEAPEST_SAMSUNG, self.CHEAPEST_TOSHIBA],
+                             "Tá Toshiba sa mi páči, ale nemáte niečo ešte tichšie? Cena až taká dôležitá nie je.")
+        self.assertEqual(m.name, "nova-ponuka")
+        quoted = [args["items"] for name, args in m.prerun if name == "quote"]
+        self.assertEqual(len(quoted), 2)
+        for items in quoted:  # quieter than the 19 dB of the quietest set shown
+            self.assertLess(bot._quiet_db([i["code"] for i in items]), 19, items)
+        self.assertIn("Tichší set značky Toshiba v cenníku nie je", m.directive)  # it has none under 19 dB
+        # Nothing quieter than 16 dB: no new pick, the ranking answers
+        self.setUp()
+        comfort = ["AR60F09C1AWNEU", "AR60F09C1AWXEU"]
+        m = self.after_offer("Spálňa 14 m2, koľko stojí?", [comfort], "Máte niečo ešte tichšie?")
+        self.assertFalse(any(name == "quote" for name, _ in m.prerun), m.prerun)
+        self.assertIn("16 dB — Samsung WindFree", bot.build_server_context())
+
+    def test_f3_the_quietness_ranking_goes_with_a_quiet_wish(self):
+        self.sess.user_inputs[:] = ["Spálňa 14 m2, hlavne nech je tichá."]
+        ranking = bot._quiet_ranking_text()
+        self.assertIn(ranking, bot.build_server_context())
+        figures = [int(x) for x in re.findall(r"(\d+) dB —", ranking)]
+        self.assertEqual(figures, sorted(figures), "quietest first")
+        self.assertTrue(ranking.index("Samsung WindFree Comfort S2") < ranking.index("Toshiba SEIYA Classic 2"))
+        # the first offer stays the cheapest set per brand, with its dB (the owner, 2026-11-08)
+        self.assertEqual(sorted(sorted(codes) for _, codes in bot._suggested_sets()),
+                         sorted([self.CHEAPEST_SAMSUNG, sorted(self.CHEAPEST_TOSHIBA)]))
+        self.sess.user_inputs[:] = ["Spálňa 14 m2, koľko stojí?"]
+        self.assertNotIn("Hlučnosť nástenných radov", bot.build_server_context())
+
+    def test_f7_cheaper_with_good_filtration_brings_the_cheaper_sets(self):  # p05: the same Avant S2 came back
+        self.sess.user_inputs[:] = ["Obývačka 20 m2, syn je alergik, koľko?"]
+        best = bot._suggested_sets()
+        shown = {rec["brand"]: rec["raw"]["set_price_EUR"] for rec, _ in best}
+        m = self.after_offer("Obývačka 20 m2, syn je alergik, koľko?", [codes for _, codes in best],
+                             "Máte niečo lacnejšie, ale stále s dobrou filtráciou?")
+        self.assertEqual(m.name, "nova-ponuka")
+        picks = [bot._SETS[frozenset(i["code"] for i in args["items"])] for name, args in m.prerun if name == "quote"]
+        self.assertEqual({rec["brand"] for rec in picks}, {"Samsung", "Toshiba"})
+        for rec in picks:
+            self.assertLess(rec["raw"]["set_price_EUR"], shown[rec["brand"]], "cheaper than that brand's offer")
+            self.assertLessEqual(bot._filtration_rank(rec)[0], 3, "still better than the basic filter")
+        self.assertIn("SHORAI CURVE", m.directive)  # Toshiba's next tier down
+        self.assertIn("lacnejší set s najlepšou filtráciou nie je", m.directive)
+
+    def test_f4_an_office_of_any_size_gets_wall_sets(self):  # p10, the owner, 2026-11-09
+        self.sess.user_inputs[:] = ["Kancelária 30 m², s.r.o., 4 ľudia, bez podhľadu, tiché."]
+        quote = bot.quote([{"code": c} for c in ["AR40H09C1AMNEU", "AR40H09C1AMXEU"]])
+        self.assertFalse(any("komerčný priestor" in w for w in quote.get("fit_warnings", [])), quote.get("fit_warnings"))
+        self.sess.quotes.clear()
+        for place in ("Open space kancelária 60 m2, koľko by to stálo?", "Kancelária 18 m2, cena?"):
+            self.sess.user_inputs[:] = [place]
+            self.assertEqual(bot.next_move().name, "ponuka", place)
+            self.assertIsNotNone(bot._suggested_sets(), place)
+        # discovery for an office: no Wi-Fi or design, and no ceiling question
+        self.sess.user_inputs[:] = ["Kancelária 30 m2."]
+        m = bot.next_move()
+        self.assertEqual(m.name, "zisti-priority")
+        self.assertNotIn("podhľad", m.directive)
+        self.assertNotIn("Wi-Fi", m.directive)
+        # a shop is still a commercial place
+        self.sess.user_inputs[:] = ["Obchod 30 m2."]
+        self.assertTrue(any("komerčný priestor" in w for w in bot.quote([{"code": c} for c in self.CHEAPEST_SAMSUNG])
+                            .get("fit_warnings", [])))
 
     def test_f6_no_dangling_sentence_after_a_dropped_repeat(self):
         earlier = ("K cene sa pripočíta recyklačný poplatok 5 až 15 € za jednu jednotku. Montáž nie je v cene, jej cenu určí "

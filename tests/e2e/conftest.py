@@ -174,7 +174,8 @@ class ChatPage:
 
     def open(self, path="/"):
         self.page.goto(path)
-        expect(self.page.get_by_role("note")).to_contain_text("Ukážka")  # shown once /api/config answered
+        # The demo notice is shown once /api/config has answered.
+        expect(self.page.get_by_role("complementary", name="Upozornenie k ukážke")).to_contain_text("Ukážka")
         return self
 
     def send(self, text):

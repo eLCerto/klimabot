@@ -151,3 +151,13 @@ After two best-filtration offers (Avant S2 and HAORI) the customer asked "Máte 
 4. **F4** needs the owner's decision first.
 
 Then a CLI run of `eval/stability.py`, with p01, p06 and p08 added to `direction.json` as scripted conversations.
+
+## Status (2026-11-09, evening)
+
+- **Fixed:** F1, F2 and F6 (`dd5e90e`), most of F5 (the robustness suite, `a062296`).
+- **Fixed after this report:**
+  - **F3:** a quieter set asked for after an offer is re-picked by code, from sets quieter than every one shown, of another brand when the wanted one has none. A quiet wish also puts a ranking of the wall series by dB into the model's context.
+  - **F7:** "lacnejšie" with a filtration wish re-picks the cheaper set with the best filtration that is cheaper, and says when no cheaper best-filtration set exists.
+  - **F4**, owner's decision: an office of any size gets wall sets like a flat.
+  - Each has a unit test and a scripted conversation in `direction.json`.
+- **Open:** F8 and the rest of F5 (the "zostane … na montáž" sentence).
