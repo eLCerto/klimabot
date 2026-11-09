@@ -306,11 +306,12 @@ class ConsentTests(BotTest):
         self.assertNotIn("consent_given", self.sess.customer_state)
         self.assertIn("error", bot.capture_lead("X", "0905000999", "x"))
 
-    def test_english_question_and_yes(self):  # c17
+    def test_english_question_and_yes(self):  # c17; Slovak only since 2026-11-09 (the owner)
         _, shown = self.turn("Hi, I need an air conditioner for my bedroom, could you send me an offer?",
-                             resp(text("Sure, could you share your name and phone number?")))
-        self.assertIn(bot.CONSENT_QUESTIONS["sales"]["en"], shown)
-        self.assertIn(SALES_Q, shown, "the Slovak canonical sentence goes along for the audit")
+                             resp(text("Prosím, napíšte mi meno a telefónne číslo.")))
+        self.assertNotIn(bot.CONSENT_QUESTIONS["sales"]["en"], shown)
+        self.assertIn(SALES_Q, shown)
+        self.assertTrue(shown.startswith(bot._OTHER_LANGUAGE_NOTE), "the one-line notice that we reply in Slovak only")
         self.turn("Yes, I agree. John Smith, +421 905 000 555", resp(text("Thank you.")))
         self.assertEqual(self.sess.consent["purpose"], "sales")
 
@@ -2710,8 +2711,11 @@ class ContentRegenTests(BotTest):
         self.assertIn("Oslovenie: vykaj", bot.build_server_context())
         self.sess.user_inputs[:] = ["Ahoj, spálňa 14 m2."]
         self.assertIn("Oslovenie: zákazník ti tyká", bot.build_server_context())
-        self.sess.user_inputs[:] = ["Hello, I need AC for a 14 m2 bedroom."]
-        self.assertNotIn("Oslovenie", bot.build_server_context())
+        self.sess.user_inputs[:] = ["Hello, I need AC for a 14 m2 bedroom."]  # Slovak replies only (the owner, 2026-11-09)
+        context = bot.build_server_context()
+        self.assertIn("Oslovenie: vykaj", context)
+        self.assertIn("odpovedaj VÝHRADNE po slovensky", context)
+        self.assertNotIn("jazykom, v ktorom neodpovedáme", context, "one language line, not two")
 
     def test_offer_moves_carry_the_exact_amount_rule(self):
         self.sess.user_inputs[:] = ["Spálňa 14 m2, koľko stojí?"]
@@ -2748,11 +2752,15 @@ class SpellingTests(BotTest):
         self.assertEqual(shown, self.BROKEN)
         self.assertIn("pravopis-slovo", self.log_text())
 
-    def test_english_replies_are_not_spellchecked(self):
-        _, shown = self.turn("Dobrý deň", resp(text("Dobrý deň, s čím vám pomôžem pri výbere klimatizácie?")))
+    def test_an_english_reply_is_regenerated_in_slovak(self):  # the owner, 2026-11-09: no English replies
+        self.turn("Dobrý deň", resp(text("Dobrý deň, s čím vám pomôžem pri výbere klimatizácie?")))
         _, shown = self.turn("Can you answer in English, please?",
-                             resp(text("Of course. Which room would you like to cool, and how big is it?")))
-        self.assertIn("Which room", shown)
+                             resp(text("Of course. Which room would you like to cool, and how big is it?")),
+                             resp(text("Odpovedám iba po slovensky. Ktorú miestnosť chcete chladiť a akú má plochu?")))
+        self.assertNotIn("Which room", shown)
+        self.assertIn("Ktorú miestnosť", shown)
+        self.assertEqual(shown.count("I can reply in Slovak only"), 1)
+        self.assertIn("jazyk-anglictina", self.log_text())
 
 
 # ---------- eval: the AI reviewer ----------
@@ -3205,7 +3213,9 @@ class CsatFixTests(BotTest):
         self.assertEqual((m.name, m.tool_choice), ("ponuka", None))
         self.assertIn("Server vybral multi-split", m.directive)
         self.assertIn("Server ich už nacenil", m.directive)
-        self.assertEqual([name for name, _ in m.prerun], ["quote", "quote"])
+        # and looked up their series, which the model did itself in one more call (live 2026-11-09)
+        self.assertEqual([name for name, _ in m.prerun], ["quote", "quote", "lookup_product", "lookup_product"])
+        self.assertIn("funkcie radu sú tiež vo VÝSLEDKY SERVERA", m.directive)
 
     def test_a_bare_size_narrows_a_multi_split_lookup(self):
         self.assertLess(len(json.dumps(bot.lookup_product("Samsung multi-split 2.5"))), 6000)
@@ -3795,10 +3805,10 @@ class IndecisiveCustomerTests(BotTest):
         self.assertEqual(shown, bot._EMPTY_REPLY_FALLBACK["sk"])
         self.assertIn("english_reply_replaced", self.log_text())
 
-    def test_a_customer_who_writes_english_gets_english(self):
+    def test_a_customer_who_writes_english_gets_slovak(self):  # the owner, 2026-11-09: no English replies
         self.say("Dobrý deň, spálňa 14 m2.", "Could you please tell me what the warranty is and how long it is for the unit?")
         english = "I am not able to say that here, and the project manager will confirm it for you at the visit."
-        self.assertFalse(bot._english_slip(english, self.sess.user_inputs[-1]))
+        self.assertTrue(bot._english_slip(english, self.sess.user_inputs[-1]))
 
     # I05, I15
     def test_a_bare_size_a_type_lacks_does_not_recurse(self):
@@ -4603,9 +4613,15 @@ class GateFalsePositiveTests(BotTest):
         reply = (f"Lacnejší je **Samsung AR30 WIFI** za **{cheap}** s DPH, **Toshiba SEIYA** stojí **{dear}** s DPH. "
                  "Ktorá vám viac vyhovuje?")
         _, shown = self.turn("Ktorá varianta vyjde celkovo lacnejšie a o koľko?", resp(text(reply)))
-        self.assertEqual(shown, reply)
+        # "o koľko" with no difference stated: code adds quote's own sentence before the closing question (d01)
+        reads = self.sess.quotes[-1]["comparison_with_earlier_quotes"][-1]["reads"]
+        self.assertEqual(shown, reply.replace("Ktorá vám", f"Rozdiel: {reads}. Ktorá vám"))
         self.assertNotIn("cena-neodpovedana", self.log_text())
         self.assertIn('"move": "odpoved"', self.log_text())
+        diff = bot._eur(abs(self.sess.quotes[1]["total_with_DPH_23pct_eur"] - self.sess.quotes[0]["total_with_DPH_23pct_eur"]))
+        stated = reply.replace("Ktorá vám", f"Samsung je o {diff} lacnejší. Ktorá vám")
+        _, shown = self.turn("A o koľko presne?", resp(text(stated)))
+        self.assertEqual(shown, stated)
 
 
 class QuietWishTests(BotTest):
@@ -4758,8 +4774,9 @@ class LiveRepickTests(BotTest):
 
     def offered(self):
         self.sess.user_inputs[:] = self.ROOMS + ["spalna ma 20 a detska izba 15"]
-        self.sess.conversation[:] = [{"role": "assistant", "content": "Čo je pre teba pri klimatizácii najdôležitejšie?"},
-                                     {"role": "user", "content": "spalna ma 20 a detska izba 15"}]
+        # asked twice: since 2026-11-09 a size correction gets the question once more, the second one the offer
+        asked = {"role": "assistant", "content": "Čo je pre teba pri klimatizácii najdôležitejšie?"}
+        self.sess.conversation[:] = [asked, asked, {"role": "user", "content": "spalna ma 20 a detska izba 15"}]
         move = bot.next_move()
         for name, inp in move.prerun:
             if name == "quote":
@@ -4807,6 +4824,127 @@ class LiveRepickTests(BotTest):
 
     def test_czech_thanks_is_made_slovak(self):
         self.assertEqual(bot.sanitize_reply("Díky, mám teraz plochu.")[0], "Vďaka, mám teraz plochu.")
+
+
+class ListeningTests(BotTest):
+    """Listening to the customer (AI review of the API run of e695916 and the live conversation of 2026-11-09)."""
+
+    ROOMS = ["ahoj, chcem klimatizaciu do bytu", "chcem chladit spalnu a detsku izbu, 15 a 20 m2"]
+    ASKED = "Čo je pre teba pri klimatizácii najdôležitejšie? Tichý chod, filtrácia, Wi-Fi, dizajn, alebo cena?"
+
+    def asked_priorities(self, reply_to_question, times=1):
+        self.sess.user_inputs[:] = self.ROOMS + [reply_to_question]
+        self.sess.conversation[:] = [{"role": "assistant", "content": self.ASKED}] * times + [
+            {"role": "user", "content": reply_to_question}]
+        return bot.next_move()
+
+    def test_a_size_correction_gets_the_priorities_question_once_more(self):  # the owner, 2026-11-09
+        move = self.asked_priorities("spalna ma 20 a detska izba 15")
+        self.assertEqual(move.name, "zisti-priority")
+        self.assertIn("túto otázku zopakuj ešte raz", move.directive)
+        self.assertEqual(self.asked_priorities("spalna ma 20 a detska izba 15", times=2).name, "ponuka", "asked once more only")
+        for answer in ("hlavne nech je ticha", "je mi to jedno", "kolko to bude stat?", "spalna ma 20 a detska 15, chcem wifi"):
+            self.assertEqual(self.asked_priorities(answer).name, "ponuka", answer)
+        self.assertEqual(self.asked_priorities("ok").name, "ponuka", "nothing changed: the offer, as before")
+
+    def after_offer(self, latest, first="Byt, spálňa 14 m2."):
+        self.sess.user_inputs[:] = [first]
+        for codes in (AR30_SET, ["RAS-10E2AVG-E", "RAS-B10E2KVG-E"]):
+            bot.quote([{"code": c} for c in codes])
+        self.sess.user_inputs.append(latest)
+        return bot.next_move()
+
+    def test_choose_for_me_gets_one_recommendation(self):  # c05
+        for latest in ("Je mi to jedno, vyberte mi.", "Čo by ste zobrali vy na mojom mieste?", "Ktorú odporúčate?",
+                       "Nechám to na vás.", "Which one would you recommend?"):
+            self.setUp()
+            move = self.after_offer(latest)
+            self.assertEqual(move.name, "odpoved", latest)
+            self.assertIn("odporuč jednu možnosť", move.directive)
+        self.setUp()
+        move = self.after_offer("Vyberte nám to najlepšie pre alergika.")
+        self.assertEqual(move.name, "nova-ponuka", "the best filtration isn't quoted yet: priced by code first")
+        self.assertIn("odporuč jednu možnosť", move.directive)
+        self.setUp()
+        self.assertNotIn("odporuč jednu možnosť", self.after_offer("Máte niečo lacnejšie?").directive)
+
+    def test_an_offer_for_fewer_rooms_is_flagged(self):  # q09
+        self.sess.user_inputs[:] = ["Byt, spálňa 14 m2 a obývačka 25 m2."]
+        warnings = bot.quote([{"code": c} for c in AR30_SET]).get("fit_warnings", [])
+        self.assertTrue(any("2 miestnosti (14, 25 m²)" in w and "1 vnútornú jednotku" in w for w in warnings), warnings)
+        both = bot.quote([{"code": c, "qty": 2} for c in AR30_SET], override_reason="zákazník to chce").get("fit_warnings", [])
+        self.assertFalse(any("miestnosti" in w and "vnútorn" in w and "nevynechaj" in w for w in both), both)
+        self.sess.user_inputs[:] = ["Byt, spálňa 14 m2 a obývačka 25 m2.", "Obývačku nechám tak, len spálňa."]
+        self.assertFalse(any("nevynechaj" in w for w in bot.quote([{"code": c} for c in AR30_SET]).get("fit_warnings", [])))
+
+    def test_a_repeated_consent_condition_is_dropped(self):  # q06: the same sentence four turns running
+        condition = "Keď odsúhlasíte otázku na súhlas, odovzdám reklamáciu nášmu tímu a ten sa vám ozve."
+        self.sess.conversation[:] = [{"role": "assistant", "content": "Kontakt je info@klimabot.example. " + condition}]
+        out = bot._drop_repeats("Napíšte nám na info@klimabot.example. " + condition, "reklamacia", "Ďakujem za nič.")
+        self.assertNotIn(condition, out)
+        question = "Súhlasíte so spracovaním osobných údajov (meno, telefón, e-mail, obec) na tento účel?"
+        self.sess.conversation[:] = [{"role": "assistant", "content": question}]
+        self.assertIn(question, bot._drop_repeats("Ďakujem. " + question, "kontakt", "x"))
+
+
+class CsatSpeedLengthTests(BotTest):
+    """After the AI review of e695916 and the live conversation of 2026-11-09: lookups by code, shorter offers, size
+    changes explained, a wish asked as a request re-picks, Slovak only (the owner, 2026-11-09)."""
+
+    def offered(self, first="Byt, spálňa 20 m2 a detská izba 15 m2, hlavne lacno."):
+        self.sess.user_inputs[:] = [first]
+        move = bot.next_move()
+        for name, inp in move.prerun:
+            if name == "quote":
+                bot.quote(inp["items"])
+        return move
+
+    def test_an_english_yes_still_counts(self):
+        self.turn("Hi, I need an air conditioner for my bedroom, could you send me an offer?",
+                  resp(text("Prosím, napíšte mi meno a telefónne číslo.")))
+        self.turn("Yes, I agree. John Smith, +421 905 000 555", resp(text("Ďakujem.")))
+        self.assertEqual(self.sess.consent["purpose"], "sales")
+
+    def test_a_question_about_the_offers_gets_the_series_looked_up_by_code(self):
+        self.offered()
+        self.sess.user_inputs.append("Aké filtre majú a sú tiché?")
+        move = bot.next_move()
+        self.assertEqual(move.name, "odpoved")
+        queries = [inp["model_code"] for name, inp in move.prerun if name == "lookup_product"]
+        self.assertTrue(queries)
+        self.assertIn("server už zistil", move.directive)
+        # what an earlier round looked up isn't looked up again
+        self.sess.conversation += [{"role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "lookup_product",
+                                                                       "input": {"model_code": q}} for q in queries]}]
+        self.assertEqual(bot.next_move().prerun, ())
+        self.sess.user_inputs.append("Ďakujem, idem sa poradiť.")
+        self.assertEqual(bot.next_move().prerun, ())
+
+    def test_offers_list_three_features_and_explain_fees_once(self):
+        self.assertIn("najviac tri", bot._EXACT_AMOUNTS)
+        fee = "K cene sa pripočíta recyklačný poplatok 5 až 15 € za jednu jednotku."
+        self.sess.conversation[:] = [{"role": "assistant", "content": "Cena je X. " + fee}]
+        self.assertNotIn("recyklačný", bot._drop_repeats("Nová možnosť: HAORI. " + fee, "nova-ponuka", "A čo HAORI?"))
+        self.assertIn("recyklačný", bot._drop_repeats("Nová možnosť: HAORI. " + fee, "nova-ponuka", "A recyklačný poplatok?"))
+
+    def test_a_new_offer_carries_the_power_each_room_needs(self):
+        self.offered()
+        self.sess.user_inputs.append("potrebujem cistenie vzduchu co najlepsie")
+        move = bot.next_move()
+        self.assertEqual(move.name, "nova-ponuka")
+        self.assertIn("20 m² → aspoň 2,0 kW; 15 m² → aspoň 1,5 kW", move.directive)
+        self.assertIn("povedz jednou vetou prečo", move.directive)
+        self.assertIn("najlepšia filtrácia", move.directive)
+        self.assertIn("lookup_product", [name for name, _ in move.prerun])
+
+    def test_a_wish_asked_as_a_request_repicks(self):
+        self.offered()
+        latest = "Máte niečo s najlepšou filtráciou?"
+        self.sess.user_inputs.append(latest)
+        self.assertIsNotNone(bot._repick_after_offer(latest))
+        self.assertEqual(bot.next_move().name, "nova-ponuka")
+        for asking in ("A má Wi-Fi?", "Ktorá je najlepšia?", "Má niektorá lepšiu filtráciu?"):
+            self.assertIsNone(bot._repick_after_offer(asking), asking)
 
 
 class MixedAddressTests(BotTest):

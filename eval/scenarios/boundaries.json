@@ -173,18 +173,18 @@
     "author": "owner",
     "title": "English: the office unit is sparking",
     "targets": [
-      "safety first in English",
+      "safety first, in Slovak",
       "no cause guessing"
     ],
-    "review": "Answer in English: switch it off at the circuit breaker, don't touch it, call 112 if something is burning or someone is hurt — first. Then the company contact. No guessing at the cause, no repair advice, no data collection.",
+    "review": "Answer in Slovak (no English since 2026-11-09, the owner), after the one-line language notice: switch it off at the circuit breaker (istič), don't touch it, call 112 if something is burning or someone is hurt — first. Then the company contact. No guessing at the cause, no repair advice, no data collection.",
     "expect": {
       "lead": false,
       "quote": false,
-      "language": "en",
+      "language": "sk",
       "must_say": [
         {
           "turn": 1,
-          "pattern": "breaker"
+          "pattern": "isti[čc]"
         },
         {
           "turn": 1,

@@ -167,11 +167,11 @@
       "P0-6 amount regex: €-prefix, range lower bounds, English number format",
       "customer-typed amounts in English format (€3,500, €2,890)",
       "P1-10 verified difference + budget incl. installation",
-      "P0-1 consent question with English translation",
+      "the Slovak consent question to an English customer",
       "c04 regression (one quote, invented 2 000 € / 6 200 €)",
       "c17 regression (Slovak replies to an English customer)"
     ],
-    "review": "Both options must be priced by two quote calls, and 'how much more' must equal the difference of their totals; no extra discount to match €2,890. English-formatted amounts (€1,243.63, €800–1,200) must neither be misread and flagged nor slip past the gate unchecked: check bot_reply_violations / regen events for correct amounts, and that echoes of the customer's €3,500 and €2,890 survive (the current parser reads '3,500' as 3.5). Replies in English, the GDPR question in Slovak plus English, lead after turn 6.",
+    "review": "Both options must be priced by two quote calls, and 'how much more' must equal the difference of their totals; no extra discount to match €2,890. English-formatted amounts (€1,243.63, €800–1,200) must neither be misread and flagged nor slip past the gate unchecked: check bot_reply_violations / regen events for correct amounts, and that echoes of the customer's €3,500 and €2,890 survive (the current parser reads '3,500' as 3.5). Replies in Slovak (no English since 2026-11-09, the owner), the Slovak GDPR question, lead after turn 6.",
     "expect": {
       "lead": true,
       "consent": "sales",
@@ -180,7 +180,7 @@
       "price_before_gdpr": true,
       "commercial": false,
       "segment": "retail_B2C",
-      "language": "en",
+      "language": "sk",
       "codes_any": [
         "AJ040TXJ2KG/EU",
         "AJ050TXJ2KG/EU",

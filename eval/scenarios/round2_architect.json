@@ -117,13 +117,13 @@
     "author": "architect",
     "title": "Anglicky hovoriaca zákazníčka, home office, WindFree, rozpočet all-in",
     "targets": [
-      "P1-12 English in, English out",
-      "P0-1 SK question + EN translation, English consent after re-ask",
+      "English in, Slovak out (the owner, 2026-11-09)",
+      "the Slovak GDPR question, English consent after re-ask",
       "P1-10 all-in range with DPH and budget verdict",
       "P0-6 price validator on English number formats",
       "c17 regression"
     ],
-    "review": "≥ 90 % English, including the recap; the GDPR question is the canonical Slovak sentence plus an English translation, and 'Yes, I agree.' counts only because it follows the latest (re-)ask. No installation figure is given (the PM prices it after the site visit); the verdict against '€2,500' covers only the units (budget.status, with VAT) and never says the whole fits. Check bot_reply_violations for English-formatted amounts ('€2,500', '1,234.56') wrongly flagged or stripped. PM brief notes English as the language.",
+    "review": "Since 2026-11-09 the bot answers only in Slovak (the owner): one line 'I can reply in Slovak only.' once, then Slovak replies and the Slovak GDPR question; 'Yes, I agree.' still counts when it follows the (re-)ask. No installation figure is given (the PM prices it after the site visit); the verdict against '€2,500' covers only the units (budget.status, with VAT) and never says the whole fits. Check bot_reply_violations for English-formatted amounts ('€2,500', '1,234.56') wrongly flagged or stripped.",
     "expect": {
       "lead": true,
       "consent": "sales",
@@ -132,7 +132,7 @@
       "price_before_gdpr": true,
       "commercial": false,
       "segment": "retail_B2C",
-      "language": "en",
+      "language": "sk",
       "codes_any": [
         "AR60F09C1AWNEU",
         "AR60F12C1AWNEU",
