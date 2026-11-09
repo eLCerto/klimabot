@@ -27,3 +27,6 @@ handoff_queue.jsonl
 # Eval output and the reviewers' notes
 eval/runs/
 eval/code_review_debate/
+
+# Browser test output (traces and screenshots of failed tests)
+test-results/

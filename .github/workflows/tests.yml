@@ -1,0 +1,72 @@
+# Every push to main and every pull request: the unit and robustness tests, then the browser tests.
+# No API key and no network calls to the model: the tests replace it with a scripted fake.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      ANTHROPIC_API_KEY: test-no-network
+      LEAD_MAIL_TO: ""
+      PYTHONIOENCODING: utf-8
+      HF_HOME: /home/runner/.cache/huggingface
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"   # the Docker image's version
+          cache: pip
+
+      - name: Install dependencies (CPU-only PyTorch, as in the Dockerfile)
+        run: |
+          python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install ".[e2e]"
+
+      # The embedding model and the reranker (~750 MB) download once and stay cached.
+      - name: Cache the Hugging Face models
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/huggingface
+          key: hf-multilingual-e5-base-mmarco-mMiniLMv2-v1
+
+      # bot.py checks the fingerprint itself; a stale cache is simply recomputed.
+      - name: Cache the knowledge-base embeddings
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/.kb_vecs.npy
+            data/.kb_hash.txt
+          key: kb-${{ hashFiles('knowledge/**', 'bot.py') }}
+          restore-keys: kb-
+
+      - name: Unit and robustness tests
+        run: python -m unittest discover -s tests
+
+      - name: Install Chromium for the browser tests
+        run: python -m playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: python -m pytest
+
+      - name: Keep the traces of failed browser tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 14

@@ -42,10 +42,24 @@ I'm a QA automation engineer, so the bot is tested the way I'd test any product 
 
 - **472 unit tests** ([`tests/test_guards.py`](tests/test_guards.py)) with a fake model client that replays scripted responses. No key or network needed. They cover the guarantees above: price provenance, consent, the fit check, the output gate, spend caps, API errors, and retrieval quality on a labelled set of 37 questions. The fake client also fails any test where the bot would send the API a malformed history.
 - **A robustness suite: 2 280 variants in 5 seconds** ([`tests/test_robustness.py`](tests/test_robustness.py)). Code, not the model, reads the facts that steer a conversation from the customer's words: room sizes, the wishes, a complaint or a sale, a price question, a yes or a no to the consent question. The suite takes phrasings of each and multiplies them by transforms that don't change the meaning: no diacritics, lower and upper case, a greeting, no punctuation, every way of writing "m²". Every variant must read the same. Its first run failed 163 of 2 280 variants across 8 of 14 families. The failures included a refusal of consent that was never read ("Nechcem, aby ste ukladali moje údaje"), a complaint missed because of one accent ("Váš technik…" vs "vaš"), and "14 a 22 metrov" read as one room. All are fixed now, and `python tests/test_robustness.py --report` prints the table.
+- **11 browser tests** ([`tests/e2e/`](tests/e2e/), Playwright). These use a real Chromium, the real web app and the same scripted model, and they follow what a visitor does. In the main journey the visitor:
+  1. clicks a suggestion and gets an offer with two price cards;
+  2. clicks "Toto chcem" and leaves a name and phone;
+  3. agrees with the consent button.
+
+  The tests then check that the brief for the project manager appears and downloads, and that the conversation log passes the independent GDPR audit. Other tests cover a refused consent (nothing stored), a reply carrying `<script>` (it can't run), a page reload (the conversation resumes), an API error (a polite message, and the chat goes on) and the phone layout. Any JavaScript error, server exception or request to another site fails a test. To check that the tests can fail, I broke the page five ways (no HTML sanitizing, no consent buttons, no reload history, no phone notice, a script from a CDN). The test written for each break caught it. The suite runs in about 4 seconds, and a failed test keeps a Playwright trace.
 - **64 scripted customer conversations** ([`eval/`](eval/)): ordinary buyers, abuse attempts (tool-loop injection, a 50-code comparison, a 24-question marathon), boundaries (medical questions, "are you human?", smoke from the unit) and the customers of earlier QA rounds. [`eval/analyze.py`](eval/analyze.py) checks every euro amount in every reply against the raw price lists. In the last run, 0 of 787 amounts came from anywhere but `quote`, and the GDPR audit found no violation.
 - **Direction metrics on every commit**: a git hook replays scripted conversations in which each turn has an expected move. It records how often the reply heads where it should (96 % at the last run), regenerations and model calls per turn, and seconds per turn. A/B runs compare two versions on the same scripts.
 - **An AI reviewer** ([`eval/judge.py`](eval/judge.py)) scores each conversation on discovery, wishes, sizing, grounding, language and flow. It catches what regexes can't, like an expensive series offered to someone who asked for the cheapest.
 - **Exploratory QA on the real API**: I play ten customers with a goal and a mood and write each message in reaction to the bot's reply. Each finding gets a severity and a cause found in the logs or the code. The reports are in [`docs/`](docs/): 2.5 / 5 average customer satisfaction on [2026-11-01](docs/qa_csat_2026-11-01.md), 3.0 on [2026-11-09](docs/qa_exploratory_2026-11-09.md). Each round's findings became tests and scripted conversations.
+
+```bash
+python -m unittest discover -s tests                                # unit + robustness tests, ~30 s
+pip install ".[e2e]" && python -m playwright install chromium       # once
+python -m pytest                                                    # browser tests, ~5 s
+```
+
+GitHub Actions runs all three on every push ([`.github/workflows/tests.yml`](.github/workflows/tests.yml)), with no API key.
 
 A conversation costs about $0.01 on Claude Haiku 5.5 (the exploratory round: $0.12 for ten conversations).
 
@@ -67,12 +81,13 @@ config/           pricing policy, consent wording, sizing thresholds, stock rule
 knowledge/        what the bot searches: samsung/, toshiba/, montaz/ (price lists), rules/ (behavior rules)
 dictionaries/     the Slovak spelling dictionary (sk-spell) and the bot's own extra words
 web/              the web app: web.py and static/ (one HTML file + pinned marked and DOMPurify)
-tests/            unit tests with a fake model client
+tests/            unit and robustness tests with a fake model client; e2e/ the browser tests (Playwright)
 eval/             scripted customer conversations, runners and analysis
 docs/             screenshot, QA reports, the conversation-policy diagram
 data/             runtime output, gitignored: logs, sessions, leads, PM briefs, caches
 Dockerfile, docker-compose.yml, Makefile    Docker (make build / web / down)
 Caddyfile                                   HTTPS on a server (compose profile https)
+.github/workflows/tests.yml                 the tests on every push
 ```
 
 ## Data
