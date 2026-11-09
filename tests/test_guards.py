@@ -4847,6 +4847,22 @@ class ListeningTests(BotTest):
             self.assertEqual(self.asked_priorities(answer).name, "ponuka", answer)
         self.assertEqual(self.asked_priorities("ok").name, "ponuka", "nothing changed: the offer, as before")
 
+    def test_a_budget_denial_is_no_claim(self):  # A/B of 2026-11-09
+        self.sess.user_inputs[:] = ["Spálňa 18 m2, rozpočet 1000 € aj s montážou."]
+        for denial in ("Tú určí projektový manažér po bezplatnej obhliadke, preto zatiaľ nemôžem potvrdiť, že sa do rozpočtu zmestí aj s montážou.",
+                       "Neviem vám povedať, či sa všetko zmestí do rozpočtu."):
+            self.assertFalse(bot._budget_claim_unsupported(denial), denial)
+        self.assertTrue(bot._budget_claim_unsupported("Pre spálňu máme dve možnosti, obe v rozpočte."))
+
+    def test_the_reask_works_through_the_turn_loop(self):
+        # The A/B of 2026-11-09: the turn loop decided the move before the message joined the history, so
+        # _previous_reply() read the reply before the last one and the re-ask never fired live.
+        self.turn("ahoj, chcem klimatizaciu do bytu", resp(text("Ahoj, ktoré izby chceš chladiť a akú majú plochu?")))
+        self.turn("chcem chladit spalnu a detsku izbu, 15 a 20 m2", resp(text(self.ASKED)))
+        self.turn("spalna ma 20 a detska izba 15", resp(text("Rozumiem, spálňa 20 m² a detská 15 m². " + self.ASKED)))
+        moves = [json.loads(x)["move"] for x in self.log_text().splitlines() if '"policy_move"' in x]
+        self.assertEqual(moves, ["zisti-priestor", "zisti-priority", "zisti-priority"])
+
     def after_offer(self, latest, first="Byt, spálňa 14 m2."):
         self.sess.user_inputs[:] = [first]
         for codes in (AR30_SET, ["RAS-10E2AVG-E", "RAS-B10E2KVG-E"]):

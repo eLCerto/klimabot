@@ -5418,6 +5418,8 @@ _BUDGET_CLAIM_RE = re.compile(
 _BUDGET_NEGATION_RE = re.compile(
     r"\bne(?:zmest|vojd|vejd|vych|spad|stač|ide|pokry)\w*|\bnie\s+(?:je|sú|ste)|\bnad\s+(?:vaš\w*\s+|tvoj\w*\s+)?rozpo|"
     r"\bprekra\w*|\bpresahuj\w*|\bani\s+jed\w*|"
+    # "zatiaľ nemôžem potvrdiť, že sa do rozpočtu zmestí" (A/B of 2026-11-09: a denial regenerated as a claim)
+    r"\bne(?:m[ôo][žz]|vie|vieme|viem|d[áa]\s+sa)\w*\s+(?:\w+\s+){0,2}?(?:potvrd|poveda|zaruč|zaruc|sľúb|slub|odhadn)\w*|"
     r"\bover\s+(?:your\s+|the\s+|our\s+)?budget\b|\bover\s+(?:€|eur|\d)|\bexceed\w*|\bnot\s+(?:within|under|fit)|"
     r"\bdoesn'?t\s+fit|\bdoes\s+not\s+fit|\babove\b|\bbeyond\b|\bneither\b|\bnone\b|\bwon'?t\b|\bcan'?t\b|\bcannot\b",
     re.IGNORECASE)
@@ -10296,6 +10298,10 @@ def run_user_turn_streaming(user_input):
     language = _session_language()
     quotes_before = sess.turn_quotes_start = len(sess.quotes)
     _close_complaint_for_sale()
+    # The message joins the history before the policy reads it: _previous_reply() during next_move() returned the reply
+    # before the last one, so the priorities question the bot had just asked was never seen (A/B of 2026-11-09).
+    turn_start = len(sess.conversation)  # rollback point if the API fails mid-turn
+    sess.conversation.append({"role": "user", "content": user_input})
     move = next_move()  # the reply's direction, fixed for the whole turn
     sess.turn_move = (len(sess.user_inputs), move)
     log_event("policy_move", move=move.name, tool_choice=move.tool_choice)
@@ -10303,9 +10309,6 @@ def run_user_turn_streaming(user_input):
     sess.turn_claims = (len(sess.user_inputs), claims)
     if claims:
         log_event("false_claim", facts=[f for f, _ in claims])
-
-    turn_start = len(sess.conversation)  # rollback point if the API fails mid-turn
-    sess.conversation.append({"role": "user", "content": user_input})
 
     if consent_event == "withdrawn":  # a data-subject request: code answers, without a model call
         if sess.handoff_path is not None and sess.handoff_path.exists():
