@@ -1050,6 +1050,7 @@ _ROOM_WORD_RE = re.compile(r"\b(?:izb|spál|spal|obýv|obyv|detsk|kuchy|pracov|k
 _AREA_FILLER = r"(?:(?:má|ma|je|asi|cca|okolo|približne|priblizne|has|is|about|around)\s+){0,2}"
 # "kuchyňa má 15m obývačka 20": the unit stands beside one room only. Read as 15 m², the 35 m² space got 2.5 kW and every
 # right size was refused as oversized (live conversation 2026-11-02). _m2_in() counts these only next to a stated area.
+_AREA_LINK_RE = re.compile(r"\b(?:má|ma|je|asi|cca|okolo|približne|priblizne|has|is|about|around)\b", re.IGNORECASE)
 _ROOM_BARE_M2_RE = re.compile(rf"{_ROOM_WORD_RE.pattern}\s+{_AREA_FILLER}(\d{{1,3}}(?:[.,]\d)?)\b"
                               r"(?!\s*(?:kW|W\b|BTU|°|stup|rok|mesiac|ľud|ludi|osôb|osob|€|eur|%|cm|mm|min|hod))", re.IGNORECASE)
 # A kitchen open to the living room is one space, so one set cools the sum of the two. Matched on folded text by _wished().
@@ -1126,11 +1127,16 @@ def _m2_in(text):
             continue
         values.append(float((m.group(1) or m.group(2)).replace(",", ".")))
         listed.append(m.span())
-    if values:  # "izba 12" is an area only next to a stated one
-        for m in _ROOM_BARE_M2_RE.finditer(text):
-            value = float(m.group(1).replace(",", "."))
-            if 5 <= value <= 500 and not any(a <= m.start(1) < b for a, b in listed):
-                values.append(value)
+    bare = [m for m in _ROOM_BARE_M2_RE.finditer(text) if not any(a <= m.start(1) < b for a, b in listed)]
+    if values:  # "izba 12" is an area next to a stated one
+        values += [v for v in (float(m.group(1).replace(",", ".")) for m in bare) if 5 <= v <= 500]
+    else:
+        # With no unit anywhere: two rooms with sizes ("spalna 12 a obyvacka 20") or one with a linking word ("spálňa má
+        # 14") are areas too. QA of 2026-11-09 (p01): sizes given three times without "m2", never read, no price, lost.
+        plausible = [(m, float(m.group(1).replace(",", "."))) for m in bare]
+        plausible = [(m, v) for m, v in plausible if 6 <= v <= 80]
+        if len(plausible) >= 2 or any(_AREA_LINK_RE.search(m.group(0)) for m, _ in plausible):
+            values += [v for _, v in plausible]
     return values
 
 
@@ -4850,6 +4856,11 @@ def _as_tykanie(text):
 
 # "Ďakujem, pani …, máme vaše údaje" before consent: a recording claim (slub-bez-suhlasu), 4 of the 7 rewrites of the API
 # run of e695916, all on complaints after the customer typed the details. What the customer gets is a thank-you.
+# "Ďakujem, máme meno a telefónne číslo." before consent (QA of 2026-11-09, p08) → "Ďakujem za meno a telefónne číslo."
+_CONTACT_ITEM = r"(?:vaše\s+|tvoje\s+)?(?:meno|telefónne\s+číslo|telefón|číslo|e-mail|email|obec|adresu)"
+_HAVE_ITEMS_RE = re.compile(
+    r"\b(Ďakujem|Dakujem|ďakujem)(,\s+(?:pani|pán|pan)\s+[^,.!?\n]{1,40})?,\s+(?:máme|mám|mame|mam)\s+(?:už\s+)?"
+    rf"({_CONTACT_ITEM}(?:\s*(?:,|a)\s*{_CONTACT_ITEM})*)\b")
 _HAVE_DATA_RE = re.compile(
     r"\b(Ďakujem|Dakujem|ďakujem)(,\s+(?:pani|pán|pan)\s+[^,.!?\n]{1,40})?,\s+(?:máme|mám|mame|mam)\s+(?:už\s+)?(vaše|tvoje)\s+údaje\b")
 
@@ -4871,7 +4882,8 @@ def _drop_tool_source(text):
 def _fix_have_data(text):
     if S().consent is not None:
         return text
-    return _HAVE_DATA_RE.sub(lambda m: f"{m.group(1)}{m.group(2) + ',' if m.group(2) else ''} za {m.group(3)} údaje", text)
+    text = _HAVE_DATA_RE.sub(lambda m: f"{m.group(1)}{m.group(2) + ',' if m.group(2) else ''} za {m.group(3)} údaje", text)
+    return _HAVE_ITEMS_RE.sub(lambda m: f"{m.group(1)}{m.group(2) + ',' if m.group(2) else ''} za {m.group(3)}", text)
 
 
 def _fix_mixed_address(text):
@@ -7824,7 +7836,9 @@ def _session_language():
 _COMPLAINT_RE = re.compile(
     r"\breklam(?:áci|aci|ova|uj|ačn|acn)\w*|\bsťažnos\w*|\bstaznos\w*|\bcomplain\w*|\bwarranty\s+claim|\brefund\b|"
     r"\bnikto\s+(?:sa\s+)?(?:mi\s+|nám\s+|nam\s+)?(?:neozval|neodpoved\w*|nereaguj\w*)|"
-    r"\bvrátenie\s+(?:peňazí|tovaru)|\bodškodn\w*|\bodskodn\w*|\bžalob\w*|\bzalob\w*|\bna\s+súd\b|\bcompensation\b",
+    r"\bvrátenie\s+(?:peňazí|tovaru)|\bodškodn\w*|\bodskodn\w*|\bžalob\w*|\bzalob\w*|\bna\s+súd\b|\bcompensation\b|"
+    # "Už som to raz hlásil a nič", "Ja chcem opravu!" (QA of 2026-11-09, p08)
+    r"\buž\s+som\s+to\s+(?:\w+\s+)?(?:hlásil|nahlásil|reklamoval)\w*|\bchcem\s+(?:\w+\s+)?opravu\b",
     re.IGNORECASE)
 # A unit we supplied — not "chceme novú od vás" (a sale).
 _OUR_INSTALL_RE = re.compile(
@@ -7833,7 +7847,10 @@ _OUR_INSTALL_RE = re.compile(
     r"\b(?:montovali|inštalovali|namontovali|nainštalovali|dodali|predali)\s+ste\b|\bvaš\w*\s+montáž\w*\s+(?:mi|nám)\b|"
     r"\b(?:kúpil\w*|kúpen\w*|zakúpen\w*|objednal\w*|objednan\w*|dodan\w*|namontovan\w*|nainštalovan\w*)\s+"
     r"(?:sme\s+|som\s+|ste\s+)?(?:\w+\s+){0,2}od\s+vás\b|\byou\s+(?:installed|sold|supplied|fitted)\b|"
-    r"\b(?:bought|purchased|got)\s+(?:\w+\s+){0,2}from\s+you\b",
+    r"\b(?:bought|purchased|got)\s+(?:\w+\s+){0,2}from\s+you\b|"
+    # "vaša firma mi minulé leto montovala klimatizáciu" (QA of 2026-11-09, p08: a complaint recorded as a sales lead)
+    r"\bvaš\w*\s+(?:firm|spoločnos|spolocnos|technik|montér|monter|chlap|ľud|lud)\w*\s+(?:\w+\s+){0,4}?"
+    r"(?:montoval|inštaloval|instaloval|namontoval|nainštaloval|nainstaloval|dodal|predal|robil)\w*",
     re.IGNORECASE)
 _FAULT_RE = re.compile(
     r"\bnechlad\w*|\bnekúr\w*|\bnefung\w*|\bpokazen\w*|\bkvap\w*|\bteč\w*|\btecie\b|\bbliká\b|\bporuch[auy]\b|"
@@ -8146,6 +8163,9 @@ _AMOUNT_IN_RE = re.compile(r"(\d{1,3}(?:[ \u00a0]\d{3})+(?:,\d{1,2})?|\d+(?:[.,]
                            re.IGNORECASE)
 _FEE_TOPIC_RE = re.compile(r"recykl|recycling|\bheee\b", re.IGNORECASE)
 _INSTALL_TOPIC_RE = re.compile(r"montaz|install", re.IGNORECASE)
+_INSTALL_ASK_RE = re.compile(r"montaz|montov|instal|\btermin", re.IGNORECASE)
+_FOLLOW_UP_RE = re.compile(r"\W*(?:Presn\w+\s+(?:sum|výšk|cen)\w*|[^.?!]*\brovnako\s+(?:on|ona|oni|ten|tá)\b|Jej\s|Jeho\s)",
+                           re.IGNORECASE)
 _INSTALL_PM_RE = re.compile(r"projektov\w*\s+manazer|obhliadk|site\s+visit|project\s+manager|neocen|nie\s+je\s+v\s+cen|"
                             r"not\s+included|\bnezahrn", re.IGNORECASE)
 _CONSENT_WORDS_RE = re.compile(r"súhlasíte\s+so\s+spracovaním|do\s+you\s+consent", re.IGNORECASE)
@@ -8177,8 +8197,9 @@ def _drop_repeats(text, move_name, user_input):
     # nova-ponuka too: every new offer repeated the fee and installation paragraphs (live 2026-11-09, AI review of e695916)
     answer_move = move_name in ("odpoved", "pokracuj", "kontakt", "nova-ponuka")
     skip_fee = answer_move and _FEE_TOPIC_RE.search(earlier) and not re.search(r"recykl|poplat|recycl|\bfee", asked, re.I)
+    # "Kedy by ste to vedeli namontovať?" asks about installation: its answer is no repeat (QA of 2026-11-09, p07)
     skip_install = (answer_move and _INSTALL_TOPIC_RE.search(earlier) and _INSTALL_PM_RE.search(earlier)
-                    and not _INSTALL_TOPIC_RE.search(asked))
+                    and not _INSTALL_ASK_RE.search(asked))
     dropped = {"repeat": 0, "fee": 0, "installation": 0}
 
     def keep(sentence):
@@ -8198,7 +8219,21 @@ def _drop_repeats(text, move_name, user_input):
             return False
         return True
 
-    out = "\n".join(" ".join(x for x in _SENTENCE_SPLIT_RE.split(line) if keep(x)) for line in text.split("\n"))
+    def kept(line):
+        """A sentence that only points back at a dropped one goes with it: "Presnú sumu určíme pri objednávke.",
+        "Jej cenu určí projektový manažér…", "Cenu montáže určí rovnako on." (QA of 2026-11-09, p09 and p07)."""
+        out, cut = [], False
+        for x in _SENTENCE_SPLIT_RE.split(line):
+            if keep(x) and not (cut and (_ORPHAN_START_RE.match(x) or _FOLLOW_UP_RE.match(x))):
+                out.append(x)
+                cut = False
+            else:
+                cut = True
+                if x.strip() and keep(x):
+                    dropped["repeat"] += 1
+        return " ".join(out)
+
+    out = "\n".join(kept(line) for line in text.split("\n"))
     if not any(dropped.values()) or not _tidy_after_cut(out).strip():
         return text
     log_event("repeat_dropped", move=move_name, **{k: v for k, v in dropped.items() if v})

@@ -2,7 +2,16 @@
 
 A Slovak-language chatbot that sells air conditioning the way a good salesperson does. It asks about the space first, recommends two specific Samsung or Toshiba options, quotes exact prices, and hands a structured brief to the project manager once the customer agrees.
 
-**Live demo:** [klimabot-malisek.duckdns.org](https://klimabot-malisek.duckdns.org) (the bot speaks Slovak; use made-up contact details)
+**Live demo:** [klimabot-malisek.duckdns.org](https://klimabot-malisek.duckdns.org) (use made-up contact details)
+
+The bot speaks **Slovak only**, on purpose: it's built for Slovak customers, and an English-writing visitor gets one line saying so and Slovak replies. To try it without Slovak, paste one of these:
+
+| Type this | It means |
+|---|---|
+| `Dobrý deň, chcem klimatizáciu do spálne, má 14 m2. Koľko by stála?` | I want AC for a 14 m² bedroom. How much would it cost? |
+| `Máme byt, spálňa 13 m2 a obývačka 22 m2, čo najlacnejšie.` | A flat: a 13 m² bedroom and a 22 m² living room, as cheap as possible. |
+| `Syn má alergiu na prach, hľadám klímu, ktorá dobre čistí vzduch.` | My son is allergic to dust; I want an AC that cleans the air well. |
+| `Vyberte mi tú lepšiu.` | You choose the better one for me. (after an offer) |
 
 ![Klimabot web UI: the chat with a price card and the consent question, and the brief for the project manager](docs/screenshot.png)
 
@@ -22,10 +31,22 @@ Most of the work went into stopping the model from making things up. In early te
 - **The first offer is picked by code.** For a single room, code chooses the two sets to price: one per brand, in the smallest size that covers the room, the cheapest by default, Wi-Fi models when Wi-Fi is wished, and the best filtration ([`filtration_policy.json`](config/filtration_policy.json)) when the customer wants "the best" or mentions an allergy. The model only prices and presents them, which cut the slowest and most-regenerated replies.
 - **Every euro amount in a reply must come from `quote`.** The validator compares each amount in the bot's answer with what `quote` returned, the euro amounts the customer typed, and differences between quote totals. A number from anywhere else, like an estimate, a self-computed discount or a catalog price copied from search results, gets the reply regenerated (at most twice per turn); if it is still there, the sentence is cut out before the customer sees it. The pricing policy isn't even in the prompt, so there are no percentages to apply by hand.
 - **Every response is checked server-side before the customer sees it.** Text the model writes next to a tool call ("let me check…") isn't shown at all; the answer comes after the tool. Mechanical issues (headings, emoji spam, Czech words) are fixed in place; content issues that sit in one sentence (a price under the wrong product or with the wrong VAT label, "A is cheaper than B" when the quotes say otherwise, invented model codes or spec figures, savings claims, permit promises, delivery dates, asking where the outdoor unit goes) are regenerated or cut out; the rest is logged. Product claims are checked against the price lists too: an energy class, a filter or a feature written next to a series must be that series' own, a colour must exist, and "in stock" must match the quote's availability. The conversation history keeps exactly what was shown.
-- **Consent is decided by code, not by the model.** When the bot asks for contact details, code appends the GDPR question in its approved wording ([`consent_phrases.json`](config/consent_phrases.json)). The bot asks for contact details (name, phone, e-mail, town) only after it has given a price. Only an explicit yes in the customer's very next message counts; "OK", "beriem" or "súhlasím s cenou" don't, and the question is asked again (at most twice). The bot doesn't handle complaints: it collects no personal data and gives the company's e-mail and phone instead. Until consent, phone numbers, e-mails and known names are masked in every log event; after a refusal, the whole session log is scrubbed.
+- **Consent is decided by code, not by the model.** When the bot asks for contact details, code appends the GDPR question in its approved wording ([`consent_phrases.json`](config/consent_phrases.json)). The bot asks for contact details (name, phone, e-mail, town) only after it has given a price. Only an explicit yes in the customer's very next message counts; "OK", "beriem" or "súhlasím s cenou" don't, and the question is asked again (at most twice). Complaints get their own consent question and their own brief: the bot doesn't solve them or promise a repair, it hands the customer's details and their own words to the team, or gives the company contact if they decline. Until consent, phone numbers, e-mails and known names are masked in every log event; after a refusal, the whole session log is scrubbed.
 - **It stays in its lane.** Off-topic questions (medicine, law, homework, recipes) get one polite sentence and a way back to air conditioning, and the bot says it's an AI when asked. Industrial halls and agricultural buildings get no design or price, only the project manager's contact; questions about installing a unit the customer already has get no advice, only a pointer to the project manager. When a customer reports smoke, sparks or a burning smell, the reply opens with "switch it off at the breaker, call 112 if something is burning" — code adds it if the model doesn't. Diagnoses like asthma never reach the project manager's brief.
 - **Leads are guarded.** `capture_lead` refuses to save anything without recorded sales consent, and refuses model codes that never came up in the conversation. If the customer consents but the bot forgets to close, code captures the lead itself. The audit in `cost_report.py` checks the order question → yes → lead independently of the bot.
 - **Tested.** [`tests/`](tests/) covers these guarantees with a fake model client; [`eval/`](eval/) runs scripted customer conversations end to end and checks every quoted price against the raw price lists.
+
+## How I tested it
+
+I'm a QA automation engineer, so the bot is tested the way I'd test any product with a non-deterministic core: guarantees in code, checked by unit tests; behaviour measured over many conversations; and exploratory testing by a person.
+
+- **472 unit tests** ([`tests/test_guards.py`](tests/test_guards.py)) with a fake model client that replays scripted responses. No key or network needed. They cover the guarantees above: price provenance, consent, the fit check, the output gate, spend caps, API errors, and retrieval quality on a labelled set of 37 questions. The fake client also fails any test where the bot would send the API a malformed history.
+- **64 scripted customer conversations** ([`eval/`](eval/)): ordinary buyers, abuse attempts (tool-loop injection, a 50-code comparison, a 24-question marathon), boundaries (medical questions, "are you human?", smoke from the unit) and the customers of earlier QA rounds. [`eval/analyze.py`](eval/analyze.py) checks every euro amount in every reply against the raw price lists. In the last run, 0 of 787 amounts came from anywhere but `quote`, and the GDPR audit found no violation.
+- **Direction metrics on every commit**: a git hook replays scripted conversations in which each turn has an expected move. It records how often the reply heads where it should (96 % at the last run), regenerations and model calls per turn, and seconds per turn. A/B runs compare two versions on the same scripts.
+- **An AI reviewer** ([`eval/judge.py`](eval/judge.py)) scores each conversation on discovery, wishes, sizing, grounding, language and flow. It catches what regexes can't, like an expensive series offered to someone who asked for the cheapest.
+- **Exploratory QA on the real API**: I play ten customers with a goal and a mood and write each message in reaction to the bot's reply. Each finding gets a severity and a cause found in the logs or the code. The reports are in [`docs/`](docs/): 2.5 / 5 average customer satisfaction on [2026-11-01](docs/qa_csat_2026-11-01.md), 3.0 on [2026-11-09](docs/qa_exploratory_2026-11-09.md). Each round's findings became tests and scripted conversations.
+
+A conversation costs about $0.01 on Claude Haiku 5.5 (the exploratory round: $0.12 for ten conversations).
 
 ## How it works
 
@@ -47,7 +68,7 @@ dictionaries/     the Slovak spelling dictionary (sk-spell) and the bot's own ex
 web/              the web app: web.py and static/ (one HTML file + pinned marked and DOMPurify)
 tests/            unit tests with a fake model client
 eval/             scripted customer conversations, runners and analysis
-docs/             screenshot
+docs/             screenshot, QA reports, the conversation-policy diagram
 data/             runtime output, gitignored: logs, sessions, leads, PM briefs, caches
 Dockerfile, docker-compose.yml, Makefile    Docker (make build / web / down)
 Caddyfile                                   HTTPS on a server (compose profile https)

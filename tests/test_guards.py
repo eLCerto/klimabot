@@ -3505,7 +3505,8 @@ class LiveConversationTests(BotTest):
         for typed, expected in (("kuchyňa má 15m obývačka 20", [15, 20]), ("kuchyňa 15, obývačka 20 m2", [15, 20]),
                                 ("spálňa 14 a detská 12 m2", [12, 14]), ("obývačka 20 m2", [20]),
                                 ("izba 2, 20 m2", [20]), ("obývačka 20 rokov stará, 30 m2", [30]),
-                                ("kuchyňa 15 obývačka 20", [])):
+                                # two rooms with sizes and no unit are areas since the QA of 2026-11-09 (F1)
+                                ("kuchyňa 15 obývačka 20", [15, 20]), ("kuchyňa 15", [])):
             self.say(typed)
             self.assertEqual(sorted(bot._customer_m2()), expected, typed)
 
@@ -4961,6 +4962,49 @@ class CsatSpeedLengthTests(BotTest):
         self.assertEqual(bot.next_move().name, "nova-ponuka")
         for asking in ("A má Wi-Fi?", "Ktorá je najlepšia?", "Má niektorá lepšiu filtráciu?"):
             self.assertIsNone(bot._repick_after_offer(asking), asking)
+
+
+class ExploratoryQaFixTests(BotTest):
+    """The exploratory QA on the real API of 2026-11-09 (docs/qa_exploratory_2026-11-09.md): F1, F2, F6."""
+
+    def test_f1_sizes_without_a_unit_are_read(self):
+        for message, areas in (("spalna a obyvacka, spalna 12 a obyvacka 20", [12.0, 20.0]),
+                               ("pardon, spalna ma 14 a obyvacka 22", [14.0, 22.0]),
+                               ("Spálňa má 14, viac nič.", [14.0])):
+            self.sess.user_inputs[:] = ["ahoj, chcel by som klimu do bytu", message]
+            self.assertEqual(sorted(bot._customer_m2()), areas, message)
+        for message in ("Spálňa 3, obývačka na 2. poschodí.", "Mám dve izby a kuchyňu.", "Detská izba 10 rokov stará."):
+            self.sess.user_inputs[:] = [message]
+            self.assertEqual(bot._customer_m2(), [], message)
+        # p01: the size was never known, so five turns stayed on zisti-priestor and every quote was refused
+        self.sess.user_inputs[:] = ["ahoj, chcel by som klimu do bytu", "spalna a obyvacka, spalna 12 a obyvacka 20"]
+        self.assertNotEqual(bot.next_move().name, "zisti-priestor")
+
+    def test_f2_a_unit_your_company_installed_is_a_complaint(self):
+        self.sess.user_inputs[:] = ["Dobrý deň, vaša firma mi minulé leto montovala klimatizáciu a teraz z nej kvapká voda do "
+                                    "izby. Už som to raz hlásil a nič. Čo s tým?"]
+        self.assertTrue(bot._support_case())
+        self.assertEqual(bot._consent_purpose(), "complaint")
+        self.assertEqual(bot.next_move().name, "reklamacia")
+        for sale in ("Vaša firma má dobré recenzie, chcem klímu do spálne 14 m2.", "Stará klíma nefunguje, chceme novú od vás."):
+            self.sess.user_inputs[:] = [sale]
+            self.assertFalse(bot._support_case(), sale)
+        self.assertEqual(bot._fix_have_data("Ďakujem, máme meno a telefónne číslo."), "Ďakujem za meno a telefónne číslo.")
+        self.assertEqual(bot._fix_have_data("Ďakujem, pán Kováč, mám vaše meno, telefón a obec."),
+                         "Ďakujem, pán Kováč, za vaše meno, telefón a obec.")
+
+    def test_f6_no_dangling_sentence_after_a_dropped_repeat(self):
+        earlier = ("K cene sa pripočíta recyklačný poplatok 5 až 15 € za jednu jednotku. Montáž nie je v cene, jej cenu určí "
+                   "projektový manažér po bezplatnej obhliadke.")
+        self.sess.conversation[:] = [{"role": "assistant", "content": earlier}]
+        reply = ("Celkom je to 1 791,13 € s DPH. Pri oboch ponukách sa k cene pripočíta recyklačný poplatok, spolu 10 až 30 €. "
+                 "Presnú sumu určíme pri objednávke. Montáž nie je v cene a určí ju projektový manažér po obhliadke. Jej cenu "
+                 "určí projektový manažér po bezplatnej obhliadke. Ktorá možnosť vám vyhovuje?")
+        out = bot._drop_repeats(reply, "pokracuj", "Áno, prepočítajte to bez pracovne.")
+        self.assertEqual(out, "Celkom je to 1 791,13 € s DPH. Ktorá možnosť vám vyhovuje?")
+        # a question about installation keeps its answer (p07: "Kedy by ste to vedeli namontovať?")
+        answer = "Termín montáže určí projektový manažér po bezplatnej obhliadke. Cenu montáže určí rovnako on."
+        self.assertEqual(bot._drop_repeats(answer, "kontakt", "Beriem ten Comfort S2. Kedy by ste to vedeli namontovať?"), answer)
 
 
 class MixedAddressTests(BotTest):
