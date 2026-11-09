@@ -1633,8 +1633,9 @@ _WIFI_WANTED_FOLDED_RE = re.compile("|".join(re.escape(fold_diacritics(t)) for t
 # Allergy, dust, air quality or a filter wish in the customer's words (folded, not negated: "nie som alergik").
 _ALLERGY_RE = re.compile(
     r"\balergi\w*|\balergik\w*|\bastm\w*|\broztoc\w*|\bpel\b|\bpelov\w*|\bpm\s?2[.,]5|\bantibakter\w*|"
-    r"\bantialerg\w*|\bprach\w*|\bkvalit\w*\s+vzduch\w*|\bcistic\w*\s+vzduch\w*|\bdust\b|\ballerg\w*|\basthm\w*|"
-    # a filter wish: "kvalitný filter a wifi" got the basic-filter AR35 in the live demo of 2026-10-19
+    r"\bantialerg\w*|\bprach\w*|\bkvalit\w*\s+vzduch\w*|\bcist\w*\s+vzduch\w*|\bdust\b|\ballerg\w*|\basthm\w*|"
+    # a filter wish: "kvalitný filter a wifi" got the basic-filter AR35 in the live demo of 2026-10-19; "čistenie vzduchu",
+    # the bot's own priorities option, was no wish at all (live 2026-11-09)
     r"\b(?:kvalitn|dobr|leps|najleps|premiov|vysokokvalitn)\w*\s+filt\w*|\bfiltrac\w*|\bfilter\s+quality",
     re.IGNORECASE)
 
@@ -3453,15 +3454,18 @@ _FEATURE_QUESTION_RE = re.compile(
     r"(?:funkci|dôležit|dolezit|požiadav|poziadav|záleží|zalezi)\w*[^?]{0,300}\?", re.IGNORECASE)
 
 
+def _preferences_stated():
+    """The customer said what they want."""
+    return bool(_PREFERENCE_RE.search(fold_diacritics(_all_user_text())) or _wished(_WIFI_WANTED_FOLDED_RE)
+                or _wished(_CHEAP_WISH_RE) or _wished(_ALLERGY_RE)
+                # a named series or code is the choice itself (replay 2026-10-21: "chcem samsung comfort" was
+                # asked about features three times and never priced)
+                or _SERIES_NAMED_RE.search(_all_user_text()))
+
+
 def _preferences_known():
     """The customer said what they want, or the bot already asked."""
-    if (_PREFERENCE_RE.search(fold_diacritics(_all_user_text())) or _wished(_WIFI_WANTED_FOLDED_RE)
-            or _wished(_CHEAP_WISH_RE) or _wished(_ALLERGY_RE)
-            # a named series or code is the choice itself (replay 2026-10-21: "chcem samsung comfort" was
-            # asked about features three times and never priced)
-            or _SERIES_NAMED_RE.search(_all_user_text())):
-        return True
-    return bool(_FEATURE_QUESTION_RE.search(_recent_assistant_text(n=50)))
+    return _preferences_stated() or bool(_FEATURE_QUESTION_RE.search(_recent_assistant_text(n=50)))
 
 
 def _previous_reply():
@@ -4930,6 +4934,7 @@ _BLANK_RUN_RE = re.compile(r"\n{3,}")
 # `sanitize_reply` — no regen, no double tokens.
 _CZECH_TO_SLOVAK = {
     "výborně": "výborne",
+    "díky": "vďaka",  # "Díky, mám teraz plochu" (live 2026-11-09)
     "pojďme": "poďme",
     "děkuji": "ďakujem",
     "děkuju": "ďakujem",
@@ -8558,10 +8563,11 @@ _DESIGN_FIRST_RE = re.compile(r"\b(?:skor|hlavne|najma|radsej|ide\s+(?:mi|nam)\s
                               r"\b(?:dizajn|design|vzhlad)\w*\s+je\s+(?:\w+\s+)?(?:dolezit|hlavn|rozhodujuc)\w*|\bkrajs\w*", re.IGNORECASE)
 
 
-def _suggested_sets():
+def _suggested_sets(after_offer=False):
     """Two (record, codes) sets for the first offer: one per brand (two series when the customer named one
     brand), the smallest size that covers the m², white, cheapest first — tier-1 filtration for "the best" or an
-    allergy, Wi-Fi as standard when wished. None when code can't read the request well enough."""
+    allergy, Wi-Fi as standard when wished. None when code can't read the request well enough. `after_offer`: the
+    picks for a wish said after an offer (_repick_after_offer)."""
     sess = S()
     text = _all_user_text()
     folded = fold_diacritics(text)
@@ -8574,7 +8580,7 @@ def _suggested_sets():
     # A salon or a practice: quote refuses residential sets, so picking them contradicted the note beside them and the
     # first offer had no price (live 2026-11-02, d07). A server room too: code quoted two residential sets, quote refused
     # both, and d04 lost 4–7 calls recovering, once hitting the conversation cap (API A/B of 2026-11-08).
-    if (sess.quotes or _industrial_case() or _support_case() or _wished(_OWN_INSTALL_RE)
+    if ((sess.quotes and not after_offer) or _industrial_case() or _support_case() or _wished(_OWN_INSTALL_RE)
             or any(rx.search(place_text) for rx in _EXPLICIT_COMMERCIAL_RES.values()) or _SERVER_ROOM_RE.search(place_text)
             or (_SERIES_NAMED_RE.search(text) and not _named_series(text)) or _MULTI_TEXT_RE.search(text) or taste
             or _wished(_INDOOR_TYPE_WISH_RE)
@@ -8964,6 +8970,12 @@ _PERMIT_ASK_RE = re.compile(r"\bprenajimatel\w*|\bpovoleni\w*|\bspravc\w*\s+domu
                             re.IGNORECASE)
 
 
+# "Prečo si mi ponúkol klímu, keď ešte nevieš…?", "prečo mi teraz neponúkaš multisplit?" (folded): the live replies of
+# 2026-11-09 were "Máš pravdu, mal som sa najprv spýtať" and "Multi-split som mal ponúknuť hneď od začiatku" — the first
+# offer was a multi-split.
+_WHY_OFFERED_RE = re.compile(r"\bpreco\s+(?:\w+\s+){0,3}(?:ne)?(?:ponuk|navrh|odporuc)\w*", re.IGNORECASE)
+
+
 def _questions_note(latest):
     """The customer's own questions, quoted, with the facts code knows for them: once a move said "price two options"
     the question fell away, and in 7 of 10 QA conversations of 2026-11-01 the customer had to ask again ("tretí krát sa
@@ -8979,6 +8991,11 @@ def _questions_note(latest):
                       "a montáž určí projektový manažér po bezplatnej obhliadke."),
         (_PET_ASK_RE, "O vplyve na zvieratá v podkladoch nič nie je: povedz to jednou vetou a nič nedomýšľaj."),
     ) if rx.search(folded)]
+    if _WHY_OFFERED_RE.search(folded) and S().quotes:
+        facts.append("Prečo táto ponuka: vysvetli vecne jednou-dvoma vetami podľa ponúk tohto rozhovoru (čo zákazník dovtedy "
+                     "povedal, napr. plochu, a že vyberáš podľa ceny, kým nepovie, čo je preň dôležité). Nepíš „máte pravdu“, "
+                     "„mal som…“ ani „moja chyba“ a netvrď o predchádzajúcich ponukách nič, čo v nich nebolo; ak chce "
+                     "niečo iné, ponúkni to.")
     if _LANDLORD_RE.search(folded) and _PERMISSION_WORD_RE.search(folded):
         facts.append("Nájomca: povedz, že či treba súhlas prenajímateľa, si overí v nájomnej zmluve alebo priamo u "
                      "prenajímateľa, a technickú stránku montáže posúdi projektový manažér pri bezplatnej obhliadke. Nič viac "
@@ -9131,6 +9148,28 @@ _MULTI_VS_SETS_RE = re.compile(
     rf"{_SEPARATE_WORDS}[^?.!\n]{{0,80}}\b(?:alebo|ci|vs|oproti|or|versus|than|nez|ako)\b[^?.!\n]{{0,60}}\bmulti", re.IGNORECASE)
 
 
+# A wish said after an offer that changes what code picks, or a multi-split asked for by name (live 2026-11-09:
+# "potrebujem čistenie vzduchu čo najlepšie" after the cheapest multi-splits went to odpoved, the model priced two pairs
+# of separate sets instead, and the customer asked "prečo mi teraz neponúkaš multisplit?").
+_REPICK_WISH_RES = (_ALLERGY_RE, _BEST_WISH_RE, _WIFI_WANTED_FOLDED_RE, _MULTI_TEXT_RE)
+
+
+def _repick_after_offer(latest):
+    """(directive text, prerun) for the picks the first offer would make now, without those already quoted; None
+    when the latest message states no such wish or the picks are what the customer has already been shown."""
+    # In a question a wish is about the offers shown ("A má Wi-Fi?", "Ktorá je najlepšia?"); a multi-split asked for counts.
+    if not any(_wished(rx, latest) for rx in (_REPICK_WISH_RES[-1:] if "?" in latest else _REPICK_WISH_RES)):
+        return None
+    quoted = {frozenset(c for line in q["lines"] for c in line["codes"]) for q in S().quotes}
+    if len(_room_sizes()) >= 2:
+        multis = [o for o in _suggested_multis() if frozenset(i["code"] for i in o["items"]) not in quoted]
+        return (_multi_picks_text(multis, priced=True), [("quote", {"items": o["items"]}) for o in multis]) if multis else None
+    if _wished(_MULTI_TEXT_RE, latest):  # one room: the model answers what a multi-split is for
+        return None
+    picks = [p for p in (_suggested_sets(after_offer=True) or []) if frozenset(p[1]) not in quoted]
+    return (_picks_text(picks, priced=True), _picks_prerun(picks)) if picks else None
+
+
 def _sales_move(latest):
     """The next step of the sale: space → rooms → what matters → two priced options → answers / another variant →
     the contact (the order of knowledge/rules/feedback_overit_potreby_pred_ponukou.md)."""
@@ -9177,6 +9216,15 @@ def _sales_move(latest):
         if (not missing and not _codes_named(latest) and not _SERIES_NAMED_RE.search(latest)
                 and not _CUSTOMER_KW_RE.search(latest) and _price_asked_again(folded_latest)):
             return Move("odpoved", _PRICE_AGAIN_TEXT + _NO_CONTACT_YET, None)
+        repick = None if (missing or new_spec or spec_question) else _repick_after_offer(latest)
+        if repick:
+            picks_text, prerun = repick
+            return Move("nova-ponuka", "Zákazník po ponuke povedal, čo je preň dôležité, alebo chce multi-split: server "
+                        "podľa toho vybral a nacenil nové možnosti." + picks_text + " Ponuky ukáž v tej istej podobe, "
+                        "ako ich server vybral (multi-split nemeň na samostatné sety). Jednou vetou povedz, čím sa líšia "
+                        "od predchádzajúcej ponuky; ktorá je lacnejšia, ber z `comparison_with_earlier_quotes`. Na nič, "
+                        "čo už povedal, sa znova nepýtaj." + _budget_note() + _rooms_limit_note() + _NO_CONTACT_YET
+                        + _EXACT_AMOUNTS, None, tuple(prerun))
         if missing or (_NEW_VARIANT_RE.search(folded_latest)
                 or (not spec_question and (_codes_named(latest) or _SERIES_NAMED_RE.search(latest)
                                            or _CUSTOMER_M2_RE.search(latest) or _CUSTOMER_KW_RE.search(latest)))):
@@ -9228,9 +9276,14 @@ def _sales_move(latest):
                  "jednou otázkou opýtaj, ktorá mu vyhovuje. Na nič, čo už zákazník povedal, sa znova nepýtaj. "
                  # the A/B of 2026-10-27 asked for name and phone in the first offer
                  "O kontakt v tejto odpovedi nežiadaj — až keď si zákazník vyberie.")
-    if price_question and not _preferences_known():
-        directive += (" Po cenách sa opýtaj, čo je preň dôležité (tichý chod, filtrácia vzduchu, Wi-Fi, dizajn), "
-                      "aby si ponuku spresnil.")
+    if not _preferences_stated():
+        # Live 2026-11-09: the customer answered the priorities question with a size correction, got the cheapest
+        # multi-splits with no word on why, and asked "prečo si mi ponúkol klímu, keď ešte nevieš, aké mám preferencie?".
+        directive = directive.replace("potom sa jednou otázkou opýtaj, ktorá mu vyhovuje",
+                                      "potom sa jednou otázkou opýtaj, či mu niektorá vyhovuje, alebo či je preň dôležité "
+                                      "niečo iné (tichý chod, filtrácia vzduchu, Wi-Fi, dizajn), aby si ponuku spresnil", 1)
+        directive += (" Zákazník zatiaľ nepovedal, čo je preň dôležité: na začiatku jednou vetou povedz, prečo sú to tieto "
+                      "možnosti („Keďže ste zatiaľ neuviedli, čo je pre vás dôležité, vybral som možnosti podľa ceny.“).")
     if not (_customer_m2() or _customer_numbers(_CUSTOMER_KW_RE) or _codes_named(text)):
         directive += (" Zákazník plochu nevie: naceň nástenné sety 2,5 kW ako typickú veľkosť pre jednu izbu a povedz, že "
                       "je to odhad a výkon potvrdí projektový manažér pri bezplatnej obhliadke.")

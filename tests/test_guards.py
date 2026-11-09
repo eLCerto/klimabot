@@ -852,7 +852,7 @@ class QuoteTests(BotTest):
     def test_price_first_when_the_customer_asks_for_it(self):  # live demo 2026-10-20: features asked instead
         self.sess.user_inputs.append("Dobrý deň, hľadám klimatizáciu do spálne, má 14 m². Koľko by stála?")
         self.assertEqual(bot.next_move().name, "ponuka")
-        self.assertIn("Po cenách sa opýtaj, čo je preň dôležité", bot.build_server_context())
+        self.assertIn("či je preň dôležité niečo iné (tichý chod", bot.build_server_context())
         self.sess.user_inputs[:] = ["Spálňa 14 m2."]
         self.assertEqual(bot.next_move().name, "zisti-priority")
         self.assertIn("Pred prvou ponukou", bot.build_server_context())
@@ -4747,6 +4747,66 @@ class LeftoverTests(BotTest):
         self.setUp()
         move = self.after_offer("A čo RAS-B10N4KVRG-E2?")  # a code: the model quotes it
         self.assertEqual((move.name, move.prerun, move.tool_choice), ("nova-ponuka", (), "any"))
+
+
+class LiveRepickTests(BotTest):
+    """The live conversation of 2026-11-09: a size correction in place of the priorities answer got the cheapest
+    multi-splits with no word why, "Máš pravdu, mal som sa najprv spýtať", then "čistenie vzduchu čo najlepšie" went to
+    odpoved and got separate sets, and "prečo mi teraz neponúkaš multisplit?" got "Multi-split som mal ponúknuť hneď"."""
+
+    ROOMS = ["ahoj, chcem klimatizaciu do bytu", "chcem chladit spalnu a detsku izbu, 15 a 20 m2"]
+
+    def offered(self):
+        self.sess.user_inputs[:] = self.ROOMS + ["spalna ma 20 a detska izba 15"]
+        self.sess.conversation[:] = [{"role": "assistant", "content": "Čo je pre teba pri klimatizácii najdôležitejšie?"},
+                                     {"role": "user", "content": "spalna ma 20 a detska izba 15"}]
+        move = bot.next_move()
+        for name, inp in move.prerun:
+            if name == "quote":
+                bot.quote(inp["items"])
+        return move
+
+    def test_an_offer_without_priorities_says_how_it_was_picked(self):
+        move = self.offered()
+        self.assertEqual(move.name, "ponuka")
+        self.assertIn("vybral som možnosti podľa ceny", move.directive)
+        self.assertIn("či je preň dôležité niečo iné", move.directive)
+        self.sess.user_inputs[:] = ["Byt, spálňa 14 m2 a obývačka 25 m2, chcem čo najlacnejšie."]
+        self.assertNotIn("vybral som možnosti podľa ceny", bot.next_move().directive)
+
+    def test_why_this_offer_gets_no_invented_self_blame(self):
+        self.offered()
+        for latest in ("preco si mi ponukol klimu ked este nevies ake mam preferencie?",
+                       "preco mi teraz neponukas multisplit?"):
+            self.sess.user_inputs.append(latest)
+            self.assertIn("Nepíš „máte pravdu“, „mal som…“", bot.next_move().directive, latest)
+
+    def test_air_cleaning_after_an_offer_repicks_multi_splits(self):
+        self.assertTrue(bot._wished(bot._ALLERGY_RE, "potrebujem cistenie vzduchu co najlepsie"))
+        self.offered()
+        first = {frozenset(c for line in q["lines"] for c in line["codes"]) for q in self.sess.quotes}
+        self.sess.user_inputs.append("potrebujem cistenie vzduchu co najlepsie")
+        move = bot.next_move()
+        self.assertEqual((move.name, move.tool_choice), ("nova-ponuka", None))
+        quotes = [inp["items"] for name, inp in move.prerun if name == "quote"]
+        self.assertEqual(len(quotes), 2)
+        for items in quotes:
+            self.assertNotIn(frozenset(i["code"] for i in items), first)
+            self.assertEqual(sum(i["qty"] for i in items), 3, "one outdoor unit and one indoor unit per room")
+            self.assertNotIn("error", bot.quote(items))
+        self.assertIn("multi-split nemeň na samostatné sety", move.directive)
+        # the same picks once quoted: an answer, not a third identical offer
+        self.sess.user_inputs.append("a potrebujem dobru filtraciu")
+        self.assertNotEqual(bot.next_move().name, "nova-ponuka")
+
+    def test_a_wish_in_a_question_is_about_the_offers(self):
+        self.offered()
+        for latest in ("A má Wi-Fi?", "Ktorá je najlepšia?"):
+            self.sess.user_inputs.append(latest)
+            self.assertIsNone(bot._repick_after_offer(latest), latest)
+
+    def test_czech_thanks_is_made_slovak(self):
+        self.assertEqual(bot.sanitize_reply("Díky, mám teraz plochu.")[0], "Vďaka, mám teraz plochu.")
 
 
 class MixedAddressTests(BotTest):
