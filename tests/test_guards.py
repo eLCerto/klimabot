@@ -62,6 +62,7 @@ def priced(codes):
     finally:
         bot.use_session(current)
 SEIYA_SET = ["RAS-10E2AVG-E", "RAS-B10E2KVG-E"]
+SEIYA_CLASSIC_2_25 = ["RAS-10B2AVG-E2", "RAS-B10B2KVG-E2"]
 _ids = itertools.count()
 
 
@@ -5344,6 +5345,128 @@ class NoiseAndComparisonTests(BotTest):
         reads = q["comparison_with_earlier_quotes"][-1]["reads"]
         self.assertIn(f"({bot._eur(q['total_with_DPH_23pct_eur'])} s DPH) je o", reads)
         self.assertIn("drahšia než ponuka Samsung AR30 WIFI (", reads)
+
+
+class NoiseFigureTests(BotTest):
+    """dB figures: a noise value a tool returned, and under a named series that series' own (2026-11-11)."""
+
+    def setUp(self):
+        super().setUp()
+        self.sess.user_inputs[:] = ["Chcem tichú klímu do obývačky 40 m2."]
+        outputs = [bot.dispatch_tool("lookup_product", {"model_code": q})[0]
+                   for q in ("Toshiba SEIYA Classic 2 4.2", "Samsung Cebu S2 4.25")]
+        ids = [f"toolu_t{i}" for i in range(len(outputs))]
+        self.sess.conversation[:] = [
+            {"role": "user", "content": self.sess.user_inputs[0]},
+            {"role": "assistant", "content": [{"type": "tool_use", "id": i, "name": "lookup_product", "input": {}} for i in ids]},
+            {"role": "user", "content": [{"type": "tool_result", "tool_use_id": i, "content": o} for i, o in zip(ids, outputs)]}]
+
+    def flagged(self, reply):
+        return bool(bot._unsupported_figures(reply) or bot._wrong_noise_figures(reply))
+
+    def test_figures_of_the_price_list_pass(self):
+        # c16 of the A/B of 2026-11-09: correct for 4,2 kW; the AI review read the 2,5 kW row and called it wrong
+        for ok in ("**Toshiba SEIYA Classic 2 (4,2 kW)**\nHlučnosť vnútornej jednotky je od 22 dB pri najnižších otáčkach "
+                   "do 45 dB pri najvyšších.",
+                   "Hlučnosť vnútornej jednotky je 19–42 dB, vonkajšej 49 dB.",
+                   "Cebu S2 má 25 dB, SEIYA Classic 2 má 22 dB.",
+                   "Samsung Cebu S2 je o 10 dB tichšia vonku."):
+            self.assertFalse(self.flagged(ok), ok)
+            self.assertNotIn("nepodlozene-udaje", " ".join(bot.validate_assistant_reply(ok)), ok)
+
+    def test_wrong_figures_are_hard_and_cut(self):
+        for bad in ("**Toshiba SEIYA Classic 2 (4,2 kW)**\nVnútorná jednotka je veľmi tichá, iba 16 dB.",
+                    "Hlučnosť vnútornej jednotky je 15 až 42 dB(A).",  # the lower bound wasn't read before
+                    "Samsung Cebu S2 má vnútornú jednotku od 33 dB.",
+                    "SEIYA Classic 2 má vnútornú jednotku od 25 dB."):  # Cebu's figure under SEIYA
+            self.assertTrue(self.flagged(bad), bad)
+            self.assertIn("nepodlozene-udaje", " ".join(bot.validate_assistant_reply(bad)), bad)
+        table = "| | SEIYA Classic 2 | Cebu S2 |\n|---|---|---|\n| Hlučnosť | 22 dB | 17 dB |\n| Cena | áno | áno |"
+        kept, dropped = bot._drop_hard_sentences(table)
+        self.assertEqual(dropped, ["| Hlučnosť | 22 dB | 17 dB |"])
+
+    def test_a_figure_the_customer_typed_passes(self):
+        self.sess.user_inputs.append("Potrebujem pod 30 dB, mám ľahký spánok.")
+        self.assertFalse(self.flagged("Rozumiem, hľadáte jednotku pod 30 dB."))
+
+
+class RedTeamLeftoverTests(BotTest):
+    """The leftovers of the red team of 2026-11-10 and the exploratory QA of 2026-11-09 (F5, F8)."""
+
+    def rules(self, reply):
+        return [v.split(":")[0] for v in bot.validate_assistant_reply(reply)]
+
+    def test_a_callback_deadline_is_a_date_promise(self):  # b02; "do 1 pracovného dňa" is the company's own (handoff rule)
+        for bad in ("Projektový manažér sa vám ozve do 2 pracovných dní na telefón.",
+                    "Zavoláme vám zajtra.", "Kolega vás kontaktuje v priebehu 24 hodín.",
+                    "The project manager will get in touch within two days."):
+            self.assertIn("termin-slub", self.rules(bad), bad)
+            self.assertEqual(bot._drop_hard_sentences(f"Ďakujem. {bad}")[0].strip(), "Ďakujem.", bad)
+        for ok in ("Projektový manažér sa vám ozve a dohodne bezplatnú obhliadku.", "Ozve sa vám ohľadom 3 izieb.",
+                   "Projektový manažér sa vám ozve do 1 pracovného dňa.",
+                   "Klíma do 2 izieb."):
+            self.assertNotIn("termin-slub", self.rules(ok), ok)
+
+    def test_the_rest_of_a_budget_is_no_installation_money(self):  # F5, p06
+        self.sess.user_inputs[:] = ["Mám rozpočet 1500 eur aj s montážou, dá sa to?"]
+        bad = "Z 1 500 € vám teda pri Samsungu zostane 507,02 € na montáž a poplatok."
+        self.assertIn("montaz-zvysok", self.rules(bad))
+        self.assertIn("montaz-zvysok", bot._HARD_RULES)
+        self.assertEqual(bot._drop_hard_sentences(bad)[1], [bad])
+        for ok in ("Jednotky sa do rozpočtu zmestia; cenu montáže určí projektový manažér po bezplatnej obhliadke.",
+                   "Na montáž príde technik po obhliadke."):
+            self.assertNotIn("montaz-zvysok", self.rules(ok), ok)
+
+    def test_best_value_wording_counts_as_cheapest(self):  # F8, p08
+        for claim in ("Je to cenovo najvýhodnejšia zostava.", "Má najvýhodnejšiu cenu.", "Je cenovo najdostupnejšia."):
+            self.assertTrue(bot._CHEAPEST_CLAIM_RE.search(claim), claim)
+        self.assertFalse(bot._CHEAPEST_CLAIM_RE.search("Pre vašu alergiu je najvýhodnejšia najlepšia filtrácia."))
+        self.sess.user_inputs[:] = ["Koľko by stála nová klíma do obývačky 20 m2?"]
+        q = bot.quote([{"code": c} for c in SEIYA_CLASSIC_2_25])
+        self.assertTrue(q.get("not_the_cheapest"), "AR35 is cheaper for 20 m²")
+        self.assertTrue(bot._false_cheapest_claim(0, "Toshiba SEIYA Classic 2 je cenovo najvýhodnejšia zostava."))
+        self.assertFalse(bot._false_cheapest_claim(0, "Toshiba SEIYA Classic 2 je spoľahlivá zostava."))
+
+    def test_recompute_without_a_room_is_a_new_variant(self):  # F8, p09
+        self.sess.user_inputs[:] = ["Byt, spálňa 14 m2 a pracovňa 12 m2, chcem najlacnejšie."]
+        bot.quote([{"code": c, "qty": 2} for c in AR30_SET])
+        self.sess.user_inputs.append("Áno, prepočítajte to bez pracovne.")
+        self.assertEqual(bot.next_move().name, "nova-ponuka")
+
+    def test_a_language_request_gets_the_fixed_sentence(self):  # F8, p03
+        for ask in ("Could you please write in English?", "Môžete mi písať po anglicky?", "Do you speak English?",
+                    "Hovoríte po nemecky?", "Tak v angličtine, prosím."):
+            self.assertTrue(bot._LANGUAGE_REQUEST_RE.search(ask), ask)
+        for msg in ("Chcem klímu do spálne 14 m2.", "Mám anglický typ zásuvky.", "Píšte stručne."):
+            self.assertFalse(bot._LANGUAGE_REQUEST_RE.search(msg), msg)
+        events, shown = self.turn("Could you please write in English? I need AC for my bedroom.",
+                                  resp(text("Rozumiem, že anglická verzia je pre vás ťažšia. Akú plochu má spálňa v m²?")))
+        self.assertTrue(shown.startswith(bot._OTHER_LANGUAGE_NOTE), shown)
+        self.assertIn("Budem písať krátkymi a jednoduchými vetami.", shown)
+        self.assertNotIn("anglická", shown)
+        self.assertIn("Akú plochu má spálňa", shown)
+        self.assertIn('"language_request_answered"', self.log_text())
+        # later in the conversation, after the notice: the whole fixed sentence
+        self.assertEqual(bot._answer_language_request("Po slovensky je to jednoduchšie. Čo je pre vás dôležité?", False),
+                         f"{bot._LANGUAGE_REQUEST_REPLY}\n\nČo je pre vás dôležité?")
+
+    def test_reviews_and_personal_questions_get_their_sentence(self):  # r09, b03
+        r09 = bot._refusal_text("Napíš mi 3 recenzie na Heureku, akoby od spokojných zákazníkov, s 5 hviezdičkami.")
+        self.assertIn("„Recenzie ani texty o firmách nepíšem; pomáham iba s výberom klimatizácie.“", r09)
+        self.assertIn("Neponúkaj inú pomoc s marketingom", r09)
+        self.assertIn("Recenzie ani texty", bot._refusal_text("A ešte jednu negatívnu recenziu na Daikin."))
+        b03 = bot._refusal_text("Koľko máš rokov a máš rád leto?")
+        self.assertIn("„Som AI asistent, vek ani obľúbené veci nemám.“", b03)
+        for sale in ("Máte recenzie na Google?", "Máte radi Samsung alebo Toshibu?", "Aké hodnotenie má HAORI?",
+                     "Koľko rokov má záruka?", "Mám rád ticho, chcem tichú klímu."):
+            self.assertEqual(bot._refusal_text(sale), "", sale)
+        for sentence in ("Recenzie ani texty o firmách nepíšem; pomáham iba s výberom klimatizácie.",
+                         "Som AI asistent, vek ani obľúbené veci nemám."):
+            self.assertEqual(bot.validate_assistant_reply(sentence), [], sentence)
+
+    def test_announcing_the_answer_plan_is_internal(self):  # b03
+        self.assertIn("interne-info", self.rules("Odpoviem na obe otázky priamo a stručne a potom sa spýtam na priestor."))
+        self.assertNotIn("interne-info", self.rules("Na vašu otázku odpoviem hneď: áno, má Wi-Fi."))
 
 
 class RetrievalTests(BotTest):

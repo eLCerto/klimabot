@@ -19,7 +19,7 @@ REPO = Path(__file__).resolve().parent.parent
 PRICES = json.loads((REPO / "config" / "model_prices.json").read_text(encoding="utf-8"))
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 MAX_TOKENS = 3000
-TOOL_PREVIEW_CHARS = 400
+TOOL_PREVIEW_CHARS = 4000  # a lookup lists every size; 400 showed one and the review flagged correct dB of another
 
 # What each score means; the owner's decisions behind them are in CLAUDE.md and knowledge/rules/.
 CRITERIA = {
@@ -101,7 +101,7 @@ def render(conv):
         for tool in turn.get("tools", []):
             error = " [CHYBA]" if str(tool.get("is_error")) == "True" else ""
             out.append(f"Nástroj {tool['name']} {str(tool.get('input'))[:200]}{error} → "
-                       f"{str(tool.get('output_preview', ''))[:TOOL_PREVIEW_CHARS]}")
+                       f"{str(tool.get('output') or tool.get('output_preview', ''))[:TOOL_PREVIEW_CHARS]}")
         out.append("Bot: " + ("\n\n".join(turn.get("assistant") or []) or "(bez textu)"))
     return "\n".join(out)
 

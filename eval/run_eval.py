@@ -88,6 +88,19 @@ def run_conversation(conv, run_dir):
         _settle_conversation(sess.cost_usd)
 
 
+def _attach_full_outputs(turn, sess):
+    """The tool_result event carries 300 characters, enough for the browser; the AI review needs the whole result
+    (it read the 2,5 kW row of a five-size lookup and flagged the correct 4,2 kW figures as wrong, A/B of 2026-11-09).
+    Each tool gets the stored result its preview starts."""
+    results = [b["content"] for m in sess.conversation if m.get("role") == "user" and isinstance(m.get("content"), list)
+               for b in m["content"] if isinstance(b, dict) and b.get("type") == "tool_result"
+               and isinstance(b.get("content"), str)]
+    for tool in turn["tools"]:
+        preview = tool.get("output_preview")
+        if preview and len(preview) >= 300:
+            tool["output"] = next((r for r in reversed(results) if r.startswith(preview)), preview)
+
+
 def _run_conversation(conv, run_dir, sess):
     bot.use_session(sess)
     started = time.time()
@@ -116,6 +129,7 @@ def _run_conversation(conv, run_dir, sess):
         except Exception as e:  # keep going: one broken turn shouldn't lose the conversation
             turn["errors"].append(f"{type(e).__name__}: {e}\n{traceback.format_exc()}")
         turn["seconds"] = round(time.time() - t0, 1)
+        _attach_full_outputs(turn, sess)
         if bot.breaker_open():  # the API account can't be charged: every reply would be the offline text
             LIMIT_HIT.set()
             raise RuntimeError("API spend limit reached (conversation incomplete, not saved)")

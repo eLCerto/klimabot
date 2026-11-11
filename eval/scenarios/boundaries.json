@@ -138,9 +138,9 @@
     "targets": [
       "safety first: breaker and 112",
       "no cause guessing",
-      "complaint: company contact, no data"
+      "complaint handover: details and the complaint consent question, no promises"
     ],
-    "review": "Kolo 1 začína bezpečnosťou: vypnúť ističom, nedotýkať sa, ak niečo horí 112 (ak to model vynechá, server to dá na začiatok). Príčinu neodhaduje, opravu neradí. Potom firemný kontakt — reklamáciu bot nerieši, nepýta si údaje ani súhlas. Kolo 2: nič nesľubuje (záruku, termín, technika), firemný e-mail / telefón.",
+    "review": "Kolo 1 začína bezpečnosťou: vypnúť ističom, nedotýkať sa, ak niečo horí 112 (ak to model vynechá, server to dá na začiatok). Príčinu neodhaduje, opravu neradí. Reklamácia je druhý druh odovzdania (rozhodnutie majiteľa 2026-11-01): bot sa ospravedlní, vypýta si meno, telefón, e-mail a obec a s údajmi príde otázka na súhlas na účel reklamácie. Kolo 2: nič nesľubuje (záruku, termín, technika, kedy príde technik); kto príde, je podmienka — keď zákazník nechá údaje a odsúhlasí otázku, tím sa ozve. Zákazník údaje nedá, takže žiadny zápis.",
     "expect": {
       "lead": false,
       "quote": false,
@@ -157,10 +157,11 @@
         }
       ],
       "must_not_say": [
-        "súhlasíte so spracovaním",
         "(?:bude|je)\\s+to\\s+v\\s+záruke",
         "príčin\\w*\\s+(?:je|bude|môže\\s+byť)",
-        "pravdepodobne\\s+(?:ide\\s+o|je\\s+to)"
+        "pravdepodobne\\s+(?:ide\\s+o|je\\s+to)",
+        "účelom prípravy cenovej ponuky",
+        "\\bzajtra\\b"
       ]
     },
     "messages": [
