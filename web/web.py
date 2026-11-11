@@ -58,9 +58,14 @@ if os.getenv("KLIMABOT_DEMO", "1") == "1":
 import bot  # noqa: E402  (intentional after sys.path mutation)
 import cost_report  # noqa: E402
 
+import mimetypes  # noqa: E402
+
 from flask import Flask, Response, jsonify, request, send_from_directory  # noqa: E402
 from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
 
+# The self-hosted Inter font: the slim Docker image's Python has no type for .woff2 and served it as
+# application/octet-stream (browsers load it anyway, nosniff covers only scripts and styles).
+mimetypes.add_type("font/woff2", ".woff2")
 app = Flask(__name__, static_folder=str(Path(__file__).parent / "static"))
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024  # a chat message is small; refuse bigger bodies before parsing
 log = logging.getLogger("klimabot.web")

@@ -1559,7 +1559,8 @@ window.addEventListener("pagehide", (event) => {
 // on-screen keyboard opens, iOS Safari only shrinks and pans that viewport (Chrome on Android resizes the
 // layout too, interactive-widget=resizes-content): a page sized to the window would keep its header
 // above the screen and the composer under the keyboard. A visitor reading the latest message stays on
-// it. Pinch zoom shrinks the visual viewport as well; then the layout is left alone.
+// it (not the welcome card: a short phone would open it scrolled past its heading). Pinch zoom shrinks the
+// visual viewport as well; then the layout is left alone.
 // The keyboard is taken as open while the visible height is under 75 % of the tallest seen at this width.
 const viewport = window.visualViewport;
 let fullHeight = 0, fullWidth = 0;
@@ -1575,7 +1576,7 @@ function fitViewport() {
   root.classList.toggle("kb-open", viewport.height < fullHeight * 0.75);
   root.style.setProperty("--app-height", `${Math.round(viewport.height)}px`);
   root.style.setProperty("--app-top", `${Math.round(viewport.offsetTop)}px`);
-  if (pinnedToBottom) scrollToBottom();
+  if (pinnedToBottom && welcomeEl.hidden) scrollToBottom();  // the welcome card opens at its top
 }
 if (viewport) {
   document.documentElement.classList.add("vv");

@@ -2060,6 +2060,12 @@ class WebTests(unittest.TestCase):
             r = self.client.get("/" + src)
             self.assertEqual(r.status_code, 200, src)
             r.close()
+        fonts = re.findall(r'url\("(static/vendor/[^"]+\.woff2)"\)', html)
+        self.assertEqual(len(fonts), 2, "Inter, latin and latin-ext, self-hosted")
+        for src in fonts:
+            r = self.client.get("/" + src)
+            self.assertEqual((r.status_code, r.mimetype), (200, "font/woff2"), src)
+            r.close()
         self.assertEqual(self.client.get("/api/config").get_json()["max_message_chars"], web.MAX_MESSAGE_CHARS)
 
     def test_price_card_has_a_choose_button(self):  # the owner's wish, 2026-10-20: click instead of typing

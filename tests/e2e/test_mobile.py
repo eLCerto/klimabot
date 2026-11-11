@@ -80,6 +80,14 @@ def test_small_phones_never_scroll_sideways(chat, model):
         expect(chat.price_cards.last.get_by_role("button", name="Toto chcem")).to_be_attached()
 
 
+@pytest.mark.browser_context_args(**{**PHONE, "viewport": {"width": 390, "height": 560}})
+def test_a_short_phone_opens_the_welcome_card_at_its_top(chat):
+    # The first deploy of fitViewport kept "the latest message" in view on load, and on a short screen that
+    # was the bottom of the welcome card, its heading scrolled away.
+    expect(chat.welcome).to_be_in_viewport()
+    assert chat.page.evaluate("document.getElementById('messages').scrollTop") == 0
+
+
 def test_a_reload_does_not_replay_the_entrances(chat, model):
     entrances = "() => document.getAnimations().filter((a) => document.getElementById('message-list').contains(a.effect && a.effect.target)).length"
     model.replies("Do akej miestnosti hľadáte klimatizáciu a koľko má m²?")
