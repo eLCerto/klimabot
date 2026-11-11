@@ -1,6 +1,6 @@
 # Klimabot — AI sales assistant for air conditioning
 
-[![tests](https://github.com/eLCerto/klimabot/actions/workflows/tests.yml/badge.svg)](https://github.com/eLCerto/klimabot/actions/workflows/tests.yml)
+[![tests](https://github.com/malisek-samuel/klimabot/actions/workflows/tests.yml/badge.svg)](https://github.com/malisek-samuel/klimabot/actions/workflows/tests.yml)
 
 A Slovak-language chatbot that sells air conditioning the way a good salesperson does. It asks about the space first, recommends two specific Samsung or Toshiba options, quotes exact prices, and hands a structured brief to the project manager once the customer agrees.
 
@@ -71,7 +71,7 @@ A conversation costs about $0.01 on Claude Haiku 5.5 (the exploratory round: $0.
 - **Model:** Claude Haiku 5.5 with tool use (`search_knowledge`, `lookup_product`, `quote`, `check_compatibility`, `compare_products`, `update_customer_state`, `capture_lead`, `request_human_handoff`), with prompt caching on the static system prompt.
 - **Retrieval:** hybrid BM25 (with diacritics-folded tokens and a SK/CZ/EN synonym glossary) plus `multilingual-e5-base` embeddings, fused with reciprocal rank fusion and re-ranked by a multilingual cross-encoder. HyDE query expansion runs for vague questions.
 - **Behavior rules** live as Markdown files in [`knowledge/rules/`](knowledge/rules/). Each one states the rule, why it exists (usually a real failure), and how to apply it. They're retrieved like knowledge, with a small authority boost.
-- **Web UI:** Flask + server-sent events, one HTML file with no build step. Replies render as sanitized Markdown, the empty chat offers example questions, a status line says what the bot is doing while it prepares a reply ("Počítam cenu…"), and the PM record can be copied or downloaded. Light and dark themes, a tabbed layout on phones. marked and DOMPurify are pinned local copies (no CDN), and the page is served with a Content-Security-Policy. Each browser tab gets its own session, so concurrent visitors never share a conversation.
+- **Web UI:** Flask + server-sent events, one HTML file with no build step. Replies render as sanitized Markdown, the empty chat offers example questions, a status line says what the bot is doing while it prepares a reply ("Počítam cenu…"), and the PM record can be copied or downloaded. Light and dark themes, a tabbed layout on phones that follows the on-screen keyboard. marked, DOMPurify and the Inter font are pinned local copies (no CDN), and the page is served with a Content-Security-Policy. Each browser tab gets its own session, so concurrent visitors never share a conversation.
 - **Analytics:** [`cost_report.py`](cost_report.py) reports cost per session and per lead, the conversion funnel, drop-off points, which rules the validator catches most often, and a GDPR consent audit over the JSONL logs.
 
 ## Repository layout
@@ -83,7 +83,7 @@ cost_report.py    cost, conversion and GDPR-audit report over the logs (also at 
 config/           pricing policy, consent wording, sizing thresholds, stock rules, filtration ranking, model prices
 knowledge/        what the bot searches: samsung/, toshiba/, montaz/ (price lists), rules/ (behavior rules)
 dictionaries/     the Slovak spelling dictionary (sk-spell) and the bot's own extra words
-web/              the web app: web.py and static/ (one HTML file + pinned marked and DOMPurify)
+web/              the web app: web.py and static/ (one HTML file + pinned marked, DOMPurify and Inter)
 tests/            unit and robustness tests with a fake model client; e2e/ the browser tests (Playwright)
 eval/             scripted customer conversations, runners and analysis
 docs/             screenshot, QA reports, the conversation-policy diagram
